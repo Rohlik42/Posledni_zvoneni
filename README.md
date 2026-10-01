@@ -39,3 +39,7 @@ Poražený učitel se promění v průsvitného ducha s očima a vlnícím se po
 ## Házení předmětů
 
 Tužka, pero a kružítko jsou viditelné 3D předměty, které se házejí ve směru míření. Poškození způsobují až po dopadu; mají mírný pokles gravitací a zastaví je stěny, podlaha, strop i hlavní nábytek. Kružítko se za letu přetáčí. Nůžky zůstávají na blízko a při útoku zavírají a otevírají čepele. Hod doprovází svištění, dopad krátké klepnutí a nůžky kovové cvaknutí. Po hodu se další předmět objeví v ruce po skončení prodlevy útoku; prototyp má neomezenou zásobu předmětů z penálu.
+
+## Jména učitelů
+
+Nad učiteli je cedulka s bílým příjmením a druhým řádkem s předmětem, která se vždy natáčí k hráči. Seznam: Šiklová — Matematika; Komoň — Čeština; Underlová — Angličtina; Lambertová — Zeměpis; Taušl — Tělocvik; Doležalová — Dějepis; Ditrichová — Hudebka; Novotná — Výtvarka. Učitelé se přidávají s dalšími dny jako dosud; při větším počtu se seznam opakuje. Cedulka doprovází také ducha a zmizí, když dorazí ke sborovně.

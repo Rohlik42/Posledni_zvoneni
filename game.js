@@ -123,15 +123,39 @@ function route(t){
   for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,nz=z+dz,key=nx+','+nz;if(map[nz]?.[nx]==='0'&&!seen.has(key)){seen.add(key);prev.set(key,[x,z]);queue.push([nx,nz])}}
  }return {x:t.x,z:t.z};
 }
+const teacherRoster=[
+ {name:'Šiklová',subject:'Matematika'},
+ {name:'Komoň',subject:'Čeština'},
+ {name:'Underlová',subject:'Angličtina'},
+ {name:'Lambertová',subject:'Zeměpis'},
+ {name:'Taušl',subject:'Tělocvik'},
+ {name:'Doležalová',subject:'Dějepis'},
+ {name:'Ditrichová',subject:'Hudebka'},
+ {name:'Novotná',subject:'Výtvarka'}
+];
+const teacherNameMaterials=new Map();
+function teacherNameplate(profile){
+ let m=teacherNameMaterials.get(profile.name);
+ if(!m){
+  const texture=new B.DynamicTexture('name '+profile.name,{width:512,height:160},scene,true),c=texture.getContext();
+  c.clearRect(0,0,512,160);c.fillStyle='rgba(14,25,34,0.78)';c.fillRect(0,0,512,160);
+  c.textAlign='center';c.textBaseline='middle';c.fillStyle='#ffffff';c.font='bold 70px Arial';c.fillText(profile.name,256,52);
+  c.fillStyle='#c6e3df';c.font='46px Arial';c.fillText(profile.subject,256,119);
+  texture.hasAlpha=true;texture.update();
+  m=new B.StandardMaterial('nameplate '+profile.name,scene);m.diffuseTexture=texture;m.emissiveTexture=texture;m.diffuseColor=B.Color3.Black();m.emissiveColor=B.Color3.White();m.disableLighting=true;m.useAlphaFromDiffuseTexture=true;m.backFaceCulling=false;m.specularColor=B.Color3.Black();teacherNameMaterials.set(profile.name,m);
+ }
+ const plate=B.MeshBuilder.CreatePlane('nameplate '+profile.name,{width:2.05,height:.64},scene);plate.material=m;plate.isPickable=false;plate.rotationQuaternion=B.Quaternion.Identity();return plate;
+}
 function createTeacher(x,z,index){
  const root=new B.TransformNode('teacher',scene),jacket=material('jacket '+index,['#8373bc','#d38d64','#5b9990'][index%3]);root.position.set(x,0,z);
- const t={root,x,z,hp:65+day*10,max:65+day*10,cool:2+Math.random()*2,wind:0,grade:1,pathTime:0,walk:0};
+ const profile=teacherRoster[index%teacherRoster.length];
+ const t={root,x,z,profile,nameplate:teacherNameplate(profile),hp:65+day*10,max:65+day*10,cool:2+Math.random()*2,wind:0,grade:1,pathTime:0,walk:0};
  const target=mesh=>{mesh.isPickable=true;mesh.metadata={teacher:t};shadows.addShadowCaster(mesh);return mesh};
  target(box('jacket',[.65,.7,.34],[0,1.05,0],jacket,root));target(sphere('head',.48,[0,1.7,0],mat.skin,root));sphere('hair',.48,[0,1.8,-.035],mat.hair,root);
  box('shirt',[.19,.45,.025],[0,1.17,.182],mat.white,root);box('tie',[.07,.38,.03],[0,1.12,.2],mat.trim,root);
  for(const side of [-1,1]){target(box('arm',[.18,.65,.22],[side*.43,1.04,0],jacket,root));sphere('fist',.18,[side*.43,.69,0],mat.skin,root);target(box('leg',[.22,.64,.24],[side*.18,.38,0],mat.pants,root));box('shoe',[.25,.15,.38],[side*.18,.075,.06],mat.shoe,root);box('glasses',[.2,.1,.035],[side*.12,1.72,.225],mat.metal,root);box('lens',[.14,.055,.04],[side*.12,1.72,.248],mat.white,root);sphere('pupil',.032,[side*.12,1.72,.275],mat.metal,root);}
  box('mouth',[.14,.024,.025],[0,1.56,.23],mat.hair,root);box('book',[.24,.3,.07],[.43,.86,.14],mat.red,root);
- t.label=textSign('!',.35,.35,[0,2.35,0],root,'#d34251');t.label.billboardMode=B.Mesh.BILLBOARDMODE_ALL;t.label.setEnabled(false);
+ t.label=textSign('!',.35,.35,[0,3.2,0],root,'#d34251');t.label.billboardMode=B.Mesh.BILLBOARDMODE_ALL;t.label.setEnabled(false);
  t.bar=box('health',[.7,.06,.015],[0,2.06,0],mat.lettuce,root);return t;
 }
 const ghostMat=material('friendly ghost','#b1f5ed');ghostMat.alpha=.62;ghostMat.emissiveColor=new B.Color3(.2,.5,.46);ghostMat.backFaceCulling=false;
@@ -151,7 +175,7 @@ function updateGhost(t,dt){
  if(d<.2){if(g.step<g.waypoints.length-1)g.step++;else{t.root.setEnabled(false);t.ghost=null;}}
 }
 function spawnPickup(x,z,type){const root=new B.TransformNode('supply',scene);root.position.set(x,.5,z);if(type==='food'){box('bread',[.45,.12,.3],[0,0,0],mat.bread,root);box('filling',[.49,.04,.32],[0,.08,0],mat.lettuce,root);box('bread',[.45,.12,.3],[0,.15,0],mat.bread,root)}else{cylinder('bottle',.42,.2,[0,.15,0],mat.water,root);cylinder('cap',.06,.12,[0,.4,0],mat.blue,root)}return {root,x,z,type};}
-function clearEntities(){for(const item of [...teachers,...shots,...pickups])item.root.dispose();teachers=[];shots=[];pickups=[];}
+function clearEntities(){for(const item of [...teachers,...shots,...pickups]){item.root.dispose();item.nameplate?.dispose();}teachers=[];shots=[];pickups=[];}
 function spawnDay(){clearEntities();const spots=[[9,6],[12,3],[3,3],[12,11],[3,11],[18,3],[21,10],[21,3],[18,11],[13,6],[6,3],[9,11]];for(let i=0;i<Math.min(3+day,12);i++){const p=spots[i%spots.length];teachers.push(createTeacher((p[0]+.5)*CELL,(p[1]+.5)*CELL,i))}pickups=[spawnPickup(6.25,8.75,'food'),spawnPickup(33.75,28.75,'drink'),spawnPickup(43.75,8.75,'drink'),spawnPickup(53.75,28.75,'food')];toast(`DEN ${day} — hodina začíná!`);hud()}
 function reset(){player={x:13.75,z:16.25,y:0,vy:0,yaw:Math.PI/2,pitch:0,student:studentChoice};studentClothes.diffuseColor=B.Color3.FromHexString(studentTypes[studentChoice].color);hp=150;food=3;drink=2;day=1;kills=0;selected=0;cooldown=swing=hit=flash=nextDay=0;dead=false;spawnDay();syncView()}
 function hitTeacher(t,amount){
@@ -231,6 +255,7 @@ function syncView(){
  const shake=hit>0?Math.sin(time*70)*hit*.035:0;
  camera.position.set(player.x+Math.cos(player.yaw)*shake,1.65+player.y,player.z-Math.sin(player.yaw)*shake);
  camera.rotation.set(0,0,0);camera.rotationQuaternion.copyFrom(B.Quaternion.RotationYawPitchRoll(player.yaw,player.pitch,0));camera.upVector.copyFromFloats(0,1,0);
+ for(const t of teachers){t.nameplate.setEnabled(t.root.isEnabled());t.nameplate.position.copyFrom(t.root.position).addInPlace(new B.Vector3(0,2.55,0));t.nameplate.rotationQuaternion.copyFrom(camera.rotationQuaternion);}
  for(const shot of shots)if(shot.kind!=='thrown')shot.root.rotationQuaternion.copyFrom(camera.rotationQuaternion);
  body.position.set(player.x,player.y,player.z);body.rotation.y=player.yaw;
  const moving=active&&['KeyW','KeyS','KeyA','KeyD'].some(k=>keys.has(k));legs.forEach((l,i)=>l.rotation.x=moving?Math.sin(time*10+i*Math.PI)*.35:0);
