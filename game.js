@@ -10,15 +10,17 @@ const shadows=new B.ShadowGenerator(1024,sun);shadows.usePercentageCloserFilteri
 const sound={context:null,master:null,noise:null,muted:false,
  unlock(){try{if(!this.context){const Audio=window.AudioContext||window.webkitAudioContext;if(!Audio)return;this.context=new Audio();this.master=this.context.createGain();this.master.gain.value=.32;this.master.connect(this.context.destination);this.noise=this.context.createBuffer(1,this.context.sampleRate*.3,this.context.sampleRate);const data=this.noise.getChannelData(0);for(let i=0;i<data.length;i++)data[i]=Math.random()*2-1;}this.context.resume().catch(()=>{});}catch{this.context=null;}},
  tone(freq,end,duration,delay=0,type='sine',volume=.2){if(!this.context||this.muted)return;const c=this.context,t=c.currentTime+delay,o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.setValueAtTime(freq,t);o.frequency.exponentialRampToValueAtTime(Math.max(20,end),t+duration);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(volume,t+.008);g.gain.exponentialRampToValueAtTime(.001,t+duration);o.connect(g);g.connect(this.master);o.start(t);o.stop(t+duration+.02);o.onended=()=>{o.disconnect();g.disconnect()};},
+ whoosh(duration=.18,delay=0){if(!this.context||this.muted)return;const c=this.context,t=c.currentTime+delay,n=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain();n.buffer=this.noise;f.type='bandpass';f.Q.value=.6;f.frequency.setValueAtTime(2800,t);f.frequency.exponentialRampToValueAtTime(380,t+duration);g.gain.setValueAtTime(.001,t);g.gain.linearRampToValueAtTime(.28,t+.025);g.gain.exponentialRampToValueAtTime(.001,t+duration);n.connect(f);f.connect(g);g.connect(this.master);n.start(t);n.stop(t+duration);n.onended=()=>{n.disconnect();f.disconnect();g.disconnect()};},
  crunch(delay=0){if(!this.context||this.muted)return;const c=this.context,t=c.currentTime+delay,n=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain();n.buffer=this.noise;f.type='bandpass';f.frequency.value=1600+Math.random()*1800;f.Q.value=.7;g.gain.setValueAtTime(.7,t);g.gain.exponentialRampToValueAtTime(.001,t+.14);n.connect(f);f.connect(g);g.connect(this.master);n.start(t);n.stop(t+.15);n.onended=()=>{n.disconnect();f.disconnect();g.disconnect()};},
  play(kind){if(!this.context||this.muted)return;
- if(kind==='pencil'){this.tone(1200,180,.09,0,'triangle',.35);this.crunch();}
- if(kind==='pen'){this.tone(750,130,.14,0,'square',.12);this.tone(1300,450,.1,.04,'sine',.18);}
- if(kind==='scissors'){this.crunch();this.crunch(.09);this.tone(1700,700,.05,0,'triangle',.15);}
- if(kind==='compass'){this.tone(480,1800,.12,0,'triangle',.24);this.tone(1800,230,.2,.1,'sine',.2);}
+ if(kind==='pencil'){this.whoosh(.12);this.tone(650,270,.07,0,'triangle',.06);}
+ if(kind==='pen'){this.whoosh(.16);this.tone(1100,650,.05,0,'triangle',.06);}
+ if(kind==='scissors'){this.tone(2200,800,.045,0,'triangle',.2);this.tone(1400,550,.04,.07,'triangle',.16);}
+ if(kind==='compass'){this.whoosh(.24);this.tone(820,500,.12,0,'triangle',.08);}
  if(kind==='food'){for(let i=0;i<3;i++){this.crunch(i*.22);this.tone(130,90,.1,i*.22,'triangle',.15);}this.tone(105,55,.23,.77,'sawtooth',.11);}
  if(kind==='drink'){for(let i=0;i<5;i++){this.tone(180+i%2*90,500,.085,i*.13,'sine',.3);this.tone(420,120,.075,i*.13+.055,'sine',.25);}this.tone(90,48,.2,.78,'sawtooth',.1);}
  if(kind==='ghost'){this.tone(240,850,.35,0,'sine',.25);this.tone(850,280,.6,.3,'triangle',.16);}
+ if(kind==='impact'){this.tone(220,80,.09,0,'triangle',.2);this.crunch();}
  if(kind==='hurt')this.tone(180,65,.12,0,'triangle',.18);
  if(kind==='bell')for(let i=0;i<3;i++)this.tone(1100,1000,.35,i*.18,'sine',.18);
  if(kind==='pickup')this.tone(600,1100,.15,0,'sine',.16);
@@ -31,7 +33,7 @@ const map=['1111111111111111','1000000100000001','1000000000000001','10000001000
 const CELL=2.5,keys=new Set(),obstacles=[];
 function material(name,color){const m=new B.StandardMaterial(name,scene);m.diffuseColor=B.Color3.FromHexString(color);m.specularColor=new B.Color3(.08,.08,.08);return m}
 const mat={wall:material('plaster','#efe6c9'),lower:material('teal wall','#65a8a3'),trim:material('trim','#dfb857'),floor:material('floor','#a9b7ad'),ceiling:material('ceiling','#ece9da'),wood:material('wood','#cda36a'),metal:material('metal','#536975'),board:material('board','#234f49'),white:material('paper','#fff6dc'),skin:material('skin','#f2c59e'),hair:material('hair','#57433c'),pants:material('pants','#344c66'),shoe:material('shoe','#26313c'),red:material('red','#ed5564'),yellow:material('pencil','#f2bf48'),blue:material('pen','#65a8ee'),purple:material('compass','#b596e5'),silver:material('steel','#c9d6dd'),bread:material('bread','#e7b76b'),lettuce:material('lettuce','#8bb965'),water:material('water','#6bbad3')};
-function box(name,size,pos,m,parent=null,pick=false){const mesh=B.MeshBuilder.CreateBox(name,{width:size[0],height:size[1],depth:size[2]},scene);mesh.position.set(...pos);mesh.material=m;mesh.parent=parent;mesh.isPickable=pick;mesh.receiveShadows=true;return mesh}
+function box(name,size,pos,m,parent=null,pick=false){const mesh=B.MeshBuilder.CreateBox(name,{width:size[0],height:size[1],depth:size[2]},scene);mesh.position.set(...pos);mesh.material=m;mesh.parent=parent;mesh.isPickable=pick;if(['floor','ceiling','desk','staff door','bookshelf','backboard','locker'].includes(name)){mesh.isPickable=true;mesh.metadata={solid:true};}mesh.receiveShadows=true;return mesh}
 function sphere(name,size,pos,m,parent=null){const mesh=B.MeshBuilder.CreateSphere(name,{diameter:size,segments:12},scene);mesh.position.set(...pos);mesh.material=m;mesh.parent=parent;mesh.isPickable=false;return mesh}
 function cylinder(name,height,diameter,pos,m,parent=null,top=diameter){const mesh=B.MeshBuilder.CreateCylinder(name,{height,diameterBottom:diameter,diameterTop:top,tessellation:12},scene);mesh.position.set(...pos);mesh.material=m;mesh.parent=parent;mesh.isPickable=false;return mesh}
 function textSign(text,w,h,pos,parent=null,color='#274d52',background='#fff3cf'){
@@ -91,14 +93,19 @@ function currentStudent(){return studentTypes[started&&!dead?player.student:stud
 function weaponDamage(w){return Math.round(w.damage*currentStudent().damage)}
 function updateStudentChoice(){ $('#student-choice').disabled=started&&!dead; }
 for(const input of document.querySelectorAll('input[name="student"]'))input.addEventListener('change',()=>{if(started&&!dead)return;studentChoice=input.value;hud()});
-const weapons=[{name:'Tužka',damage:18,delay:.25,range:25,desc:'RYCHLÁ • 18 DMG'},{name:'Pero',damage:32,delay:.48,range:30,desc:'PŘESNÉ • 32 DMG'},{name:'Nůžky',damage:55,delay:.65,range:3.1,desc:'ZBLÍZKA • 55 DMG'},{name:'Kružítko',damage:42,delay:.7,range:20,desc:'SILNÉ • 42 DMG'}];
+const weapons=[{name:'Tužka',damage:18,delay:.25,range:25,desc:'HOD • 18 DMG'},{name:'Pero',damage:32,delay:.48,range:30,desc:'HOD • 32 DMG'},{name:'Nůžky',damage:55,delay:.65,range:3.1,desc:'ZBLÍZKA • 55 DMG'},{name:'Kružítko',damage:42,delay:.7,range:20,desc:'HOD • 42 DMG'}];
 $('#weapons').innerHTML=weapons.map((w,i)=>`<div class="slot" id="slot${i}">${i+1}<strong>${w.name}</strong><small>${w.desc}</small></div>`).join('');
 const hand=new B.TransformNode('hand',scene);hand.parent=camera;hand.position.set(.36,-.32,.65);
 box('sleeve',[.18,.17,.45],[0,-.12,-.15],studentClothes,hand);sphere('hand',.21,[0,0,0],mat.skin,hand);
+const scissorParts=[];
 const weaponModels=weapons.map((w,i)=>{
  const root=new B.TransformNode(w.name,scene);root.parent=hand;root.rotation.x=.7;
  if(i<2){cylinder(w.name,.55,.035,[0,.2,0],i===0?mat.yellow:mat.blue,root);cylinder('tip',.09,.035,[0,.52,0],mat.silver,root,0);if(i===1)box('pen clip',[.013,.15,.014],[.027,.34,0],mat.silver,root);}
- else if(i===2){for(const side of [-1,1]){const ring=B.MeshBuilder.CreateTorus('handle',{diameter:.115,thickness:.028,tessellation:16},scene);ring.parent=root;ring.rotation.x=Math.PI/2;ring.position.set(side*.06,.025,0);ring.material=mat.red;ring.isPickable=false;const blade=box('blade',[.032,.38,.012],[side*.045,.28,0],mat.silver,root);blade.rotation.z=-side*.23;}sphere('hinge',.04,[0,.13,0],mat.metal,root);}
+ else if(i===2){for(const side of [-1,1]){
+ const pivot=new B.TransformNode('scissor half',scene);pivot.parent=root;pivot.position.y=.13;pivot.metadata={side};scissorParts.push(pivot);
+ const ring=B.MeshBuilder.CreateTorus('handle',{diameter:.115,thickness:.028,tessellation:16},scene);ring.parent=pivot;ring.rotation.x=Math.PI/2;ring.position.set(side*.04,-.13,0);ring.material=mat.red;ring.isPickable=false;
+ box('blade',[.032,.38,.012],[0,.19,side*.006],mat.silver,pivot);
+ }sphere('hinge',.04,[0,.13,0],mat.metal,root);}
  else{for(const side of [-1,1]){const leg=box('compass leg',[.022,.48,.022],[side*.055,.25,0],side===1?mat.yellow:mat.silver,root);leg.rotation.z=side*.24;}cylinder('grip',.1,.045,[0,.53,0],mat.purple,root);}
  return root;
 });
@@ -147,9 +154,26 @@ function spawnPickup(x,z,type){const root=new B.TransformNode('supply',scene);ro
 function clearEntities(){for(const item of [...teachers,...shots,...pickups])item.root.dispose();teachers=[];shots=[];pickups=[];}
 function spawnDay(){clearEntities();const spots=[[9,6],[12,3],[3,3],[12,11],[3,11],[18,3],[21,10],[21,3],[18,11],[13,6],[6,3],[9,11]];for(let i=0;i<Math.min(3+day,12);i++){const p=spots[i%spots.length];teachers.push(createTeacher((p[0]+.5)*CELL,(p[1]+.5)*CELL,i))}pickups=[spawnPickup(6.25,8.75,'food'),spawnPickup(33.75,28.75,'drink'),spawnPickup(43.75,8.75,'drink'),spawnPickup(53.75,28.75,'food')];toast(`DEN ${day} — hodina začíná!`);hud()}
 function reset(){player={x:13.75,z:16.25,y:0,vy:0,yaw:Math.PI/2,pitch:0,student:studentChoice};studentClothes.diffuseColor=B.Color3.FromHexString(studentTypes[studentChoice].color);hp=150;food=3;drink=2;day=1;kills=0;selected=0;cooldown=swing=hit=flash=nextDay=0;dead=false;spawnDay();syncView()}
-function shoot(){if(!active||cooldown>0)return;const w=weapons[selected];cooldown=w.delay;swing=1;sound.play(['pencil','pen','scissors','compass'][selected]);const ray=camera.getForwardRay(w.range),result=scene.pickWithRay(ray,m=>!!m.metadata?.wall||(m.metadata?.teacher?.hp>0));
- if(result.hit&&result.pickedMesh.metadata?.teacher){const t=result.pickedMesh.metadata.teacher;t.hp-=weaponDamage(w);t.bar.scaling.x=Math.max(.001,t.hp/t.max);flash=.15;if(t.hp<=0){becomeGhost(t);kills++;toast('Duch učitele odlétá ke sborovně!');hud()}}
- if(selected!==2){const end=result.hit?result.pickedPoint:ray.origin.add(ray.direction.scale(w.range)),line=B.MeshBuilder.CreateLines('ink trail',{points:[hand.getAbsolutePosition(),end]},scene);line.color=selected===0?new B.Color3(1,.8,.3):new B.Color3(.4,.7,1);line.isPickable=false;shots.push({root:line,visual:true,life:.08})}
+function hitTeacher(t,amount){
+ if(t.hp<=0)return;t.hp-=amount;t.bar.scaling.x=Math.max(.001,t.hp/t.max);flash=.15;sound.play('impact');
+ if(t.hp<=0){becomeGhost(t);kills++;toast('Duch učitele odlétá ke sborovně!');hud();}
+}
+function attackSurface(m){return !!m.metadata?.wall||!!m.metadata?.solid||m.metadata?.teacher?.hp>0}
+function shoot(){
+ if(!active||cooldown>0)return;const w=weapons[selected];cooldown=w.delay;swing=1;sound.play(['pencil','pen','scissors','compass'][selected]);
+ const ray=camera.getForwardRay(w.range);
+ if(selected===2){const hit=scene.pickWithRay(ray,attackSurface);if(hit.hit&&hit.pickedMesh.metadata?.teacher)hitTeacher(hit.pickedMesh.metadata.teacher,weaponDamage(w));return;}
+ const root=weaponModels[selected].clone('thrown '+w.name,null,false);root.parent=null;root.setEnabled(true);root.scaling.setAll(1.65);root.position.copyFrom(ray.origin.add(ray.direction.scale(.38)));root.rotation.set(0,0,0);root.rotationQuaternion=B.Quaternion.Identity();
+ for(const mesh of root.getChildMeshes()){mesh.isPickable=false;mesh.metadata=null;}
+ const speed=[22,26,0,17][selected];
+ shots.push({root,kind:'thrown',weapon:selected,velocity:ray.direction.scale(speed),damage:weaponDamage(w),distance:0,range:w.range,age:0,life:w.range/speed+.5});
+ orientThrown(shots.at(-1));
+}
+function orientThrown(shot){
+ const direction=shot.velocity.normalizeToNew();const up=Math.abs(direction.y)>.98?B.Axis.X:B.Axis.Y;
+ const flight=B.Quaternion.FromLookDirectionLH(direction,up);
+ const spin=shot.weapon===3?Math.PI/2+shot.age*12:Math.PI/2;
+ shot.root.rotationQuaternion.copyFrom(flight.multiply(B.Quaternion.RotationAxis(B.Axis.X,spin)));
 }
 function useSupply(){if(!active)return;if(hp>=150){toast('Máš plné životy. Zásoby si schovej!');return}const type=150-hp>30?(food?'food':'drink'):(drink?'drink':'food');if((type==='food'?food:drink)<=0){toast('Zásoby došly! Prohledej školu.');return}const amount=Math.min(150-hp,type==='food'?50:30);if(type==='food')food--;else drink--;hp+=amount;sound.play(type);toast((type==='food'?'CHŘUP CHŘUP! Svačina':'GLO GLO GLO! Pití')+` +${amount} životů`);hud()}
 function damage(amount){sound.play('hurt');hp=Math.max(0,hp-amount);hit=.45;hud();if(hp===0){dead=true;active=false;updateStudentChoice();document.exitPointerLock?.();$('#overlay').style.display='flex';$('#intro').textContent=`Dokončené dny: ${day-1}. Učitelé ve sborovně: ${kills}.`;$('#start').textContent='ZKUSIT ZNOVU →'}}
@@ -186,7 +210,18 @@ function update(dt){time+=dt;cooldown=Math.max(0,cooldown-dt);swing=Math.max(0,s
  for(const t of teachers){if(t.hp<=0){if(t.ghost)updateGhost(t,dt);continue;}const d=Math.hypot(t.x-player.x,t.z-player.z),los=visible(new B.Vector3(t.x,1.4,t.z),new B.Vector3(player.x,1.4+player.y,player.z));t.pathTime-=dt;if(t.pathTime<=0){t.path=route(t);t.pathTime=.55}if(d>5){const aim=los?player:t.path,dx=aim.x-t.x,dz=aim.z-t.z,l=Math.hypot(dx,dz)||1,v=(1.3+Math.min(day,12)*.09)*dt;move(t,dx/l*v,dz/l*v);t.walk+=dt*6}t.root.position.set(t.x,Math.sin(t.walk)*.018,t.z);t.root.rotation.y=Math.atan2(player.x-t.x,player.z-t.z);t.cool-=dt;
   if(t.wind>0){t.wind-=dt;if(t.wind<=0){if(los)fireGrade(t);t.label.setEnabled(false);t.cool=2.2+Math.random()*1.8}}else if(t.cool<=0&&los&&d<28){t.grade=Math.random()<.16?100:2+Math.floor(Math.random()*4);t.wind=t.grade===100?1.4:.65;t.label.setEnabled(true);if(t.grade===100)toast('POZOR! Učitel píše poznámku!')}
  }
- for(const shot of shots){shot.life-=dt;if(shot.visual)continue;const step=shot.velocity.scale(dt),pos=shot.root.position;if(!visible(pos,pos.add(step))){shot.life=0;continue}pos.addInPlace(step);if(shot.life>0&&Math.hypot(pos.x-player.x,pos.z-player.z)<.36&&pos.y>player.y+.12&&pos.y<player.y+1.85){shot.life=0;damage(shot.damage);if(dead)break}}
+ for(const shot of shots){
+ shot.life-=dt;const pos=shot.root.position;
+ if(shot.kind==='thrown'){
+  shot.age+=dt;shot.velocity.y-=1.2*dt;const step=shot.velocity.scale(dt),distance=step.length();
+  const result=scene.pickWithRay(new B.Ray(pos,step.normalizeToNew(),Math.min(distance,shot.range-shot.distance)),attackSurface);
+  if(result.hit){pos.copyFrom(result.pickedPoint);shot.life=0;if(result.pickedMesh.metadata?.teacher)hitTeacher(result.pickedMesh.metadata.teacher,shot.damage);else sound.play('impact');}
+  else{pos.addInPlace(step);shot.distance+=distance;if(shot.distance>=shot.range||pos.y<0)shot.life=0;}
+  orientThrown(shot);continue;
+ }
+ const step=shot.velocity.scale(dt);if(!visible(pos,pos.add(step))){shot.life=0;continue}pos.addInPlace(step);
+ if(shot.life>0&&Math.hypot(pos.x-player.x,pos.z-player.z)<.36&&pos.y>player.y+.12&&pos.y<player.y+1.85){shot.life=0;damage(shot.damage);if(dead)break}
+ }
  shots=shots.filter(s=>{if(s.life<=0){s.root.dispose();return false}return true});if(dead)return;
  pickups=pickups.filter(p=>{p.root.rotation.y+=dt;p.root.position.y=.5+Math.sin(time*3)*.08;if(Math.hypot(p.x-player.x,p.z-player.z)<.8){if(p.type==='food')food++;else drink++;p.root.dispose();sound.play('pickup');toast(p.type==='food'?'Našel jsi svačinu!':'Našel jsi pití!');hud();return false}return true});
  if(teachers.every(t=>t.hp<=0)){if(!nextDay){nextDay=4;sound.play('bell');toast('ZVONÍ! Den přežitý.')}nextDay-=dt;if(nextDay<=0){if(teachers.some(t=>t.ghost)){nextDay=.1;return}day++;food=Math.min(food+1,5);drink=Math.min(drink+1,4);nextDay=0;spawnDay()}}
@@ -196,10 +231,13 @@ function syncView(){
  const shake=hit>0?Math.sin(time*70)*hit*.035:0;
  camera.position.set(player.x+Math.cos(player.yaw)*shake,1.65+player.y,player.z-Math.sin(player.yaw)*shake);
  camera.rotation.set(0,0,0);camera.rotationQuaternion.copyFrom(B.Quaternion.RotationYawPitchRoll(player.yaw,player.pitch,0));camera.upVector.copyFromFloats(0,1,0);
- for(const shot of shots)if(!shot.visual)shot.root.rotationQuaternion.copyFrom(camera.rotationQuaternion);
+ for(const shot of shots)if(shot.kind!=='thrown')shot.root.rotationQuaternion.copyFrom(camera.rotationQuaternion);
  body.position.set(player.x,player.y,player.z);body.rotation.y=player.yaw;
  const moving=active&&['KeyW','KeyS','KeyA','KeyD'].some(k=>keys.has(k));legs.forEach((l,i)=>l.rotation.x=moving?Math.sin(time*10+i*Math.PI)*.35:0);
- hand.position.y=-.32+(moving?Math.sin(time*10)*.012:0)-swing*.08;hand.rotation.x=-swing*.7;
+ hand.position.y=-.32+(moving?Math.sin(time*10)*.012:0)-swing*.05;
+ hand.position.z=.65+(selected===2?Math.sin(swing*Math.PI)*.12:Math.sin(swing*Math.PI)*.18);hand.rotation.x=selected===2?0:swing*.45;
+ const closing=swing>0?Math.sin((1-swing)*Math.PI):0;for(const part of scissorParts)part.rotation.z=part.metadata.side*(.32-closing*.29);
+ weaponModels.forEach((root,i)=>root.setEnabled(i===selected&&(i===2||cooldown<=weapons[i].delay*.3)));
  $('#hurt').style.opacity=hit*.65;$('#crosshair').style.color=flash>0?'#baff6c':'#ffffffaa';
 }
 $('#sound-toggle').onclick=e=>{e.stopPropagation();sound.toggle()};

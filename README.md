@@ -35,3 +35,7 @@ Zvuky jsou vlastní syntetické efekty přes Web Audio: každá zbraň má odli�
 Poražený učitel se promění v průsvitného ducha s očima a vlnícím se pohybem. Už neútočí a nelze jej znovu zasáhnout. Odpluje chodbou ke dveřím sborovny a zmizí. Po posledním učiteli další den počká na odchod duchů.
 
 Škola nyní zabírá 60 × 32,5 metrů a obsahuje původní učebny 101–104 a nové křídlo 201–204: knihovna, informatika, fyzika a tělocvična. U dveří jsou čísla a názvy. Knihovna má barevné knihy a police, tělocvična hřiště, koš a lavičky. V novém křídle najdeš další zásoby a v dalších dnech i učitele.
+
+## Házení předmětů
+
+Tužka, pero a kružítko jsou viditelné 3D předměty, které se házejí ve směru míření. Poškození způsobují až po dopadu; mají mírný pokles gravitací a zastaví je stěny, podlaha, strop i hlavní nábytek. Kružítko se za letu přetáčí. Nůžky zůstávají na blízko a při útoku zavírají a otevírají čepele. Hod doprovází svištění, dopad krátké klepnutí a nůžky kovové cvaknutí. Po hodu se další předmět objeví v ruce po skončení prodlevy útoku; prototyp má neomezenou zásobu předmětů z penálu.
