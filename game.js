@@ -36,10 +36,21 @@ box('blackboard',[3,1.25,.1],[7.5,2,2.57],mat.board);textSign('DNES: PŘEŽÍT!'
 textSign('SBOROVNA',2.2,.4,[20,2.8,12.53],null).rotation.y=Math.PI;
 textSign('ŠKOLNÍ SURVIVAL',2.6,.5,[20,2.7,19.97]);
 for(let i=0;i<4;i++){box('locker',[.7,1.9,.6],[3.05,.95,14+i*.85],i%2?mat.blue:mat.lower);box('locker handle',[.05,.15,.08],[3.43,1.1,14+i*.85],mat.silver);}
+const studentTypes={
+ normal:{name:'Normální žák',damage:1,speed:1,color:'#65a8ee'},
+ troublemaker:{name:'Školní zlobivec',damage:1.25,speed:.8,color:'#ed7864'},
+ nerd:{name:'Šprt',damage:.8,speed:1.5,color:'#b596e5'}
+};
+let studentChoice='normal';
+const studentClothes=material('student clothes',studentTypes.normal.color);
+function currentStudent(){return studentTypes[started&&!dead?player.student:studentChoice]}
+function weaponDamage(w){return Math.round(w.damage*currentStudent().damage)}
+function updateStudentChoice(){ $('#student-choice').disabled=started&&!dead; }
+for(const input of document.querySelectorAll('input[name="student"]'))input.addEventListener('change',()=>{if(started&&!dead)return;studentChoice=input.value;hud()});
 const weapons=[{name:'Tužka',damage:18,delay:.25,range:25,desc:'RYCHLÁ • 18 DMG'},{name:'Pero',damage:32,delay:.48,range:30,desc:'PŘESNÉ • 32 DMG'},{name:'Nůžky',damage:55,delay:.65,range:3.1,desc:'ZBLÍZKA • 55 DMG'},{name:'Kružítko',damage:42,delay:.7,range:20,desc:'SILNÉ • 42 DMG'}];
 $('#weapons').innerHTML=weapons.map((w,i)=>`<div class="slot" id="slot${i}">${i+1}<strong>${w.name}</strong><small>${w.desc}</small></div>`).join('');
 const hand=new B.TransformNode('hand',scene);hand.parent=camera;hand.position.set(.36,-.32,.65);
-box('sleeve',[.18,.17,.45],[0,-.12,-.15],mat.blue,hand);sphere('hand',.21,[0,0,0],mat.skin,hand);
+box('sleeve',[.18,.17,.45],[0,-.12,-.15],studentClothes,hand);sphere('hand',.21,[0,0,0],mat.skin,hand);
 const weaponModels=weapons.map((w,i)=>{
  const root=new B.TransformNode(w.name,scene);root.parent=hand;root.rotation.x=.7;
  if(i<2){cylinder(w.name,.55,.035,[0,.2,0],i===0?mat.yellow:mat.blue,root);cylinder('tip',.09,.035,[0,.52,0],mat.silver,root,0);if(i===1)box('pen clip',[.013,.15,.014],[.027,.34,0],mat.silver,root);}
@@ -47,11 +58,11 @@ const weaponModels=weapons.map((w,i)=>{
  else{for(const side of [-1,1]){const leg=box('compass leg',[.022,.48,.022],[side*.055,.25,0],side===1?mat.yellow:mat.silver,root);leg.rotation.z=side*.24;}cylinder('grip',.1,.045,[0,.53,0],mat.purple,root);}
  return root;
 });
-const body=new B.TransformNode('player body',scene),legs=[];box('your shirt',[.43,.58,.27],[0,1.05,-.16],mat.blue,body);
+const body=new B.TransformNode('player body',scene),legs=[];box('your shirt',[.43,.58,.27],[0,1.05,-.16],studentClothes,body);
 for(const side of [-1,1]){const leg=new B.TransformNode('your leg',scene);leg.parent=body;leg.position.set(side*.13,.75,-.1);box('trousers',[.18,.61,.18],[0,-.305,0],mat.pants,leg);box('shoe',[.21,.14,.36],[0,-.68,.09],mat.shoe,leg);legs.push(leg);}
 let player,teachers=[],shots=[],pickups=[],hp=150,food=3,drink=2,day=1,kills=0,selected=0,active=false,started=false,fallback=false,dead=false,cooldown=0,swing=0,hit=0,flash=0,notice=0,nextDay=0,time=0;
 function toast(text){$('#toast').textContent=text;notice=2.6}
-function hud(){ $('#hpText').textContent=`${Math.ceil(hp)} / 150`;$('#hp').style.width=hp/150*100+'%';$('#hp').style.background=hp<50?'#ff7580':'#a5ed63';$('#food').textContent=food;$('#drink').textContent=drink;$('#day').textContent=String(day).padStart(2,'0');$('#wave').textContent=`UČITELÉ: ${teachers.filter(t=>t.hp>0).length} • PŘEŽIJ VYUČOVÁNÍ`;weapons.forEach((w,i)=>{$('#slot'+i).classList.toggle('active',i===selected);weaponModels[i].setEnabled(i===selected)})}
+function hud(){ updateStudentChoice();$('#student-active').textContent=currentStudent().name; $('#hpText').textContent=`${Math.ceil(hp)} / 150`;$('#hp').style.width=hp/150*100+'%';$('#hp').style.background=hp<50?'#ff7580':'#a5ed63';$('#food').textContent=food;$('#drink').textContent=drink;$('#day').textContent=String(day).padStart(2,'0');$('#wave').textContent=`UČITELÉ: ${teachers.filter(t=>t.hp>0).length} • PŘEŽIJ VYUČOVÁNÍ`;weapons.forEach((w,i)=>{$('#slot'+i).classList.toggle('active',i===selected);weaponModels[i].setEnabled(i===selected);$('#slot'+i+' small').textContent=w.desc.replace(/\d+ DMG/,weaponDamage(w)+' DMG')})}
 function blocked(x,z,r=.28){for(const dx of [-r,r])for(const dz of [-r,r])if(map[Math.floor((z+dz)/CELL)]?.[Math.floor((x+dx)/CELL)]!=='0')return true;return obstacles.some(o=>Math.abs(x-o.x)<o.rx+r&&Math.abs(z-o.z)<o.rz+r)}
 function move(o,dx,dz){if(!blocked(o.x+dx,o.z))o.x+=dx;if(!blocked(o.x,o.z+dz))o.z+=dz}
 function visible(from,to){const delta=to.subtract(from),d=delta.length();return !scene.pickWithRay(new B.Ray(from,delta.normalize(),d),m=>m.metadata?.wall).hit}
@@ -75,13 +86,13 @@ function createTeacher(x,z,index){
 function spawnPickup(x,z,type){const root=new B.TransformNode('supply',scene);root.position.set(x,.5,z);if(type==='food'){box('bread',[.45,.12,.3],[0,0,0],mat.bread,root);box('filling',[.49,.04,.32],[0,.08,0],mat.lettuce,root);box('bread',[.45,.12,.3],[0,.15,0],mat.bread,root)}else{cylinder('bottle',.42,.2,[0,.15,0],mat.water,root);cylinder('cap',.06,.12,[0,.4,0],mat.blue,root)}return {root,x,z,type};}
 function clearEntities(){for(const item of [...teachers,...shots,...pickups])item.root.dispose();teachers=[];shots=[];pickups=[];}
 function spawnDay(){clearEntities();const spots=[[9,6],[12,3],[3,3],[12,11],[3,11],[13,6],[6,3],[9,11],[2,6]];for(let i=0;i<Math.min(3+day,12);i++){const p=spots[i%spots.length];teachers.push(createTeacher((p[0]+.5)*CELL,(p[1]+.5)*CELL,i))}pickups=[spawnPickup(6.25,8.75,'food'),spawnPickup(33.75,28.75,'drink')];toast(`DEN ${day} — hodina začíná!`);hud()}
-function reset(){player={x:13.75,z:16.25,y:0,vy:0,yaw:Math.PI/2,pitch:0};hp=150;food=3;drink=2;day=1;kills=0;selected=0;cooldown=swing=hit=flash=nextDay=0;dead=false;spawnDay();syncView()}
+function reset(){player={x:13.75,z:16.25,y:0,vy:0,yaw:Math.PI/2,pitch:0,student:studentChoice};studentClothes.diffuseColor=B.Color3.FromHexString(studentTypes[studentChoice].color);hp=150;food=3;drink=2;day=1;kills=0;selected=0;cooldown=swing=hit=flash=nextDay=0;dead=false;spawnDay();syncView()}
 function shoot(){if(!active||cooldown>0)return;const w=weapons[selected];cooldown=w.delay;swing=1;const ray=camera.getForwardRay(w.range),result=scene.pickWithRay(ray,m=>!!m.metadata?.wall||(m.metadata?.teacher?.hp>0));
- if(result.hit&&result.pickedMesh.metadata?.teacher){const t=result.pickedMesh.metadata.teacher;t.hp-=w.damage;t.bar.scaling.x=Math.max(.001,t.hp/t.max);flash=.15;if(t.hp<=0){t.root.setEnabled(false);kills++;toast('Učitel odchází do sborovny!');hud()}}
+ if(result.hit&&result.pickedMesh.metadata?.teacher){const t=result.pickedMesh.metadata.teacher;t.hp-=weaponDamage(w);t.bar.scaling.x=Math.max(.001,t.hp/t.max);flash=.15;if(t.hp<=0){t.root.setEnabled(false);kills++;toast('Učitel odchází do sborovny!');hud()}}
  if(selected!==2){const end=result.hit?result.pickedPoint:ray.origin.add(ray.direction.scale(w.range)),line=B.MeshBuilder.CreateLines('ink trail',{points:[hand.getAbsolutePosition(),end]},scene);line.color=selected===0?new B.Color3(1,.8,.3):new B.Color3(.4,.7,1);line.isPickable=false;shots.push({root:line,visual:true,life:.08})}
 }
 function useSupply(){if(!active)return;if(hp>=150){toast('Máš plné životy. Zásoby si schovej!');return}const type=150-hp>30?(food?'food':'drink'):(drink?'drink':'food');if((type==='food'?food:drink)<=0){toast('Zásoby došly! Prohledej školu.');return}const amount=Math.min(150-hp,type==='food'?50:30);if(type==='food')food--;else drink--;hp+=amount;toast((type==='food'?'Svačina':'Pití')+` +${amount} životů`);hud()}
-function damage(amount){hp=Math.max(0,hp-amount);hit=.45;hud();if(hp===0){dead=true;active=false;document.exitPointerLock?.();$('#overlay').style.display='flex';$('#intro').textContent=`Dokončené dny: ${day-1}. Učitelé ve sborovně: ${kills}.`;$('#start').textContent='ZKUSIT ZNOVU →'}}
+function damage(amount){hp=Math.max(0,hp-amount);hit=.45;hud();if(hp===0){dead=true;active=false;updateStudentChoice();document.exitPointerLock?.();$('#overlay').style.display='flex';$('#intro').textContent=`Dokončené dny: ${day-1}. Učitelé ve sborovně: ${kills}.`;$('#start').textContent='ZKUSIT ZNOVU →'}}
 // One flat, camera-facing visual per projectile: no intersecting paper or spinning parent.
 const gradeMaterials=new Map();
 const gradeColors={2:'#ffe348',3:'#ff9e32',4:'#ff652e',5:'#ff3348'};
@@ -110,7 +121,7 @@ function fireGrade(t){
 }
 function update(dt){time+=dt;cooldown=Math.max(0,cooldown-dt);swing=Math.max(0,swing-dt*5);hit=Math.max(0,hit-dt);flash=Math.max(0,flash-dt);notice-=dt;if(notice<0)$('#toast').textContent='';
  if(player.y>0||player.vy>0){player.vy-=12*dt;player.y=Math.max(0,player.y+player.vy*dt);if(player.y===0)player.vy=0}
- const f=Number(keys.has('KeyW'))-Number(keys.has('KeyS')),s=Number(keys.has('KeyD'))-Number(keys.has('KeyA')),len=Math.hypot(f,s)||1,speed=(keys.has('ShiftLeft')||keys.has('ShiftRight')?6.5:4)*dt;
+ const f=Number(keys.has('KeyW'))-Number(keys.has('KeyS')),s=Number(keys.has('KeyD'))-Number(keys.has('KeyA')),len=Math.hypot(f,s)||1,speed=(keys.has('ShiftLeft')||keys.has('ShiftRight')?6.5:4)*currentStudent().speed*dt;
  move(player,(Math.sin(player.yaw)*f+Math.cos(player.yaw)*s)/len*speed,(Math.cos(player.yaw)*f-Math.sin(player.yaw)*s)/len*speed);
  for(const t of teachers){if(t.hp<=0)continue;const d=Math.hypot(t.x-player.x,t.z-player.z),los=visible(new B.Vector3(t.x,1.4,t.z),new B.Vector3(player.x,1.4+player.y,player.z));t.pathTime-=dt;if(t.pathTime<=0){t.path=route(t);t.pathTime=.55}if(d>5){const aim=los?player:t.path,dx=aim.x-t.x,dz=aim.z-t.z,l=Math.hypot(dx,dz)||1,v=(1.3+Math.min(day,12)*.09)*dt;move(t,dx/l*v,dz/l*v);t.walk+=dt*6}t.root.position.set(t.x,Math.sin(t.walk)*.018,t.z);t.root.rotation.y=Math.atan2(player.x-t.x,player.z-t.z);t.cool-=dt;
   if(t.wind>0){t.wind-=dt;if(t.wind<=0){if(los)fireGrade(t);t.label.setEnabled(false);t.cool=2.2+Math.random()*1.8}}else if(t.cool<=0&&los&&d<28){t.grade=Math.random()<.16?100:2+Math.floor(Math.random()*4);t.wind=t.grade===100?1.4:.65;t.label.setEnabled(true);if(t.grade===100)toast('POZOR! Učitel píše poznámku!')}
@@ -131,7 +142,7 @@ function syncView(){
  hand.position.y=-.32+(moving?Math.sin(time*10)*.012:0)-swing*.08;hand.rotation.x=-swing*.7;
  $('#hurt').style.opacity=hit*.65;$('#crosshair').style.color=flash>0?'#baff6c':'#ffffffaa';
 }
-$('#start').onclick=()=>{if(!started||dead){reset();started=true}try{const promise=canvas.requestPointerLock();promise?.catch(()=>pointerError())}catch{pointerError()}};
+$('#start').onclick=()=>{if(!started||dead){reset();started=true;hud()}try{const promise=canvas.requestPointerLock();promise?.catch(()=>pointerError())}catch{pointerError()}};
 function pointerError(){if(dead)return;fallback=true;active=true;keys.clear();$('#overlay').style.display='none';canvas.style.cursor='crosshair';toast('Myš bez uzamčení: rozhlížej se pohybem kurzoru. Esc = pauza.')}
 function pause(){active=false;fallback=false;keys.clear();canvas.style.cursor='default';$('#overlay').style.display='flex';if(!dead){$('#intro').textContent='Přestávka. Tvoje hra je pozastavená.';$('#start').textContent='ZPÁTKY DO HRY →'}}
 document.addEventListener('pointerlockerror',pointerError);document.addEventListener('pointerlockchange',()=>{active=document.pointerLockElement===canvas&&!dead;keys.clear();$('#overlay').style.display=active?'none':'flex';if(!active&&started&&!dead){$('#intro').textContent='Přestávka. Tvoje hra je pozastavená.';$('#start').textContent='ZPÁTKY DO HRY →'}});

@@ -23,3 +23,7 @@ Odkazy v `index.html` používají `?v=<SHA-256 otisk obsahu>` pro herní skript
 Spusť `node update-assets.cjs` po změně souborů a commitni také aktualizovaný `index.html`. V tomto checkoutu je automatické verzování při commitu zapnuté. Po klonování ho zapneš příkazem `git config core.hooksPath .githooks`. Hook potřebuje Node.js a úplně staged změny herního skriptu, stylů a HTML; částečné stagingy těchto souborů odmítne, aby se verze nezapsala pro jiný obsah než v commitu.
 
 Samotné HTML může zůstat krátce v cache GitHub Pages. Pro okamžité načtení po dokončeném deployi použij Ctrl+F5 nebo otevři stránku s novým parametrem, například `?release=<commit>`. Již otevřená hra se během hraní sama nepřenačítá. Lokální server používá `Cache-Control: no-store`; na GitHub Pages tento lokální server neběží.
+
+## Typy žáků
+
+Před startem vybereš normálního žáka (síla i rychlost 100 %), školního zlobivce (poškození +25 %, rychlost −20 %) nebo šprta (poškození −20 %, rychlost +50 %). Všichni mají 150 životů a stejné zásoby. Bonus síly se vztahuje na všechny čtyři zbraně; výsledné poškození se zaokrouhluje na celé číslo a ukazuje ve zbraňových slotech. Rychlost mění chůzi i sprint na Shiftu. Výběr zůstává po celý pokus, během pauzy jej nelze měnit; po prohře lze vybrat jiného žáka. Typ žáka se zobrazuje ve hře a ovlivní také barvu rukávu a trička.
