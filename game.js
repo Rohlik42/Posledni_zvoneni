@@ -2,7 +2,7 @@
 const $=s=>document.querySelector(s),B=BABYLON,canvas=$('#game');
 const engine=new B.Engine(canvas,true,{preserveDrawingBuffer:true,stencil:true}),scene=new B.Scene(engine);
 scene.clearColor=B.Color4.FromHexString('#aacddcff');scene.fogMode=B.Scene.FOGMODE_EXP;scene.fogDensity=.009;scene.fogColor=B.Color3.FromHexString('#b2cbd0');
-const camera=new B.FreeCamera('eyes',new B.Vector3(13.75,1.65,16.25),scene);camera.inputs.clear();camera.minZ=.035;camera.maxZ=120;camera.fov=1.25;
+const camera=new B.FreeCamera('eyes',new B.Vector3(13.75,1.65,16.25),scene);camera.inputs.clear();camera.upVector=B.Vector3.Up();camera.rotationQuaternion=B.Quaternion.Identity();camera.minZ=.035;camera.maxZ=120;camera.fov=1.25;
 const ambient=new B.HemisphericLight('daylight',new B.Vector3(.3,1,.2),scene);ambient.intensity=.85;ambient.groundColor=B.Color3.FromHexString('#657e89');
 const sun=new B.DirectionalLight('sun',new B.Vector3(-.4,-1,.3),scene);sun.position=new B.Vector3(18,18,-5);sun.intensity=.65;
 const shadows=new B.ShadowGenerator(1024,sun);shadows.usePercentageCloserFiltering=true;shadows.bias=.001;
@@ -82,25 +82,60 @@ function shoot(){if(!active||cooldown>0)return;const w=weapons[selected];cooldow
 }
 function useSupply(){if(!active)return;if(hp>=150){toast('Máš plné životy. Zásoby si schovej!');return}const type=150-hp>30?(food?'food':'drink'):(drink?'drink':'food');if((type==='food'?food:drink)<=0){toast('Zásoby došly! Prohledej školu.');return}const amount=Math.min(150-hp,type==='food'?50:30);if(type==='food')food--;else drink--;hp+=amount;toast((type==='food'?'Svačina':'Pití')+` +${amount} životů`);hud()}
 function damage(amount){hp=Math.max(0,hp-amount);hit=.45;hud();if(hp===0){dead=true;active=false;document.exitPointerLock?.();$('#overlay').style.display='flex';$('#intro').textContent=`Dokončené dny: ${day-1}. Učitelé ve sborovně: ${kills}.`;$('#start').textContent='ZKUSIT ZNOVU →'}}
-function fireGrade(t){const origin=new B.Vector3(t.x,1.15,t.z),aim=new B.Vector3(player.x,1+player.y,player.z),dir=aim.subtract(origin).normalize(),root=new B.TransformNode('grade',scene);root.position.copyFrom(origin);box('paper',[.44,.3,.035],[0,0,0],mat.white,root);const label=textSign(t.grade===100?'POZNÁMKA':String(t.grade),.4,.25,[0,0,-.023],root,'#d34251');label.billboardMode=B.Mesh.BILLBOARDMODE_ALL;shots.push({root,velocity:dir.scale(t.grade===100?5.8:7),damage:t.grade===100?100:t.grade*10,life:8})}
+// One flat, camera-facing visual per projectile: no intersecting paper or spinning parent.
+const gradeMaterials=new Map();
+const gradeColors={2:'#ffe348',3:'#ff9e32',4:'#ff652e',5:'#ff3348'};
+function gradeMaterial(grade){
+ if(gradeMaterials.has(grade))return gradeMaterials.get(grade);
+ const note=grade===100,texture=new B.DynamicTexture('attack '+grade,{width:note?768:512,height:512},scene,true),c=texture.getContext();
+ c.clearRect(0,0,note?768:512,512);c.textAlign='center';c.textBaseline='middle';
+ if(note){
+  c.fillStyle='#681b45';c.strokeStyle='#ffe18a';c.lineWidth=16;c.beginPath();c.roundRect(14,30,740,452,42);c.fill();c.stroke();
+  c.fillStyle='#ffe18a';c.font='900 170px Arial';c.fillText('!',384,140);
+  c.fillStyle='#ffffff';c.font='900 76px Arial';c.fillText('POZNÁMKA',384,285);
+  c.fillStyle='#ffe18a';c.font='bold 58px Arial';c.fillText('100 DMG',384,393);
+ }else{
+  c.font='900 420px Arial';c.lineJoin='round';c.lineWidth=28;c.strokeStyle='#392937';c.strokeText(String(grade),256,276);
+  c.fillStyle=gradeColors[grade];c.fillText(String(grade),256,276);
+ }
+ texture.hasAlpha=true;texture.update();
+ const m=new B.StandardMaterial('attack material '+grade,scene);m.diffuseTexture=texture;m.emissiveTexture=texture;m.diffuseColor=B.Color3.Black();m.emissiveColor=B.Color3.White();m.disableLighting=true;m.useAlphaFromDiffuseTexture=true;m.backFaceCulling=false;m.specularColor=B.Color3.Black();
+ gradeMaterials.set(grade,m);return m;
+}
+function fireGrade(t){
+ const origin=new B.Vector3(t.x,1.15,t.z),aim=new B.Vector3(player.x,1+player.y,player.z),dir=aim.subtract(origin).normalize(),note=t.grade===100;
+ const root=B.MeshBuilder.CreatePlane(note?'POZNÁMKA 100 DMG':'Známka '+t.grade,{width:note?1.8:1.15,height:note?1.2:1.15},scene);
+ root.material=gradeMaterial(t.grade);root.isPickable=false;root.position.copyFrom(origin);root.rotationQuaternion=camera.rotationQuaternion.clone();
+ shots.push({root,velocity:dir.scale(note?5.8:7),damage:note?100:t.grade*10,life:8});
+}
 function update(dt){time+=dt;cooldown=Math.max(0,cooldown-dt);swing=Math.max(0,swing-dt*5);hit=Math.max(0,hit-dt);flash=Math.max(0,flash-dt);notice-=dt;if(notice<0)$('#toast').textContent='';
  if(player.y>0||player.vy>0){player.vy-=12*dt;player.y=Math.max(0,player.y+player.vy*dt);if(player.y===0)player.vy=0}
- const f=Number(keys.has('KeyW'))-Number(keys.has('KeyS')),s=Number(keys.has('KeyD'))-Number(keys.has('KeyA')),len=Math.hypot(f,s)||1,speed=(keys.has('ControlLeft')||keys.has('ControlRight')?6.5:4)*dt;
+ const f=Number(keys.has('KeyW'))-Number(keys.has('KeyS')),s=Number(keys.has('KeyD'))-Number(keys.has('KeyA')),len=Math.hypot(f,s)||1,speed=(keys.has('ShiftLeft')||keys.has('ShiftRight')?6.5:4)*dt;
  move(player,(Math.sin(player.yaw)*f+Math.cos(player.yaw)*s)/len*speed,(Math.cos(player.yaw)*f-Math.sin(player.yaw)*s)/len*speed);
  for(const t of teachers){if(t.hp<=0)continue;const d=Math.hypot(t.x-player.x,t.z-player.z),los=visible(new B.Vector3(t.x,1.4,t.z),new B.Vector3(player.x,1.4+player.y,player.z));t.pathTime-=dt;if(t.pathTime<=0){t.path=route(t);t.pathTime=.55}if(d>5){const aim=los?player:t.path,dx=aim.x-t.x,dz=aim.z-t.z,l=Math.hypot(dx,dz)||1,v=(1.3+Math.min(day,12)*.09)*dt;move(t,dx/l*v,dz/l*v);t.walk+=dt*6}t.root.position.set(t.x,Math.sin(t.walk)*.018,t.z);t.root.rotation.y=Math.atan2(player.x-t.x,player.z-t.z);t.cool-=dt;
-  if(t.wind>0){t.wind-=dt;if(t.wind<=0){if(los)fireGrade(t);t.label.setEnabled(false);t.cool=2.2+Math.random()*1.8}}else if(t.cool<=0&&los&&d<28){t.grade=Math.random()<.16?100:1+Math.floor(Math.random()*5);t.wind=t.grade===100?1.4:.65;t.label.setEnabled(true);if(t.grade===100)toast('POZOR! Učitel píše poznámku!')}
+  if(t.wind>0){t.wind-=dt;if(t.wind<=0){if(los)fireGrade(t);t.label.setEnabled(false);t.cool=2.2+Math.random()*1.8}}else if(t.cool<=0&&los&&d<28){t.grade=Math.random()<.16?100:2+Math.floor(Math.random()*4);t.wind=t.grade===100?1.4:.65;t.label.setEnabled(true);if(t.grade===100)toast('POZOR! Učitel píše poznámku!')}
  }
- for(const shot of shots){shot.life-=dt;if(shot.visual)continue;const step=shot.velocity.scale(dt),pos=shot.root.position;if(!visible(pos,pos.add(step))){shot.life=0;continue}pos.addInPlace(step);shot.root.rotation.y+=dt*2;if(shot.life>0&&Math.hypot(pos.x-player.x,pos.z-player.z)<.36&&pos.y>player.y+.12&&pos.y<player.y+1.85){shot.life=0;damage(shot.damage);if(dead)break}}
+ for(const shot of shots){shot.life-=dt;if(shot.visual)continue;const step=shot.velocity.scale(dt),pos=shot.root.position;if(!visible(pos,pos.add(step))){shot.life=0;continue}pos.addInPlace(step);if(shot.life>0&&Math.hypot(pos.x-player.x,pos.z-player.z)<.36&&pos.y>player.y+.12&&pos.y<player.y+1.85){shot.life=0;damage(shot.damage);if(dead)break}}
  shots=shots.filter(s=>{if(s.life<=0){s.root.dispose();return false}return true});if(dead)return;
  pickups=pickups.filter(p=>{p.root.rotation.y+=dt;p.root.position.y=.5+Math.sin(time*3)*.08;if(Math.hypot(p.x-player.x,p.z-player.z)<.8){if(p.type==='food')food++;else drink++;p.root.dispose();toast(p.type==='food'?'Našel jsi svačinu!':'Našel jsi pití!');hud();return false}return true});
  if(teachers.every(t=>t.hp<=0)){if(!nextDay){nextDay=4;toast('ZVONÍ! Den přežitý.')}nextDay-=dt;if(nextDay<=0){day++;food=Math.min(food+1,5);drink=Math.min(drink+1,4);nextDay=0;spawnDay()}}
 }
-function syncView(){camera.position.set(player.x,1.65+player.y,player.z);camera.rotation.set(player.pitch+(hit>0?Math.sin(time*70)*hit*.012:0),player.yaw,hit>0?Math.sin(time*85)*hit*.014:0);body.position.set(player.x,player.y,player.z);body.rotation.y=player.yaw;const moving=active&&['KeyW','KeyS','KeyA','KeyD'].some(k=>keys.has(k));legs.forEach((l,i)=>l.rotation.x=moving?Math.sin(time*10+i*Math.PI)*.35:0);hand.position.y=-.32+(moving?Math.sin(time*10)*.012:0)-swing*.08;hand.rotation.x=-swing*.7;$('#hurt').style.opacity=hit*.65;$('#crosshair').style.color=flash>0?'#baff6c':'#ffffffaa'}
+function syncView(){
+ // World-space yaw, then local pitch. Roll is always zero and world up stays fixed.
+ const shake=hit>0?Math.sin(time*70)*hit*.035:0;
+ camera.position.set(player.x+Math.cos(player.yaw)*shake,1.65+player.y,player.z-Math.sin(player.yaw)*shake);
+ camera.rotation.set(0,0,0);camera.rotationQuaternion.copyFrom(B.Quaternion.RotationYawPitchRoll(player.yaw,player.pitch,0));camera.upVector.copyFromFloats(0,1,0);
+ for(const shot of shots)if(!shot.visual)shot.root.rotationQuaternion.copyFrom(camera.rotationQuaternion);
+ body.position.set(player.x,player.y,player.z);body.rotation.y=player.yaw;
+ const moving=active&&['KeyW','KeyS','KeyA','KeyD'].some(k=>keys.has(k));legs.forEach((l,i)=>l.rotation.x=moving?Math.sin(time*10+i*Math.PI)*.35:0);
+ hand.position.y=-.32+(moving?Math.sin(time*10)*.012:0)-swing*.08;hand.rotation.x=-swing*.7;
+ $('#hurt').style.opacity=hit*.65;$('#crosshair').style.color=flash>0?'#baff6c':'#ffffffaa';
+}
 $('#start').onclick=()=>{if(!started||dead){reset();started=true}try{const promise=canvas.requestPointerLock();promise?.catch(()=>pointerError())}catch{pointerError()}};
 function pointerError(){if(dead)return;fallback=true;active=true;keys.clear();$('#overlay').style.display='none';canvas.style.cursor='crosshair';toast('Myš bez uzamčení: rozhlížej se pohybem kurzoru. Esc = pauza.')}
 function pause(){active=false;fallback=false;keys.clear();canvas.style.cursor='default';$('#overlay').style.display='flex';if(!dead){$('#intro').textContent='Přestávka. Tvoje hra je pozastavená.';$('#start').textContent='ZPÁTKY DO HRY →'}}
 document.addEventListener('pointerlockerror',pointerError);document.addEventListener('pointerlockchange',()=>{active=document.pointerLockElement===canvas&&!dead;keys.clear();$('#overlay').style.display=active?'none':'flex';if(!active&&started&&!dead){$('#intro').textContent='Přestávka. Tvoje hra je pozastavená.';$('#start').textContent='ZPÁTKY DO HRY →'}});
 addEventListener('keydown',e=>{if(!active)return;if(e.code==='Escape'&&fallback){pause();return}if(e.code==='Space'||e.ctrlKey)e.preventDefault();keys.add(e.code);if(e.repeat)return;if(/^Digit[1-4]$/.test(e.code)){selected=Number(e.code.slice(-1))-1;hud()}if(e.code==='Space'&&player.y===0)player.vy=4.8});
-addEventListener('keyup',e=>keys.delete(e.code));addEventListener('blur',()=>{keys.clear();if(active){if(fallback)pause();else document.exitPointerLock?.()}});addEventListener('mousemove',e=>{if(active){player.yaw+=e.movementX*.0025;player.pitch=Math.max(-1.52,Math.min(1.52,player.pitch+e.movementY*.0025));syncView()}});
+addEventListener('keyup',e=>keys.delete(e.code));addEventListener('blur',()=>{keys.clear();if(active){if(fallback)pause();else document.exitPointerLock?.()}});addEventListener('mousemove',e=>{if(active){player.yaw=Math.atan2(Math.sin(player.yaw+e.movementX*.0025),Math.cos(player.yaw+e.movementX*.0025));player.pitch=Math.max(-1.52,Math.min(1.52,player.pitch+e.movementY*.0025));syncView()}});
 addEventListener('contextmenu',e=>{if(active)e.preventDefault()});addEventListener('mousedown',e=>{if(!active)return;e.preventDefault();if(e.button===0)shoot();if(e.button===2)useSupply()});addEventListener('wheel',e=>{if(active){e.preventDefault();selected=(selected+(e.deltaY>0?1:3))%4;hud()}},{passive:false});
 addEventListener('resize',()=>engine.resize());reset();engine.runRenderLoop(()=>{if(active)update(Math.min(.035,engine.getDeltaTime()/1000));syncView();scene.render()});
