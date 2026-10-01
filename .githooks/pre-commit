@@ -1,0 +1,9 @@
+#!/bin/sh
+set -eu
+# Hash the staged files, not unstaged changes in a partially staged working tree.
+if ! git diff --quiet -- index.html game.js style.css vendor/babylon.js; then
+  echo "Stage all changes in index.html, game.js, style.css and vendor/babylon.js before committing."
+  exit 1
+fi
+node update-assets.cjs
+git add -- index.html
