@@ -27,3 +27,11 @@ Samotné HTML může zůstat krátce v cache GitHub Pages. Pro okamžité načte
 ## Typy žáků
 
 Před startem vybereš normálního žáka (síla i rychlost 100 %), školního zlobivce (poškození +25 %, rychlost −20 %) nebo šprta (poškození −20 %, rychlost +50 %). Všichni mají 150 životů a stejné zásoby. Bonus síly se vztahuje na všechny čtyři zbraně; výsledné poškození se zaokrouhluje na celé číslo a ukazuje ve zbraňových slotech. Rychlost mění chůzi i sprint na Shiftu. Výběr zůstává po celý pokus, během pauzy jej nelze měnit; po prohře lze vybrat jiného žáka. Typ žáka se zobrazuje ve hře a ovlivní také barvu rukávu a trička.
+
+## Zvuky, duchové a nové křídlo
+
+Zvuky jsou vlastní syntetické efekty přes Web Audio: každá zbraň má odlišný zvuk, svačina křupe, pití bublá a na konci zazní krátké komické říhnutí. Zvuk se aktivuje kliknutím na start; M nebo tlačítko se zvukem jej vypne a zapne. Další efekty doprovázejí zásah, sebrání zásob, ducha a konec dne.
+
+Poražený učitel se promění v průsvitného ducha s očima a vlnícím se pohybem. Už neútočí a nelze jej znovu zasáhnout. Odpluje chodbou ke dveřím sborovny a zmizí. Po posledním učiteli další den počká na odchod duchů.
+
+Škola nyní zabírá 60 × 32,5 metrů a obsahuje původní učebny 101–104 a nové křídlo 201–204: knihovna, informatika, fyzika a tělocvična. U dveří jsou čísla a názvy. Knihovna má barevné knihy a police, tělocvična hřiště, koš a lavičky. V novém křídle najdeš další zásoby a v dalších dnech i učitele.
