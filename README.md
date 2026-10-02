@@ -7,7 +7,7 @@ Spuštění: `node server.cjs`, potom http://127.0.0.1:4173. Lze také otevřít
 - WASD: pohyb. Myš: rozhlížení ve všech směrech.
 - Levé tlačítko: útok. 1–4 nebo kolečko: tužka, pero, nůžky, kružítko.
 - Pravé tlačítko: svačina (+50) nebo pití (+30), podle chybějících životů a zásob. Plné zdraví nespotřebuje zásoby.
-- Mezerník: skok. Levý nebo pravý Shift: sprint. F: otevřít/zavřít blízké dveře. Escape: pauza.
+- Mezerník: skok. Levý nebo pravý Shift: sprint. Stisk kolečka myši: otevřít/zavřít blízké dveře. Escape: pauza.
 - Pokud prohlížeč odmítne uzamčení kurzoru, hra přejde na rozhlížení pohybem běžného kurzoru. Pro neomezené otáčení použij samostatnou kartu v Chrome nebo Edge.
 
 Hráč má maximálně 150 životů. Známky 2–5 způsobují 20–50 poškození. Dvojka je žlutá, trojka oranžová, čtyřka oranžovočervená a pětka červená. Letí jako velká čitelná čísla. Poznámka je samostatný fialový odznak s vykřičníkem a textem POZNÁMKA / 100 DMG. Jedničky učitelé nehází. Učitelé útok oznámí vykřičníkem; poznámku také textovým upozorněním. Horizont zůstává vodorovný při každém směru pohledu. Zásah krátce posune kameru do stran bez jejího naklánění a zčervená okraje obrazovky.
@@ -38,7 +38,7 @@ Poražený učitel se promění v průsvitného ducha s očima a vlnícím se po
 
 Jídelna má 37,5 × 25 metrů, jídelní stoly, lavičky a výdejní pult. Je jediným místem nálezů jídla a pití. Každý den je zde šest svačin a čtyři lahve; hráč nadále začíná se třemi svačinami a dvěma lahvemi. Učitelé se objevují pouze v učebně odpovídající svému předmětu; z otevřené učebny mohou hráče pronásledovat.
 
-Dveře ovládá F z blízkosti do 3,5 metru a obrazovka ukazuje název místnosti i nápovědu. Zavřené dveře blokují chůzi, výhled pro útok a oba typy střel. Při novém pokusu jsou opět zavřené. Vstupní dveře jsou na západním konci hlavní chodby. Okna jsou skutečné otvory se sklem na severní a jižní vnější stěně, za nimi jsou školní pozemky a stromy; sklo zastaví střely. Učitelé ověřují přímou viditelnost při přípravě i provedení útoku, letící známky kontrolují celý úsek pohybu proti překážkám. Zdi, zavřené dveře i nábytek je zastaví. Pevná geometrie je sloučena podle materiálu pro rychlejší vykreslení.
+Dveře ovládá stisk kolečka myši z blízkosti do 3,5 metru a obrazovka ukazuje název místnosti i nápovědu. Zavřené dveře blokují chůzi, výhled pro útok a oba typy střel. Při novém pokusu jsou opět zavřené. Vstupní dveře jsou na západním konci hlavní chodby. Okna jsou skutečné otvory se sklem na severní a jižní vnější stěně, za nimi jsou školní pozemky a stromy; sklo zastaví střely. Učitelé ověřují přímou viditelnost při přípravě i provedení útoku, letící známky kontrolují celý úsek pohybu proti překážkám. Zdi, zavřené dveře i nábytek je zastaví. Pevná geometrie je sloučena podle materiálu pro rychlejší vykreslení.
 
 ## Házení předmětů
 
@@ -47,3 +47,5 @@ Tužka, pero a kružítko jsou viditelné 3D předměty, které se házejí ve s
 ## Jména učitelů
 
 Nad učiteli je cedulka s bílým příjmením a druhým řádkem s předmětem, která se vždy natáčí k hráči. Seznam: Šiklová — Matematika; Komoň — Čeština; Underlová — Angličtina; Lambertová — Zeměpis; Taušl — Tělocvik; Doležalová — Dějepis; Ditrichová — Hudebka; Novotná — Výtvarka. Učitelé se přidávají s dalšími dny jako dosud; při větším počtu se seznam opakuje. Cedulka doprovází také ducha a zmizí, když dorazí ke sborovně.
+
+Otáčení kolečkem nadále přepíná zbraně; stisk kolečka ovládá dveře. Úvodní menu obsahuje rozvedený příběh a úplný přehled ovládání ve sbalitelném panelu.
