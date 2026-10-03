@@ -65,6 +65,72 @@
         { "kind": "tone", "wave": "triangle", "start": 0.38, "duration": 0.16, "volume": 0.08, "attack": 0.02, "from": 240, "to": 150 }
       ]
     },
+    "extinguisherHiss": {
+      "//": "Hasicí přístroj (fáze 13): ostré syčení plynu (vysoký šum 5,2 → 3,4 kHz) s nízkým šumem proudu pěny; hraje nejvýš jednou za params.soundInterval, takže se překrývá v souvislé syčení.",
+      "layers": [
+        { "kind": "noise", "start": 0, "duration": 0.26, "volume": 0.3, "attack": 0.02, "from": 5200, "to": 3400, "q": 0.6 },
+        { "kind": "noise", "start": 0, "duration": 0.24, "volume": 0.14, "attack": 0.03, "from": 900, "to": 600, "q": 0.9 }
+      ]
+    },
+    "throw": {
+      "//": "Hod balónkem: švihnutí (šum 600 → 1900 Hz) a gumové zavrzání.",
+      "layers": [
+        { "kind": "noise", "start": 0, "duration": 0.18, "volume": 0.24, "attack": 0.04, "from": 600, "to": 1900, "q": 1.1 },
+        { "kind": "tone", "wave": "triangle", "start": 0, "duration": 0.08, "volume": 0.08, "attack": 0.01, "from": 320, "to": 520 }
+      ]
+    },
+    "balloonPop": {
+      "//": "Prasknutí balónku: ostré lupnutí (krátký šum 3 kHz), velké šplouchnutí (šum 1,6 → 0,3 kHz) a bublání.",
+      "layers": [
+        { "kind": "noise", "start": 0, "duration": 0.035, "volume": 0.5, "attack": 0.002, "from": 3000, "to": 2200, "q": 0.7 },
+        { "kind": "noise", "start": 0.01, "duration": 0.38, "volume": 0.34, "attack": 0.008, "from": 1600, "to": 300, "q": 0.6 },
+        { "kind": "tone", "wave": "sine", "start": 0.03, "duration": 0.09, "volume": 0.1, "attack": 0.004, "from": 600, "to": 1150 }
+      ]
+    },
+    "taserZap": {
+      "//": "Paralyzér: elektrické bzučení (čtverec 95 Hz), praskání (vysoký šum) a sestupný pískot výboje.",
+      "layers": [
+        { "kind": "tone", "wave": "square", "start": 0, "duration": 0.24, "volume": 0.12, "attack": 0.004, "from": 95, "to": 88 },
+        { "kind": "noise", "start": 0, "duration": 0.22, "volume": 0.26, "attack": 0.003, "from": 6500, "to": 4800, "q": 2.6 },
+        { "kind": "tone", "wave": "sawtooth", "start": 0, "duration": 0.12, "volume": 0.07, "attack": 0.003, "from": 1900, "to": 600 }
+      ]
+    },
+    "spark": {
+      "//": "Jiskra na dopadu výboje: krátké suché prasknutí.",
+      "layers": [
+        { "kind": "noise", "start": 0, "duration": 0.12, "volume": 0.28, "attack": 0.002, "from": 7200, "to": 4000, "q": 2 },
+        { "kind": "tone", "wave": "square", "start": 0, "duration": 0.04, "volume": 0.05, "attack": 0.002, "from": 2400, "to": 1800 }
+      ]
+    },
+    "charge": {
+      "//": "Nabíjení kondenzátoru (railgun, dobíjení paralyzéru): stoupající kvílení 120 → 900 Hz za 1 s jako stará fotografická výbojka.",
+      "layers": [
+        { "kind": "tone", "wave": "sawtooth", "start": 0, "duration": 1.0, "volume": 0.07, "attack": 0.6, "from": 120, "to": 900 },
+        { "kind": "tone", "wave": "sine", "start": 0, "duration": 1.0, "volume": 0.09, "attack": 0.7, "from": 240, "to": 1800 }
+      ]
+    },
+    "railgunShot": {
+      "//": "Výstřel railgunu: prásknutí výboje (široký šum 8 → 0,6 kHz), hluboký úder (sinus 180 → 40 Hz) a kovové zadrnčení kolejnic.",
+      "layers": [
+        { "kind": "noise", "start": 0, "duration": 0.5, "volume": 0.42, "attack": 0.002, "from": 8000, "to": 600, "q": 0.6 },
+        { "kind": "tone", "wave": "sine", "start": 0, "duration": 0.45, "volume": 0.45, "attack": 0.003, "from": 180, "to": 40 },
+        { "kind": "tone", "wave": "square", "start": 0.01, "duration": 0.2, "volume": 0.08, "attack": 0.003, "from": 1600, "to": 200 }
+      ]
+    },
+    "hoseRush": {
+      "//": "Hadice: hučení silného proudu (šum 2,4 → 1,8 kHz) s nízkým tlakovým šumem; hraje jednou za params.soundInterval, překrývá se v souvislý proud.",
+      "layers": [
+        { "kind": "noise", "start": 0, "duration": 0.24, "volume": 0.26, "attack": 0.03, "from": 2400, "to": 1800, "q": 0.5 },
+        { "kind": "noise", "start": 0, "duration": 0.22, "volume": 0.16, "attack": 0.03, "from": 420, "to": 360, "q": 0.8 }
+      ]
+    },
+    "pickup": {
+      "//": "Sebrání / doplnění (hasičák ze skříňky, balónky): dva stoupající tóny.",
+      "layers": [
+        { "kind": "tone", "wave": "triangle", "start": 0, "duration": 0.08, "volume": 0.18, "attack": 0.004, "from": 660, "to": 990 },
+        { "kind": "tone", "wave": "triangle", "start": 0.07, "duration": 0.12, "volume": 0.16, "attack": 0.004, "from": 990, "to": 1320 }
+      ]
+    },
     "hitMetal": {
       "//": "Zásah robota (fáze 5): kovové ťuknutí (dva neharmonické tóny jako plech) s ostrým zasyčením vody na horkém kovu.",
       "layers": [

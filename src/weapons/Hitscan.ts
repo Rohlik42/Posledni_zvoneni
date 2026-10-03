@@ -40,6 +40,20 @@ export class Hitscan {
     };
   }
 
+  /** Every hit along the ray, nearest first (piercing shots, phase 13). */
+  castAll(origin: Vector3, direction: Vector3, range: number): HitResult[] {
+    const ray = new Ray(origin, direction, range);
+    const picks = this.scene.multiPickWithRay(ray, (mesh) => this.solid(mesh)) ?? [];
+    const hits: HitResult[] = [];
+    for (const pick of picks) {
+      if (!pick.hit || pick.pickedMesh === null || pick.pickedPoint === null) continue;
+      const normal = pick.getNormal(true, true) ?? direction.negate();
+      if (Vector3.Dot(normal, direction) > 0) normal.negateInPlace();
+      hits.push({ point: pick.pickedPoint, normal, distance: pick.distance, mesh: pick.pickedMesh, target: DamageTargets.find(pick.pickedMesh) });
+    }
+    return hits.sort((a, b) => a.distance - b.distance);
+  }
+
   private solid(mesh: AbstractMesh): boolean {
     return mesh.isPickable && mesh.isVisible && mesh.visibility > 0 && mesh.isEnabled() && !this.ignore(mesh);
   }

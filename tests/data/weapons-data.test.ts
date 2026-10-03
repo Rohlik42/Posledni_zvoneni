@@ -8,6 +8,7 @@ import { Palette } from "../../src/utils/Palette";
 import type { SchemaNode } from "../../src/utils/Schema";
 import { TargetConfig } from "../../src/weapons/TargetConfig";
 import { WeaponConfig, WEAPON_SLOTS } from "../../src/weapons/WeaponConfig";
+import { WeaponRangeConfig } from "../../src/weapons/WeaponRangeConfig";
 
 // Phase 3 data: weapons.json, models.json, sounds.json, targets.json, model-showcase.json.
 
@@ -40,6 +41,7 @@ const files = [
   { name: "sounds", load: () => SoundConfig.load(), schema: SoundConfig.schema },
   { name: "targets", load: () => TargetConfig.load(), schema: TargetConfig.schema },
   { name: "model-showcase", load: () => ModelShowcaseData.load(), schema: ModelShowcaseData.schema },
+  { name: "weapon-range", load: () => WeaponRangeConfig.load(), schema: WeaponRangeConfig.schema },
 ];
 
 for (const { name, load, schema } of files) {
@@ -49,15 +51,47 @@ for (const { name, load, schema } of files) {
   });
 }
 
-test("weapons.json: the six weapons of DESIGN §4 in slots 1–6, only the water pistol enabled (phase 3)", () => {
+test("weapons.json: the six weapons of DESIGN §4 in slots 1–6, all enabled (phase 13), the pistol at the start", () => {
   const data = WeaponConfig.load();
   assert.deepEqual(
     [...data.weapons].sort((a, b) => a.slot - b.slot).map((w) => w.id),
     ["waterPistol", "extinguisher", "waterBalloons", "taser", "railgun", "hose"],
   );
   assert.deepEqual(data.weapons.map((w) => w.slot).sort(), [...WEAPON_SLOTS]);
-  assert.deepEqual(data.weapons.filter((w) => w.enabled).map((w) => w.id), ["waterPistol"]);
+  assert.deepEqual(data.weapons.filter((w) => !w.enabled).map((w) => w.id), []);
   assert.deepEqual(data.startingWeapons, ["waterPistol"]);
+});
+
+test("weapons.json: phase 13 weapons carry the numbers and looks their classes read (DESIGN §4 traits)", () => {
+  const need = (id: string, params: string[]): void => {
+    const weapon = WeaponConfig.weapon(id);
+    for (const name of params) assert.ok(typeof weapon.params[name] === "number", `${id}.params.${name}`);
+  };
+  need("extinguisher", ["coneAngleDeg", "slowStrength", "slowSeconds", "refillRadius", "refillCharges"]);
+  need("waterBalloons", ["aoeRadius", "aoeEdgeDamage", "throwSpeed", "throwUpDeg", "projectileRadius", "projectileMass", "maxFlightTime", "projectileScale", "regrowTime"]);
+  need("taser", ["stunSeconds", "stunStrength"]);
+  need("railgun", ["chargeTime", "pierce", "chargeDrainPerSecond"]);
+  need("hose", ["grabDistance", "releaseDistance", "slowStrength", "slowSeconds"]);
+  for (const id of ["extinguisher", "taser", "railgun"]) assert.ok(WeaponConfig.weapon(id).effect !== undefined, `${id} needs an effect block`);
+  for (const id of ["waterBalloons", "hose"]) assert.ok(WeaponConfig.weapon(id).stream !== undefined, `${id} needs a stream block`);
+
+  const extinguisher = WeaponConfig.weapon("extinguisher");
+  assert.equal(extinguisher.kind, "cone");
+  assert.ok(extinguisher.range <= 8, "short range");
+  assert.ok(!extinguisher.ammo.infiniteReserve && !extinguisher.ammo.autoReload && extinguisher.ammo.capacity > 0, "limited tank, refilled from walls");
+  assert.ok(extinguisher.params.slowStrength! > 0 && extinguisher.params.slowStrength! <= 1, "slows");
+  const balloons = WeaponConfig.weapon("waterBalloons");
+  assert.equal(balloons.kind, "thrown");
+  assert.equal(balloons.ammo.capacity, 0, "balloons are the reserve itself");
+  assert.ok(balloons.params.aoeEdgeDamage! > 0 && balloons.params.aoeEdgeDamage! <= 1);
+  const taser = WeaponConfig.weapon("taser");
+  assert.ok(taser.range <= 6 && taser.ammo.rechargePerSecond > 0, "short range, recharges");
+  const railgun = WeaponConfig.weapon("railgun");
+  assert.ok(railgun.params.pierce! >= 2, "pierces several robots");
+  assert.ok(railgun.ammo.reserveMax <= 12, "rare ammo");
+  const hose = WeaponConfig.weapon("hose");
+  assert.ok(hose.ammo.infiniteReserve, "endless at its place");
+  assert.ok(hose.params.releaseDistance! < hose.params.grabDistance! * 2);
 });
 
 test("weapons.json: water pistol is a fast, weak hitscan with water damage and endless water (DESIGN §4)", () => {

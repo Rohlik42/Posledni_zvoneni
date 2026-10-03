@@ -188,7 +188,7 @@ test("viewmodel: drawn in its own rendering group, within the weapon triangle bu
   expect(vm?.triangles).toBeLessThanOrEqual(budgets.weapon);
 });
 
-test("slots 1–6 list all six weapons; only the pistol is owned and the disabled ones cannot be given", async () => {
+test("slots 1–6 list all six weapons; only the pistol is owned and disabled ones (none since phase 13) cannot be given", async () => {
   const list = await page.evaluate(() => window.__game!.weapons!.list());
   expect(list.map((w) => w.slot)).toEqual([1, 2, 3, 4, 5, 6]);
   expect(list.filter((w) => w.owned).map((w) => w.id)).toEqual(["waterPistol"]);

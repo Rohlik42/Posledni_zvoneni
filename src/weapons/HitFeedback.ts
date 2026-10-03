@@ -7,6 +7,7 @@ import { DropletEmitter } from "../rendering/DropletEmitter";
 import { PaletteColor } from "../rendering/PaletteColor";
 import { Random } from "../utils/Random";
 import type { FeelData } from "./FeelConfig";
+import type { HitResult } from "./Hitscan";
 import type { ShotEvent } from "./Weapon";
 
 const SPARK_CAPACITY = 400;
@@ -79,10 +80,17 @@ export class HitFeedback {
     return this.sparks.activeCount;
   }
 
-  /** Called for every shot of every weapon. */
+  /** Called for every shot of every weapon; area and piercing shots (phase 13) spark on every robot they reached. */
   shot(shot: ShotEvent): void {
-    const hit = shot.hit;
-    if (hit === null || hit.target === null || hit.target.surface !== "metal" || !(shot.damageDealt > 0)) return;
+    if (shot.hits !== undefined) {
+      for (const { hit, damageDealt } of shot.hits) this.robotHit(hit, damageDealt);
+    } else if (shot.hit !== null) {
+      this.robotHit(shot.hit, shot.damageDealt);
+    }
+  }
+
+  private robotHit(hit: HitResult, damageDealt: number): void {
+    if (hit.target === null || hit.target.surface !== "metal" || !(damageDealt > 0)) return;
     this.counters.metalHits++;
     const { robotHit } = this.feel;
     const from = hit.point.add(hit.normal.scale(SURFACE_OFFSET));

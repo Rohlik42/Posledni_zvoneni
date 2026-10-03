@@ -8,6 +8,7 @@ import { TestHooks } from "../core/TestHooks";
 import type { Player, Vec3Like } from "../player/Player";
 import { ModelRegistry } from "../utils/ModelRegistry";
 import { Random } from "../utils/Random";
+import { AreaQuery } from "./AreaQuery";
 import { FeelConfig } from "./FeelConfig";
 import { HitFeedback, type HitFeedbackStats } from "./HitFeedback";
 import { Hitscan } from "./Hitscan";
@@ -64,6 +65,22 @@ export interface WeaponsTestApi {
   feedback: () => HitFeedbackStats & { activeSparks: number };
   /** Live water droplets and wet spots of the active weapon (0 for weapons without water). */
   effects: () => { droplets: number; wetSpots: number };
+  /** Adds reserve ammo to an owned weapon; returns how much it took (phase 13). */
+  addAmmo: (id: string, amount: number) => number;
+  /** Any owned weapon's ammo and its own numbers (railgun charge, balloons in flight…), phase 13. */
+  state: (id: string) => WeaponStateInfo | null;
+}
+
+/** `__game.weapons.state(id)`. */
+export interface WeaponStateInfo {
+  id: string;
+  magazine: number;
+  capacity: number;
+  /** null = endless. */
+  reserve: number | null;
+  reloading: boolean;
+  shots: number;
+  extra: Record<string, number>;
 }
 
 declare module "../core/TestHooks" {
@@ -104,12 +121,14 @@ export class WeaponInventory {
     this.noise = NoiseEvents.for(game);
     const feel = FeelConfig.load();
     const sounds = SynthSounds.for(game);
+    const hitscan = new Hitscan(game.scene, (mesh) => this.isViewmodelMesh(mesh));
     this.context = {
       game,
       scene: game.scene,
       player,
       sounds,
-      hitscan: new Hitscan(game.scene, (mesh) => this.isViewmodelMesh(mesh)),
+      hitscan,
+      area: new AreaQuery(game.scene, hitscan),
       config: this.data,
       feel,
       aimRandom: new Random(this.data.aimRandomSeed),
@@ -161,6 +180,51 @@ export class WeaponInventory {
     return true;
   }
 
+  /** Whether the player owns weapon `id`. */
+  has(id: string): boolean {
+    return this.owned.has(id);
+  }
+
+  /** The owned weapon `id` (refill stations, pickups), or undefined. */
+  weapon(id: string): Weapon | undefined {
+    return this.owned.get(id);
+  }
+
+  /** The weapon in hand or the one being switched to. */
+  get selected(): Weapon | null {
+    return this.pending ?? this.current;
+  }
+
+  /** Adds reserve ammo to an owned weapon (phase 13 pickups); returns how much it took, 0 when not owned. */
+  addAmmo(id: string, amount: number): number {
+    return this.owned.get(id)?.addAmmo(amount) ?? 0;
+  }
+
+  /**
+   * Takes a weapon away again (the hose when the player leaves the hydrant, phase 13). If it was in hand, `fallback`
+   * (or the lowest owned slot) is raised at once; a switch towards it is cancelled.
+   */
+  remove(id: string, fallback: string | null = null): boolean {
+    const weapon = this.owned.get(id);
+    if (weapon === undefined) return false;
+    this.owned.delete(id);
+    if (this.pending === weapon) {
+      this.pending = null;
+      // Raise the weapon that was being lowered again from the same height.
+      if (this.switchProgress < SWITCH_MIDPOINT) this.switchProgress = 1 - this.switchProgress;
+    }
+    if (this.current === weapon) {
+      this.current = null;
+      // A weapon the player already switched to wins over the fallback.
+      const next = this.pending ?? (fallback === null ? undefined : this.owned.get(fallback)) ?? this.lowestOwned();
+      this.pending = null;
+      if (next !== undefined) this.beginSwitch(next);
+      else this.switchProgress = 1;
+    }
+    weapon.dispose();
+    return true;
+  }
+
   /** Switches to the weapon in `slot` if the player owns it. */
   select(slot: number): boolean {
     const data = this.data.weapons.find((w) => w.slot === slot);
@@ -192,6 +256,7 @@ export class WeaponInventory {
     this.updateSwitch(dt);
 
     const weapon = this.current;
+    for (const other of this.owned.values()) if (other !== weapon) other.idle(dt);
     if (weapon === null) return;
     const alive = !this.player.health.isDead;
     weapon.update(
@@ -234,6 +299,10 @@ export class WeaponInventory {
     const index = owned.findIndex((s) => s.id === target?.id);
     const next = owned[(index + direction + owned.length) % owned.length];
     if (next !== undefined) this.select(next.slot);
+  }
+
+  private lowestOwned(): Weapon | undefined {
+    return [...this.owned.values()].sort((a, b) => a.data.slot - b.data.slot)[0];
   }
 
   private isViewmodelMesh(mesh: { renderingGroupId: number }): boolean {
@@ -296,6 +365,20 @@ export class WeaponInventory {
       effects: () => {
         const weapon = inventory.current as (Weapon & { effectStats?: { droplets: number; wetSpots: number } }) | null;
         return weapon?.effectStats ?? { droplets: 0, wetSpots: 0 };
+      },
+      addAmmo: (id, amount) => inventory.addAmmo(id, amount),
+      state: (id) => {
+        const weapon = inventory.owned.get(id);
+        if (weapon === undefined) return null;
+        return {
+          id,
+          magazine: weapon.magazine,
+          capacity: weapon.data.ammo.capacity,
+          reserve: Number.isFinite(weapon.reserve) ? weapon.reserve : null,
+          reloading: weapon.reloading,
+          shots: weapon.shots,
+          extra: { ...weapon.extraState },
+        };
       },
     });
   }

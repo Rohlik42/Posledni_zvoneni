@@ -7,6 +7,7 @@ import type { SynthSounds } from "../audio/SynthSounds";
 import type { Game } from "../core/Game";
 import type { Player } from "../player/Player";
 import type { Random } from "../utils/Random";
+import type { AreaQuery } from "./AreaQuery";
 import type { HitResult, Hitscan } from "./Hitscan";
 import type { FeelData } from "./FeelConfig";
 import type { WeaponData, WeaponsData } from "./WeaponConfig";
@@ -28,6 +29,8 @@ export interface WeaponContext {
   player: Player;
   sounds: SynthSounds;
   hitscan: Hitscan;
+  /** Damageable things in a cone or sphere, in sight (extinguisher, balloons; phase 13). */
+  area: AreaQuery;
   config: WeaponsData;
   /** Shared feel settings (data/feel.json): impact sounds per surface, hit effects. */
   feel: FeelData;
@@ -43,13 +46,24 @@ export interface TriggerState {
   reload: boolean;
 }
 
-/** A shot fired by a weapon: where from, which way, what it hit and how much damage the target took. */
+/** One damageable thing a shot reached and the damage it took. */
+export interface TargetHit {
+  hit: HitResult;
+  damageDealt: number;
+}
+
+/**
+ * A shot fired by a weapon: where from, which way, what it hit and how much damage the target took. Weapons that reach
+ * several targets at once (extinguisher cone, balloon splash, piercing railgun; phase 13) list them all in `hits`;
+ * `hit` is then the nearest of them (or the surface the shot ended on) and `damageDealt` the sum.
+ */
 export interface ShotEvent {
   weapon: string;
   origin: Vector3;
   direction: Vector3;
   hit: HitResult | null;
   damageDealt: number;
+  hits?: readonly TargetHit[];
 }
 
 /** The parts of a viewmodel the base class animates. */
@@ -83,6 +97,10 @@ export abstract class Weapon {
 
   private cooldown = 0;
   private sinceShot = Number.POSITIVE_INFINITY;
+  /** Shortest gap between two fire (or impact) sounds, `params.soundInterval` (fast-ticking weapons; 0 = every shot). */
+  private readonly soundInterval: number;
+  private sinceFireSound = Number.POSITIVE_INFINITY;
+  private sinceImpactSound = Number.POSITIVE_INFINITY;
   private recoil = 0;
   private readonly sway = Vector3.Zero();
   /** Lag against the walk in view space (x right, y up, z forward). */
@@ -103,6 +121,7 @@ export abstract class Weapon {
   ) {
     this.magazineAmmo = data.ammo.capacity;
     this.reserveAmmo = data.ammo.infiniteReserve ? Number.POSITIVE_INFINITY : data.ammo.reserveStart;
+    this.soundInterval = data.params.soundInterval ?? 0;
     this.pivot = new TransformNode(`viewmodel-${data.id}`, context.scene);
     this.pivot.parent = context.player.camera.camera;
     this.model = this.createModel();
@@ -166,11 +185,28 @@ export abstract class Weapon {
     return taken;
   }
 
+  /** Fills the magazine (tank) to capacity from outside, e.g. a wall extinguisher (phase 13); returns the amount added. */
+  refill(): number {
+    const { capacity } = this.data.ammo;
+    if (capacity <= 0) return 0;
+    const added = Math.max(0, capacity - this.magazineAmmo);
+    this.magazineAmmo = capacity;
+    this.reloadRemaining = 0;
+    return added;
+  }
+
+  /** Weapon-specific numbers for tests (`__game.weapons.state(id)`): railgun charge, balloons in flight… */
+  get extraState(): Record<string, number> {
+    return {};
+  }
+
   /** One fixed step: timers, recharge, reload, and firing while the trigger asks for it. `ready` = not switching. */
   update(dt: number, trigger: TriggerState, ready: boolean): void {
     const { ammo } = this.data;
     this.cooldown = Math.max(-COOLDOWN_EPSILON, this.cooldown - dt);
     this.sinceShot += dt;
+    this.sinceFireSound += dt;
+    this.sinceImpactSound += dt;
     this.updateReload(dt);
     if (ammo.rechargePerSecond > 0 && this.sinceShot >= ammo.rechargeDelay) {
       this.magazineAmmo = Math.min(ammo.capacity, this.magazineAmmo + ammo.rechargePerSecond * dt);
@@ -178,8 +214,8 @@ export abstract class Weapon {
     if (!ready) return;
     if (trigger.reload && !this.reloading) this.startReload();
 
-    const wants = this.data.automatic ? trigger.held : trigger.pressed;
-    if (!wants || this.reloading || this.cooldown > COOLDOWN_EPSILON) return;
+    const wants = this.wantsToFire(trigger, dt);
+    if (!wants || this.reloading || !this.cooledDown) return;
     const interval = 1 / this.data.fireRate;
     if (!this.hasAmmo()) {
       this.cooldown = interval;
@@ -195,9 +231,15 @@ export abstract class Weapon {
     this.recoil += 1;
     this.recoilRoll += this.recoilRollSign;
     this.recoilRollSign = -this.recoilRollSign;
-    this.context.sounds.play(this.data.sounds.fire);
+    if (this.sinceFireSound >= this.soundInterval) {
+      this.sinceFireSound = 0;
+      this.context.sounds.play(this.data.sounds.fire);
+    }
     this.shoot(this.aim());
   }
+
+  /** One fixed step while the weapon is owned but not in hand (thrown balloons keep flying; phase 13). */
+  idle(_dt: number): void {}
 
   /** One rendered frame: sway, bob, recoil and switch offset of the viewmodel. */
   frame(): void {
@@ -284,16 +326,39 @@ export abstract class Weapon {
   /** Extra per-frame animation (pump, charge glow…). */
   protected animate(_dt: number): void {}
 
-  /** Applies damage of this weapon to a hit's owner; returns the damage it took. */
-  protected damage(hit: HitResult | null): number {
-    if (hit?.target == null || !hit.target.alive) return 0;
-    return hit.target.takeDamage(this.data.damage, this.data.damageType);
+  /**
+   * Whether the trigger asks for a shot this step: held (automatic) or pressed (single shots). The railgun overrides it
+   * to charge while held and fire on release (phase 13).
+   */
+  protected wantsToFire(trigger: TriggerState, _dt: number): boolean {
+    return this.data.automatic ? trigger.held : trigger.pressed;
   }
 
-  /** Impact sound by surface: robots (`metal`) clank, anything else plays the weapon's own impact sound. */
+  /** The fire-rate timer allows the next shot. */
+  protected get cooledDown(): boolean {
+    return this.cooldown <= COOLDOWN_EPSILON;
+  }
+
+  /** Applies damage of this weapon (× `scale`) to a hit's owner; returns the damage it took. */
+  protected damage(hit: HitResult | null, scale = 1): number {
+    if (hit?.target == null || !hit.target.alive) return 0;
+    return hit.target.takeDamage(this.data.damage * scale, this.data.damageType);
+  }
+
+  /**
+   * Impact sound by surface: robots (`metal`) clank, anything else plays the weapon's own impact sound. Fast-ticking
+   * weapons play it at most once per `params.soundInterval`.
+   */
   protected playImpact(hit: HitResult | null): void {
-    if (hit === null) return;
+    if (hit === null || this.sinceImpactSound < this.soundInterval) return;
+    this.sinceImpactSound = 0;
     this.context.sounds.play(hit.target?.surface === "metal" ? this.context.feel.impact.metal : this.data.sounds.impact);
+  }
+
+  /** World position of the viewmodel's muzzle (where effects start). */
+  protected muzzlePosition(): Vector3 {
+    this.model.muzzle.computeWorldMatrix(true);
+    return this.model.muzzle.getAbsolutePosition().clone();
   }
 
   protected startReload(): void {
@@ -314,7 +379,7 @@ export abstract class Weapon {
     this.reserveAmmo -= taken;
   }
 
-  private hasAmmo(): boolean {
+  protected hasAmmo(): boolean {
     const { ammo } = this.data;
     if (ammo.capacity > 0) return this.magazineAmmo >= ammo.perShot;
     return this.reserveAmmo >= ammo.perShot;
