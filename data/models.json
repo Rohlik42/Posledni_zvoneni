@@ -1,0 +1,73 @@
+{
+  "//": "Modely z primitiv (src/**/models/, DESIGN §13). 'budgets' = rozpočet trojúhelníků podle kategorie (robot 2k, zbraň 1k, místnost 20k; učitel jako robot, rekvizity a pickupy menší). 'material' = společné nastavení flat materiálů. 'blueprints' = skladba modelů z kvádrů a válců: rozměry v metrech, úhly ve stupních, barvy jsou sloty ('body', 'tank'…) a varianta modelu přiřazuje slotům klíče z data/palette.json. Části se stejným 'group' tvoří pohyblivý celek s pivotem z 'groups' (např. pumpa pistolky). 'anchors' jsou pojmenované body modelu (ústí hlavně).",
+  "budgets": {
+    "weapon": 1000,
+    "robot": 2000,
+    "teacher": 2000,
+    "prop": 1000,
+    "pickup": 500,
+    "room": 20000
+  },
+  "material": {
+    "//": "maxSimultaneousLights: kolik bodových světel model vidí. baseEmissive: podíl vlastní barvy, kterým model svítí i ve tmě, aby siluety zůstaly čitelné. Spekulár je vždy černý (FEEDBACK 2026-10-03).",
+    "maxSimultaneousLights": 8,
+    "baseEmissive": 0.12
+  },
+  "blueprints": {
+    "waterPistol": {
+      "//": "Vodní pistolka: hranatá plastová hračka, nádržka s vodou nahoře, pumpa pod hlavní. Osa hlavně = +z, počátek u spouště.",
+      "category": "weapon",
+      "defaultVariant": "classic",
+      "variants": {
+        "classic": { "body": "accent.orange", "trim": "neon.warning", "dark": "base.ash", "tank": "neon.water", "cap": "accent.lime", "nozzle": "accent.lime" },
+        "toxic": { "body": "accent.violet", "trim": "accent.lime", "dark": "base.smoke", "tank": "neon.toxic", "cap": "accent.gold", "nozzle": "accent.gold" }
+      },
+      "groups": { "pump": [0, -0.035, 0.17] },
+      "anchors": { "muzzle": [0, 0.012, 0.36] },
+      "parts": [
+        { "name": "body", "shape": "box", "size": [0.072, 0.075, 0.27], "position": [0, 0, 0.03], "color": "body" },
+        { "name": "bodyStripeL", "shape": "box", "size": [0.004, 0.018, 0.2], "position": [-0.038, 0.012, 0.04], "color": "trim", "emissive": 0.6 },
+        { "name": "bodyStripeR", "shape": "box", "size": [0.004, 0.018, 0.2], "position": [0.038, 0.012, 0.04], "color": "trim", "emissive": 0.6 },
+        { "name": "grip", "shape": "box", "size": [0.058, 0.14, 0.075], "position": [0, -0.09, -0.07], "rotationDeg": [-14, 0, 0], "color": "dark" },
+        { "name": "gripCap", "shape": "box", "size": [0.064, 0.018, 0.085], "position": [0, -0.16, -0.088], "rotationDeg": [-14, 0, 0], "color": "body" },
+        { "name": "triggerGuard", "shape": "box", "size": [0.014, 0.012, 0.075], "position": [0, -0.07, 0.0], "color": "dark" },
+        { "name": "triggerGuardFront", "shape": "box", "size": [0.014, 0.04, 0.012], "position": [0, -0.055, 0.035], "color": "dark" },
+        { "name": "trigger", "shape": "box", "size": [0.016, 0.034, 0.016], "position": [0, -0.05, 0.005], "rotationDeg": [12, 0, 0], "color": "trim" },
+        { "name": "tank", "shape": "cylinder", "size": [0.068, 0.13, 0.068], "tessellation": 8, "position": [0, 0.07, -0.015], "rotationDeg": [90, 0, 0], "color": "tank", "emissive": 0.9, "alpha": 0.82 },
+        { "name": "tankCapBack", "shape": "cylinder", "size": [0.076, 0.02, 0.076], "tessellation": 8, "position": [0, 0.07, -0.085], "rotationDeg": [90, 0, 0], "color": "cap", "emissive": 0.35 },
+        { "name": "tankCapFront", "shape": "cylinder", "size": [0.076, 0.02, 0.076], "tessellation": 8, "position": [0, 0.07, 0.055], "rotationDeg": [90, 0, 0], "color": "cap" },
+        { "name": "tankStrap", "shape": "box", "size": [0.078, 0.012, 0.022], "position": [0, 0.04, -0.015], "color": "dark" },
+        { "name": "barrel", "shape": "box", "size": [0.046, 0.046, 0.15], "position": [0, 0.012, 0.23], "color": "body" },
+        { "name": "barrelTrim", "shape": "box", "size": [0.05, 0.05, 0.016], "position": [0, 0.012, 0.29], "color": "trim", "emissive": 0.6 },
+        { "name": "nozzle", "shape": "cylinder", "size": [0.022, 0.05, 0.03], "tessellation": 8, "position": [0, 0.012, 0.325], "rotationDeg": [90, 0, 0], "color": "nozzle" },
+        { "name": "nozzleTip", "shape": "cylinder", "size": [0.014, 0.012, 0.014], "tessellation": 6, "position": [0, 0.012, 0.354], "rotationDeg": [90, 0, 0], "color": "dark" },
+        { "name": "sight", "shape": "box", "size": [0.012, 0.024, 0.03], "position": [0, 0.045, 0.27], "color": "trim", "emissive": 0.6 },
+        { "name": "gauge", "shape": "cylinder", "size": [0.034, 0.012, 0.034], "tessellation": 8, "position": [0.042, -0.005, -0.03], "rotationDeg": [0, 0, 90], "color": "trim", "emissive": 0.4 },
+        { "name": "pumpHandle", "shape": "box", "size": [0.064, 0.042, 0.1], "position": [0, -0.035, 0.17], "color": "dark", "group": "pump" },
+        { "name": "pumpRidge1", "shape": "box", "size": [0.068, 0.01, 0.012], "position": [0, -0.058, 0.14], "color": "body", "group": "pump" },
+        { "name": "pumpRidge2", "shape": "box", "size": [0.068, 0.01, 0.012], "position": [0, -0.058, 0.17], "color": "body", "group": "pump" },
+        { "name": "pumpRidge3", "shape": "box", "size": [0.068, 0.01, 0.012], "position": [0, -0.058, 0.2], "color": "body", "group": "pump" },
+        { "name": "pumpRod", "shape": "cylinder", "size": [0.014, 0.08, 0.014], "tessellation": 6, "position": [0, -0.02, 0.24], "rotationDeg": [90, 0, 0], "color": "cap", "group": "pump" }
+      ]
+    },
+    "target": {
+      "//": "Terč na střelnici v boxroomu: stojan s podstavcem a hranatý terč (deska, kruhy z plochých válců). Počátek = střed podstavce na zemi, terč míří k −z.",
+      "category": "prop",
+      "defaultVariant": "range",
+      "variants": {
+        "range": { "frame": "world.metal", "board": "world.paper", "ring": "accent.red", "bull": "neon.warning", "base": "base.ash" }
+      },
+      "groups": { "board": [0, 0.9, 0] },
+      "parts": [
+        { "name": "base", "shape": "box", "size": [0.7, 0.08, 0.5], "position": [0, 0.04, 0], "color": "base" },
+        { "name": "post", "shape": "box", "size": [0.08, 0.86, 0.08], "position": [0, 0.47, 0], "color": "frame" },
+        { "name": "board", "shape": "box", "size": [0.9, 0.9, 0.05], "position": [0, 1.35, 0], "color": "board", "group": "board" },
+        { "name": "boardFrame", "shape": "box", "size": [0.96, 0.06, 0.06], "position": [0, 1.81, 0], "color": "frame", "group": "board" },
+        { "name": "ringOuter", "shape": "cylinder", "size": [0.74, 0.012, 0.74], "tessellation": 12, "position": [0, 1.35, -0.028], "rotationDeg": [90, 0, 0], "color": "ring", "group": "board" },
+        { "name": "ringMiddle", "shape": "cylinder", "size": [0.5, 0.012, 0.5], "tessellation": 12, "position": [0, 1.35, -0.036], "rotationDeg": [90, 0, 0], "color": "board", "group": "board" },
+        { "name": "ringInner", "shape": "cylinder", "size": [0.28, 0.012, 0.28], "tessellation": 10, "position": [0, 1.35, -0.044], "rotationDeg": [90, 0, 0], "color": "ring", "group": "board" },
+        { "name": "bull", "shape": "cylinder", "size": [0.1, 0.012, 0.1], "tessellation": 8, "position": [0, 1.35, -0.052], "rotationDeg": [90, 0, 0], "color": "bull", "emissive": 0.5, "group": "board" }
+      ]
+    }
+  }
+}

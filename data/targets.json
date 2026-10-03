@@ -1,0 +1,16 @@
+{
+  "//": "Terče na střelnici (src/weapons/Target.ts, dev scéna 'weapon'). health = HP terče, resistances = násobič damage podle typu (1 = plný damage; roboti z fáze 4 mají vlastní v enemies.json). Sestřelený terč se za fallTime s sklopí dozadu a po resetDelay s se zvedne s plným HP. flashTime = jak dlouho terč po zásahu svítí barvou flashColor. Pozice = střed podstavce na podlaze boxroomu, yaw = otočení (0 = terč míří k −z, tedy ke startu hráče).",
+  "health": 60,
+  "resistances": { "water": 1, "electric": 1, "kinetic": 1, "explosion": 1, "quiz": 0 },
+  "fallTime": 0.3,
+  "fallAngleDeg": 80,
+  "resetDelay": 4,
+  "flashTime": 0.12,
+  "flashColor": "neon.water",
+  "flashIntensity": 0.3,
+  "boxroom": [
+    { "name": "targetCenter", "position": [0, 0, 1.5], "yaw": 0 },
+    { "name": "targetWest", "position": [-6.5, 0, 3], "yaw": 0.35 },
+    { "name": "targetEast", "position": [6.5, 0, 6], "yaw": -0.3 }
+  ]
+}
