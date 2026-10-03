@@ -52,6 +52,11 @@ export class ArenaWaves {
       this.countdownLeft = this.waveDelay;
       return;
     }
+    // Robots respawned meanwhile (player death, a test's `respawnAll`): that is the next wave, no second respawn.
+    if (this.enemies.aliveCount > 0) {
+      this.countdownLeft = -1;
+      return;
+    }
     this.countdownLeft -= dt;
     if (this.countdownLeft > 0) return;
     this.countdownLeft = -1;
