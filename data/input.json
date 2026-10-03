@@ -9,6 +9,7 @@
     "ShiftRight": "sprint",
     "Space": "jump",
     "KeyE": "interact",
+    "KeyR": "reload",
     "Digit1": "weapon1",
     "Digit2": "weapon2",
     "Digit3": "weapon3",

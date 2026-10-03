@@ -1,0 +1,38 @@
+{
+  "//": "Syntetické zvuky (src/audio/SoundSynthesizer.ts → AudioBuffer, přehrává src/audio/SynthSounds.ts). Recepty ve stylu LEGACY §5: zvuk = vrstvy. 'tone' = oscilátor (wave sine/triangle/square/sawtooth), frekvence exponenciálně from → to Hz za duration s. 'noise' = bílý šum přes pásmovou propust se středem exponenciálně from → to Hz a činitelem jakosti q. Obálka: náběh lineárně za attack s na volume, pak exponenciálně k 0,001 na konci duration. start = zpoždění vrstvy v s. masterVolume 0,32 jako stará hra.",
+  "sampleRate": 44100,
+  "masterVolume": 0.32,
+  "noiseSeed": 7,
+  "sounds": {
+    "pistolShot": {
+      "//": "Vodní pistolka: krátké syknutí proudu (šum 3,6 → 1,1 kHz) a plastové „pff“ (trojúhelník 420 → 160 Hz).",
+      "layers": [
+        { "kind": "noise", "start": 0, "duration": 0.11, "volume": 0.45, "attack": 0.004, "from": 3600, "to": 1100, "q": 0.8 },
+        { "kind": "tone", "wave": "triangle", "start": 0, "duration": 0.06, "volume": 0.16, "attack": 0.003, "from": 420, "to": 160 }
+      ]
+    },
+    "splash": {
+      "//": "Šplouchnutí na dopadu: mokré plesknutí (šum 1,8 → 0,35 kHz) a bublinka.",
+      "layers": [
+        { "kind": "noise", "start": 0, "duration": 0.2, "volume": 0.32, "attack": 0.006, "from": 1800, "to": 350, "q": 0.7 },
+        { "kind": "tone", "wave": "sine", "start": 0.015, "duration": 0.07, "volume": 0.1, "attack": 0.004, "from": 520, "to": 900 }
+      ]
+    },
+    "emptyClick": {
+      "//": "Prázdná nádržka: kovové cvak-cvak jako nůžky ze staré hry (LEGACY §5 scissors), tišší.",
+      "layers": [
+        { "kind": "tone", "wave": "triangle", "start": 0, "duration": 0.035, "volume": 0.2, "attack": 0.002, "from": 2200, "to": 800 },
+        { "kind": "tone", "wave": "triangle", "start": 0.06, "duration": 0.03, "volume": 0.13, "attack": 0.002, "from": 1400, "to": 550 }
+      ]
+    },
+    "pump": {
+      "//": "Napumpování pistolky: dva tahy pumpy (šum nahoru a dolů) s nízkým tónem.",
+      "layers": [
+        { "kind": "noise", "start": 0, "duration": 0.2, "volume": 0.16, "attack": 0.03, "from": 500, "to": 1600, "q": 1.2 },
+        { "kind": "tone", "wave": "triangle", "start": 0, "duration": 0.16, "volume": 0.08, "attack": 0.02, "from": 150, "to": 240 },
+        { "kind": "noise", "start": 0.38, "duration": 0.2, "volume": 0.16, "attack": 0.03, "from": 1600, "to": 500, "q": 1.2 },
+        { "kind": "tone", "wave": "triangle", "start": 0.38, "duration": 0.16, "volume": 0.08, "attack": 0.02, "from": 240, "to": 150 }
+      ]
+    }
+  }
+}

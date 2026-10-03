@@ -136,6 +136,8 @@ Quick gate: `tests/e2e/weapon.spec.ts`. Výstřel na terč v boxroomu sníží j
 **Do not**
 Projektily přes fyziku u hitscanu. Zvukové soubory. Další zbraně (fáze 13).
 
+**Done 2026-10-03** (handoff `handoff/phase-3.md`). Pistolka v dev scéně `?scene=weapon` (boxroom + 3 terče z `data/targets.json`), hitscan přes `scene.pickWithRay`, 1 výstřel = −6 HP podle weapons.json, viewmodel 400 tri v rendering group 1. Odchylky od litery: modely z primitiv mají skladbu v `data/models.json` (`blueprints` + rozpočty po kategoriích), třída modelu je tenká nad `BlueprintBuilder`; rozpočtový test běží nad dev scénou `?scene=models`; pistolka má nádržku 30 výstřelů s automatickým napumpováním (zásoba nekonečná) a nová akce `reload` (R); zvuky jsou v `data/sounds.json` a navíc `pump`; `IDamageable` je v `src/core/` a vlastník se hledá přes `DamageTargets` (metadata mesh); oprava v `Game.ts`: Babylon rušil `mousedown`, levé tlačítko nestřílelo. `__game` navíc `weapons`, `targets`, `audio`, `models`.
+
 ## Phase 4 — Humanoid robot + AI + navmesh v krabici
 
 **Implement**

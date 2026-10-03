@@ -47,6 +47,10 @@ export class Game {
     readonly scene: Scene,
   ) {
     this.config = GameConfig.load();
+    // Babylon cancels pointerdown on the canvas by default, which suppresses the compatibility mousedown event that
+    // `Input` turns into fire / door / altFire. Mouse buttons are ours, so let the events through.
+    scene.preventDefaultOnPointerDown = false;
+    scene.preventDefaultOnPointerUp = false;
     this.fixedStepMs = MS_PER_SECOND / this.config.simulationHz;
     this.input = new Input(canvas);
     this.input.setStepper((ms) => this.step(ms));
