@@ -15,12 +15,12 @@
       { "position": [-4.2, 1.0, 5.2], "size": [1.4, 2.0, 1.0], "rotationY": 0.1, "color": "world.wood" }
     ],
     "lights": [
-      { "position": [0.2, 2.4, 2.6], "color": "light.lamp", "intensity": 2.2, "range": 12, "bulbRadius": 0.14, "bulbEmissive": 8 },
-      { "position": [4.8, 1.4, 6.2], "color": "light.fire", "intensity": 1.4, "range": 7, "bulbRadius": 0.1, "bulbEmissive": 6 }
+      { "position": [-0.4, 2.3, -0.4], "color": "light.lamp", "intensity": 2.4, "range": 12, "bulbRadius": 0.14, "bulbEmissive": 8 },
+      { "position": [2.6, 1.2, 3.4], "color": "light.fire", "intensity": 1.8, "range": 7, "bulbRadius": 0.1, "bulbEmissive": 6 }
     ],
     "neon": [
-      { "position": [1.0, 3.2, 6.75], "size": [3.2, 0.14, 0.14], "color": "neon.water", "emissive": 5 },
-      { "position": [-6.75, 2.2, 3.0], "size": [0.14, 0.14, 2.4], "color": "neon.robot", "emissive": 5 }
+      { "position": [1.0, 3.2, 6.75], "size": [3.2, 0.14, 0.14], "color": "neon.water", "emissive": 2.2 },
+      { "position": [-6.75, 2.2, 3.0], "size": [0.14, 0.14, 2.4], "color": "neon.robot", "emissive": 2.2 }
     ]
   }
 }

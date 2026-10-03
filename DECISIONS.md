@@ -27,3 +27,11 @@ Každé rozhodnutí je jedna věta s důvodem. Člověk je může změnit. Agent
 18. **Babylon 9.29, TypeScript 7, Vite 8, Playwright 1.63** (aktuální verze 2026-10-03). `chunkSizeWarningLimit` je zvednutý na 4 MB, protože Babylon je velký sám o sobě a DoD chce build bez varování.
 19. **Paralelní běh bez konfliktů:** dev scény se registrují přes `import.meta.glob`, test API přes `TestHooks.register` a `DECISIONS.md`/`ASSETS.md`/`PERF.md` mají `merge=union`. Nightshift spouští paralelní fáze souběžně ve worktree a sdílené soubory by se jinak hádaly při každém merge.
 20. **Rozvrh směn:** paralelní fáze závisí jen na předchozích směnách, protože serial a parallel stopa startují současně z téhož `main` (ověřeno v `workflows/shift.js`).
+
+## Fáze 1 — Core (2026-10-03)
+21. **Data přes statický `import json` + `DataLoader.parse(file, raw, schema)`:** soubory se bundlují Vitem a v Node testech je čte tsx, takže validace (povinná pole, typy, rozsahy, neznámé klíče = chyba, klíče `//` = komentář) běží v prohlížeči i v `npm run test:data` bez fetch a async načítání.
+22. **Barvy v datech jsou klíče palety (`"neon.water"`), ne hex:** jediný zdroj barev je `data/palette.json` a překlep v klíči spadne v datovém testu.
+23. **Simulace v pevném kroku (`data/game.json → simulationHz` 60), render jednou za snímek; `__game.step(ms)` krokuje i v pauze:** testy pohybu a AI jsou pak deterministické nezávisle na zátěži stroje.
+24. **Esc a ztráta pointer locku jen pauzují (nepřepínají), návrat kliknutím do canvasu:** Chrome při zamčeném kurzoru Esc spolkne, takže přepínání by pauzu dvakrát přeplo; LEGACY stejně pokračuje tlačítkem v menu.
+25. **Render mimo smyčku (`step`) se obaluje `engine.beginFrame/endFrame`:** WebGPU jinak použije zničenou swap-chain texturu a hlásí varování, které smoke test (DoD bez varování) zachytí.
+26. **Smoke testy selhávají na `console.warn` i `console.error` (`tests/support/ConsoleGuard.ts`), allowlist je zatím prázdný:** na tomto stroji WebGPU i WebGL2 běží bez varování.
