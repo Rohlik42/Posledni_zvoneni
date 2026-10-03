@@ -192,6 +192,39 @@
         { "kind": "tone", "wave": "sawtooth", "start": 0.02, "duration": 0.18, "volume": 0.07, "attack": 0.004, "from": 520, "to": 190 },
         { "kind": "noise", "start": 0.06, "duration": 0.5, "volume": 0.12, "attack": 0.01, "from": 7000, "to": 4200, "q": 3 }
       ]
+    },
+    "trapBlast": {
+      "//": "Výbuch robotí pasti při špatné odpovědi (fáze 11): elektrické prasknutí (čtverec 1,8 → 0,2 kHz), tupá rána (sinus 120 → 40 Hz) a doznívající prskání jisker (šum 6 → 2 kHz).",
+      "layers": [
+        { "kind": "tone", "wave": "square", "start": 0, "duration": 0.14, "volume": 0.12, "attack": 0.002, "from": 1800, "to": 200 },
+        { "kind": "tone", "wave": "sine", "start": 0, "duration": 0.4, "volume": 0.42, "attack": 0.004, "from": 120, "to": 40 },
+        { "kind": "noise", "start": 0, "duration": 0.28, "volume": 0.34, "attack": 0.003, "from": 1600, "to": 280, "q": 0.8 },
+        { "kind": "noise", "start": 0.05, "duration": 0.55, "volume": 0.12, "attack": 0.01, "from": 6000, "to": 2000, "q": 2.5 }
+      ]
+    },
+    "quizOpen": {
+      "//": "Otevření kvízu (fáze 11): školní „ding-dong“ (dva sinusové tóny dolů) a tiché pípnutí pasti.",
+      "layers": [
+        { "kind": "tone", "wave": "sine", "start": 0, "duration": 0.32, "volume": 0.2, "attack": 0.005, "from": 784, "to": 784 },
+        { "kind": "tone", "wave": "sine", "start": 0.22, "duration": 0.42, "volume": 0.18, "attack": 0.005, "from": 622, "to": 622 },
+        { "kind": "tone", "wave": "square", "start": 0, "duration": 0.05, "volume": 0.04, "attack": 0.002, "from": 2400, "to": 2400 }
+      ]
+    },
+    "quizCorrect": {
+      "//": "Správná odpověď (fáze 11): vzestupný akord C–E–G (trojúhelník), jako pochvala.",
+      "layers": [
+        { "kind": "tone", "wave": "triangle", "start": 0, "duration": 0.14, "volume": 0.2, "attack": 0.004, "from": 523, "to": 523 },
+        { "kind": "tone", "wave": "triangle", "start": 0.1, "duration": 0.14, "volume": 0.2, "attack": 0.004, "from": 659, "to": 659 },
+        { "kind": "tone", "wave": "triangle", "start": 0.2, "duration": 0.3, "volume": 0.22, "attack": 0.004, "from": 784, "to": 790 }
+      ]
+    },
+    "shacklesOpen": {
+      "//": "Pouta povolí (fáze 11): kovové cvaknutí zámku (jako LEGACY §5 scissors) a sestupné zabzučení vypínané pasti.",
+      "layers": [
+        { "kind": "tone", "wave": "triangle", "start": 0, "duration": 0.04, "volume": 0.22, "attack": 0.002, "from": 2400, "to": 900 },
+        { "kind": "tone", "wave": "triangle", "start": 0.07, "duration": 0.04, "volume": 0.18, "attack": 0.002, "from": 1600, "to": 600 },
+        { "kind": "tone", "wave": "sawtooth", "start": 0.05, "duration": 0.45, "volume": 0.06, "attack": 0.01, "from": 300, "to": 60 }
+      ]
     }
   }
 }

@@ -271,6 +271,8 @@ Quick gate: `tests/e2e/quiz.spec.ts`. Interakce s učitelem otevře kvíz, hra j
 **Do not**
 Skutečné osoby. Otázky v kódu.
 
+**Done 2026-10-04** (handoff `handoff/phase-11.md`). Dev scéna `npm run dev` → http://localhost:5173/dev/?scene=teacher (`&teacher=<id>` vybere jiného z 9 učitelů). Quick gate zelený: typecheck, `npm run test:data` 92/92 (+9 `tests/data/teachers.test.ts`), Playwright 14/14 (6 smoke vč. rozpočtu modelů + 8 `tests/e2e/quiz.spec.ts`). Fyzikář je „Voltr“, přezdívka „Ampér“. Odchylky od litery: kvízový overlay je DOM vrstva jako HUD, ne Babylon GUI (bod 4; DECISIONS „Fáze 11“); po správné odpovědi je obrazovka s hláškou a odměnou, hra pokračuje na Enter / klik; odměna, kterou hráč nemůže vzít (lékárnička při plném zdraví), leží u učitele jako pickup; damage pasti má typ `explosion` a násobič `QuizSystem.damageMultiplier` (fáze 17); jmenovka je menší než v LEGACY (1,0 × 0,31 m); učitel má statický kolizní kvádr přes židli; E na učitele má přednost před dveřmi (`DoorSystem.yieldInteract`). Navíc: `Player.animatePausedEffects` (otřes a červené okraje v pauze kvízu), texty v `data/texts.json → teachers/quiz`, zvuky `trapBlast`, `quizOpen`, `quizCorrect`, `shacklesOpen`, barvy `teacher.*` a `ui.overlay*` v paletě. Učitele do levelu osadí fáze 16 přes `TeacherSystem.levelSpecs`.
+
 ## Phase 12 — Quiz content
 
 **Implement**

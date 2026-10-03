@@ -120,6 +120,15 @@ export class Player {
     this.overlay.clear();
   }
 
+  /**
+   * Plays the camera shake and the red damage edges on real time (`dt` seconds) while the simulation is paused. The
+   * quiz (phase 11) pauses the game and its trap still has to visibly go off; normally both stand still in a pause.
+   */
+  animatePausedEffects(dt: number): void {
+    this.camera.shake.update(dt);
+    this.overlay.update(dt, this.health.health / this.health.max);
+  }
+
   dispose(): void {
     this.removeSystem();
     this.game.scene.onBeforeRenderObservable.remove(this.frameObserver);

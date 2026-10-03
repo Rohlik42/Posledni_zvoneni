@@ -1,0 +1,145 @@
+{
+  "//": "Zajatí učitelé a kvíz (fáze 11; src/level/TeacherConfig.ts, Teacher.ts, TeacherSystem.ts, models/TeacherModel.ts, src/quiz/*). 'teachers': 8 učitelů z LEGACY §1 beze změny příjmení a předmětů + nový fiktivní fyzikář (DECISIONS #1); slot a room odpovídají data/level.json → teachers (Evidence → Progrese), rewards = id věcí z data/pickups.json (Inventory.give), look = varianta saka podle LEGACY §1 (pořadí v rosteru % 3: violet, orange, sea), barvy dalších slotů (klíče palety) a features (účesy, brýle, vousy z model.features). greeting = věta nad otázkou, wrongLine = po špatné odpovědi, freedLine = po osvobození (i při dalším oslovení E).",
+  "teachers": [
+    {
+      "id": "siklova", "slot": 2, "surname": "Šiklová", "subject": "Matematika", "room": "f4-kabinet-matematika",
+      "rewards": [{ "item": "key-red" }],
+      "look": { "variant": "violet", "colors": { "hair": "teacher.hairGrey", "tie": "accent.red" }, "features": ["bun", "glasses"] },
+      "greeting": "Past má čtyři dráty a správný je jen jeden. Pravděpodobnost úspěchu? Ta záleží na tobě.",
+      "wrongLine": "Chyba ve výpočtu! Tohle by ti neodpustila ani kalkulačka od Neuralithu.",
+      "freedLine": "Q.E.D.! Tady máš červený klíč, otevře prostřední schodiště. A pamatuj: robot plus voda rovná se šrot."
+    },
+    {
+      "id": "komon", "slot": 5, "surname": "Komoň", "subject": "Čeština", "room": "f3-kabinet-cestina",
+      "rewards": [{ "item": "key-yellow" }],
+      "look": { "variant": "orange", "colors": { "hair": "teacher.hairDark" }, "features": ["short", "mustache", "glasses"] },
+      "greeting": "Ti roboti píšou hlášení bez háčků a čárek. Hrůza! Odpověz správně, ať si spravím náladu.",
+      "wrongLine": "Hrubka! Za tohle by ti past dala pětku. Jenže ona dává rovnou ránu.",
+      "freedLine": "Výborně, jednička s hvězdičkou! Žlutý klíč otevře cestu do západní haly. Piš dál — vodou."
+    },
+    {
+      "id": "underlova", "slot": 4, "surname": "Underlová", "subject": "Angličtina", "room": "f3-kabinet-anglictina",
+      "rewards": [{ "item": "weapon-taser" }],
+      "look": { "variant": "sea", "colors": { "hair": "teacher.hairBlond", "tie": "accent.teal" }, "features": ["long", "glasses"] },
+      "greeting": "Hello! Ti plecháči mluví jen binárně. Ukaž, že ty umíš lidsky — a anglicky.",
+      "wrongLine": "Oops, wrong answer! Tohle bolí v každém jazyce.",
+      "freedLine": "Well done! Vezmi si paralyzér. One zap and they freeze — jeden výboj a robot ztuhne."
+    },
+    {
+      "id": "lambertova", "slot": 1, "surname": "Lambertová", "subject": "Zeměpis", "room": "f4-kabinet-zemepis",
+      "rewards": [{ "item": "weapon-extinguisher" }],
+      "look": { "variant": "violet", "colors": { "hair": "teacher.hairRed" }, "features": ["short", "glasses"] },
+      "greeting": "Konečně někdo! Ti plecháči mi zabavili atlas. Zkus tohle, ať vím, že se ve světě vyznáš.",
+      "wrongLine": "Au! S takovou orientací bys nenašel ani východ z vlastní třídy.",
+      "freedLine": "Tady máš hasičák z kabinetu. Míř na ty plecháče — voda teče z kopce a roboti padají taky."
+    },
+    {
+      "id": "tausl", "slot": 9, "surname": "Taušl", "subject": "Tělocvik", "room": "f2-gym",
+      "rewards": [{ "item": "key-blue" }],
+      "look": { "variant": "orange", "colors": { "hair": "teacher.hairDark", "tie": "accent.lime" }, "features": ["bald", "mustache"] },
+      "greeting": "Rozcvička skončila! Plecháč mě přikurtoval k židli. Odpověz, a pak hurá na ně!",
+      "wrongLine": "Faul! Za tohle deset kliků. Past ti je rovnou odečetla ze zdraví.",
+      "freedLine": "Paráda! Modrý klíč odemkne hlavní vchod. Vezmi si hadici z tělocvičny a zalej je jako trávník!"
+    },
+    {
+      "id": "dolezalova", "slot": 8, "surname": "Doležalová", "subject": "Dějepis", "room": "f2-kabinet-dejepis",
+      "rewards": [{ "item": "medkit" }, { "item": "ammo-railgun" }],
+      "look": { "variant": "sea", "colors": { "hair": "teacher.hairDark", "tie": "accent.copper" }, "features": ["bun", "glasses"] },
+      "greeting": "Každá invaze jednou skončí, i tahle. Ale nejdřív mi dokaž, že znáš ty minulé.",
+      "wrongLine": "Historická chyba! Kdo nezná dějiny, toho past potrestá hned.",
+      "freedLine": "Výborně! Lékárnička a kondenzátory do railgunu. Dějiny píšou ti, kdo přežijí."
+    },
+    {
+      "id": "ditrichova", "slot": 3, "surname": "Ditrichová", "subject": "Hudebka", "room": "f4-hudebna",
+      "rewards": [{ "item": "energy-drink" }, { "item": "medkit" }],
+      "look": { "variant": "violet", "colors": { "hair": "teacher.hairDark", "tie": "accent.gold" }, "features": ["long"] },
+      "greeting": "Ten robot mi rozladil klavír! Odpověz správně, ať tahle past konečně zmlkne.",
+      "wrongLine": "Falešně! Tohle zaskřípalo hůř než servo na chodbě.",
+      "freedLine": "Bravo, fortissimo! Tady máš energeťák a lékárničku, ať vydržíš až do finále."
+    },
+    {
+      "id": "novotna", "slot": 6, "surname": "Novotná", "subject": "Výtvarka", "room": "f3-atelier",
+      "rewards": [{ "item": "rubber-boots" }],
+      "look": { "variant": "orange", "colors": { "hair": "teacher.hairRed", "tie": "accent.violet" }, "features": ["long"] },
+      "greeting": "Robot mi přetřel obraz na šedo. Šedá není barva, to je výsměch! Tak co víš o umění?",
+      "wrongLine": "Ach jo, kýč! Past to vzala jako kritiku.",
+      "freedLine": "Krása! Vezmi si moje gumáky z ateliéru — v nich ti elektřina tolik neublíží."
+    },
+    {
+      "id": "voltr", "slot": 7, "surname": "Voltr", "nickname": "Ampér", "subject": "Fyzika", "room": "f3-kabinet-fyzika",
+      "rewards": [{ "item": "weapon-railgun" }, { "item": "ammo-railgun" }],
+      "look": { "variant": "sea", "colors": { "hair": "teacher.hairGrey", "tie": "neon.electric" }, "features": ["wild", "mustache", "glasses"] },
+      "greeting": "Voltr, pro studenty Ampér. Tahle past je pod napětím — doslova. Ukaž, co víš o fyzice.",
+      "wrongLine": "Zkrat! Vidíš, co udělá chybná teorie v praxi?",
+      "freedLine": "Ohm by měl radost! Tady je railgun z kondenzátorů, co jsme stavěli na kroužku. Nabij, miř, pal."
+    }
+  ],
+  "model": {
+    "//": "TeacherModel: features = jméno → části blueprintu 'teacher' (data/models.json), které se ukážou; ostatní volitelné části (všechny uvedené v features) jsou skryté. shackleParts = pouta, která po osvobození zmizí (spolu se skupinou trap). pose = úhly skupin ve stupních [x, y, z] (x > 0 = dozadu) a posun skupiny body [x, y, z] m oproti stojící póze blueprintu: seated = svázaný na židli (ruce za opěradlem), standing = stojí před židlí. lightScale = jak silně na model působí světla (světlá pleť a košile se pod lampami přepalovaly), standDelay s po osvobození, standTime s trvá vstávání (smoothstep, simulovaný čas). breath = dech (amplituda měřítka trupu, perioda s). head = rozhlížení (stupně, perioda s; bound = nervózní, freed = klidné). trapBlink = blikání LED pasti (perioda s, podíl rozsvícení; alarmPeriod při otevřeném kvízu).",
+    "features": {
+      "glasses": ["glassesFrame", "lensL", "lensR", "glassesArmL", "glassesArmR"],
+      "short": ["hairTop", "hairBack", "hairSideL", "hairSideR"],
+      "bald": ["hairBack", "hairSideL", "hairSideR"],
+      "long": ["hairTop", "hairLong", "hairSideL", "hairSideR"],
+      "bun": ["hairTop", "hairBack", "hairSideL", "hairSideR", "hairBun"],
+      "wild": ["hairWild", "hairTuftL", "hairTuftR", "hairBack"],
+      "mustache": ["mustache"],
+      "beard": ["beard", "mustache"]
+    },
+    "shackleParts": ["bandChest", "bandWaist", "ankleChain", "wristShackleL", "wristShackleR", "ankleShackleL", "ankleShackleR"],
+    "pose": {
+      "seated": {
+        "body": [0, -0.4, -0.06],
+        "rotations": {
+          "thighL": [-90, 0, 0], "thighR": [-90, 0, 0], "shinL": [90, 0, 0], "shinR": [90, 0, 0],
+          "armL": [18, 0, 10], "armR": [18, 0, -10], "foreL": [28, 0, 0], "foreR": [28, 0, 0], "torso": [4, 0, 0]
+        }
+      },
+      "standing": {
+        "body": [0, 0, 0.45],
+        "rotations": {
+          "thighL": [0, 0, 0], "thighR": [0, 0, 0], "shinL": [0, 0, 0], "shinR": [0, 0, 0],
+          "armL": [-8, 0, -6], "armR": [-8, 0, 6], "foreL": [-25, 0, 0], "foreR": [-25, 0, 0], "torso": [0, 0, 0]
+        }
+      }
+    },
+    "lightScale": 0.8,
+    "standDelay": 0.25,
+    "standTime": 1.1,
+    "breath": { "amplitude": 0.025, "period": 3.4 },
+    "head": { "boundYawDeg": 28, "boundPitchDeg": 7, "freedYawDeg": 10, "freedPitchDeg": 3, "period": 5.2 },
+    "trapBlink": { "period": 0.9, "onShare": 0.45, "alarmPeriod": 0.24 }
+  },
+  "nametag": {
+    "//": "Jmenovka nad hlavou podle LEGACY §1 (textura 512×160, příjmení bold 70px, předmět 46px, poloprůhledné pozadí), vždy natočená ke kameře a bez světla; rovina width × height m, aboveHead m nad temenem (kotva headTop).",
+    "textureWidth": 512, "textureHeight": 160,
+    "nameFont": "bold 70px Arial", "subjectFont": "46px Arial", "nameY": 52, "subjectY": 119,
+    "background": "teacher.nametagBg", "nameColor": "teacher.nametagName", "subjectColor": "teacher.nametagSubject",
+    "width": 1.0, "height": 0.31, "aboveHead": 0.3
+  },
+  "interact": { "//": "E na učitele: do range m od očí ke hrudi, v kuželu coneDeg; do nearRange m stačí stát u něj.", "range": 2.6, "nearRange": 1.1, "coneDeg": 40 },
+  "collider": { "//": "Statický kvádr (židle + učitel), aby jím hráč neprošel; size [š, v, h] m, center nad počátkem modelu.", "size": [0.7, 1.4, 0.8], "center": [0, 0.7, 0] },
+  "trap": {
+    "//": "Výbuch pasti při špatné odpovědi: jiskry (sparks kusů, rychlost m/s, život s, velikost m, spread = rozptyl směru, gravity m/s²) a záblesk z LED pasti, otřes kamery (amplitude m, frequency Hz, duration s, vertical; strop data/player.json → camera.maxShakeOffset), zvuk z data/sounds.json. Damage = quiz.json → wrongAnswerDamage × násobič obtížnosti (fáze 17) typu damageType.",
+    "sparks": 46, "sparkSpeed": [2.0, 6.5], "sparkLife": [0.3, 0.7], "sparkSize": [0.04, 0.09], "spread": 1.1, "gravity": 7,
+    "sparkColor": "neon.spark", "sparkGlow": 4,
+    "flashColor": "neon.robot", "flashGlow": 6, "flashSize": 1.1, "flashTime": 0.22,
+    "damageType": "explosion",
+    "shake": { "amplitude": 0.14, "frequency": 17, "duration": 0.5, "vertical": 0.7 },
+    "sound": "trapBlast"
+  },
+  "sounds": { "open": "quizOpen", "correct": "quizCorrect", "release": "shacklesOpen" },
+  "quizUi": {
+    "//": "Kvízový overlay (src/quiz/QuizUI.ts): DOM vrstva přes celou obrazovku, styl LEGACY §4 (overlay gradient + blur, panely, limetková tlačítka). Rozměry v px, answerLockout s skutečného času po zobrazení otázky, kdy se odpovědi nepřijímají (proti dvojkliku).",
+    "fontFamily": "'Barlow Condensed', 'Arial Narrow', Arial, sans-serif",
+    "textFamily": "Inter, Arial, sans-serif",
+    "width": 760, "titleSize": 36, "subjectSize": 15, "lineSize": 17, "questionSize": 25, "optionSize": 19, "smallSize": 13,
+    "blurPx": 4, "answerLockout": 0.35,
+    "colors": {
+      "overlayTop": "ui.overlayTop", "overlayBottom": "ui.overlayBottom", "panel": "ui.panel",
+      "title": "ui.difficultySelected", "subject": "ui.label", "text": "ui.text", "dim": "ui.textDim", "line": "ui.toast",
+      "button": "ui.button", "buttonText": "ui.buttonText", "buttonShadow": "ui.buttonShadow", "letter": "ui.highlight",
+      "wrong": "ui.hpLow", "correct": "ui.hpOk"
+    }
+  }
+}

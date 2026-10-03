@@ -53,6 +53,8 @@ export interface DevScenesData {
     neon: DevNeon[];
   };
   doors: { door: DevDoor; encounter: string; pickups: DevPickup[] };
+  /** One captive teacher in the box room (phase 11). */
+  teacher: { teacher: string; position: Vec3Tuple; yawDeg: number; spawn: { position: Vec3Tuple; yawDeg: number } };
 }
 
 const box = Schema.object(
@@ -96,6 +98,12 @@ export class DevSceneData {
       }),
       encounter: Schema.string(),
       pickups: Schema.array(Schema.object({ id: Schema.string(), item: Schema.string(), position: Schema.vec3() })),
+    }),
+    teacher: Schema.object({
+      teacher: Schema.string(),
+      position: Schema.vec3(),
+      yawDeg: Schema.number(),
+      spawn: Schema.object({ position: Schema.vec3(), yawDeg: Schema.number() }),
     }),
   });
 
