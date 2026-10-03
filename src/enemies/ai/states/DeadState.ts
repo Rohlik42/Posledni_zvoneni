@@ -1,14 +1,14 @@
 import { State } from "yuka";
-import type { HumanoidAgent } from "../HumanoidAgent";
+import type { GroundAgent } from "../GroundAgent";
 
 /** Destroyed: no movement, no senses acted on. The body falls apart (`Humanoid`). */
-export class DeadState extends State<HumanoidAgent> {
-  override enter(agent: HumanoidAgent): void {
+export class DeadState extends State<GroundAgent> {
+  override enter(agent: GroundAgent): void {
     agent.stop();
     agent.face(null);
     agent.body.cancelWindup();
     agent.context.cover.release(agent);
   }
 
-  override execute(_agent: HumanoidAgent): void {}
+  override execute(_agent: GroundAgent): void {}
 }

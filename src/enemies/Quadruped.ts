@@ -6,63 +6,80 @@ import type { DamageType } from "../core/DamageTypes";
 import { PaletteColor } from "../rendering/PaletteColor";
 import type { Random } from "../utils/Random";
 import type { AiStateId } from "./ai/AiStateIds";
-import { HumanoidAgent, type AgentBody, type AgentContext } from "./ai/HumanoidAgent";
+import type { AgentContext } from "./ai/GroundAgent";
+import { QuadrupedAgent, type QuadrupedBody } from "./ai/QuadrupedAgent";
 import type { EnemySpawnData } from "./EncounterConfig";
 import { Enemy } from "./Enemy";
 import { EnemyCollider } from "./EnemyCollider";
-import type { HumanoidData } from "./EnemyConfig";
-import type { EnemyProjectiles } from "./EnemyProjectiles";
-import { HumanoidRobotModel } from "./models/HumanoidRobotModel";
+import type { QuadrupedData } from "./EnemyConfig";
+import { QuadrupedRobotModel } from "./models/QuadrupedRobotModel";
 import type { RobotDebris } from "./RobotDebris";
 import type { StatusKind } from "./StatusEffects";
 
-const DEG_TO_RAD = Math.PI / 180;
 /** Stun twitch frequency in rad/s of simulated time. */
-const TWITCH_RATE = 31;
-/** The shoulder the cannon turns around, above the feet (m); aim pitch is measured from here. */
-const SHOULDER_HEIGHT = 1.47;
+const TWITCH_RATE = 29;
+/** The jaw is half open during the crouch and wide open during the leap. */
+const CROUCH_JAW_SHARE = 0.4;
 
-/** Everything a humanoid uses from the scene around it. */
-export interface HumanoidContext {
+/** The player as a melee target: capsule (feet, radius, height) and his health. */
+export interface MeleeTarget {
+  readonly feet: Vector3;
+  readonly radius: number;
+  readonly height: number;
+  readonly alive: boolean;
+  damage(amount: number, type: DamageType): void;
+}
+
+/** Plays a synthesized sound by name (`SynthSounds`). */
+export interface SoundPlayer {
+  play(name: string, volume?: number): void;
+}
+
+/** Everything a quadruped uses from the scene around it. */
+export interface QuadrupedContext {
   scene: Scene;
-  projectiles: EnemyProjectiles;
   debris: RobotDebris;
-  /** Whether robots get a Havok body the player bumps into (scenes with physics). */
   colliders: boolean;
-  /** Seeded randomness: drops and aim error. */
   dropRandom: Random;
-  aimRandom: Random;
+  /** Seed of this robot's AI choices (circling direction and time). */
+  aiSeed: number;
+  sounds: SoundPlayer;
+  melee: MeleeTarget;
   agent: AgentContext;
 }
 
 /**
- * The basic robot (DESIGN §5 "chodí, střílí, kryje se"): `HumanoidRobotModel` driven by a `HumanoidAgent` (Yuka state
- * machine, senses, steering on the recast navmesh). Shoots electric bolts after a visible 0.4 s wind-up, reacts to hits
- * with a flash and a jolt, falls apart into sparking debris when destroyed. Everything runs in the fixed step.
+ * The fast melee robot (DESIGN §5 "sprint, výpad, obíhá hráče"): `QuadrupedRobotModel` driven by a `QuadrupedAgent`.
+ * It sprints along the navmesh, circles the player, crouches (telegraph) and leaps, biting once per leap when its
+ * jaws come within `lunge.reach` of the player's capsule (`lunge.damage`, `lunge.damageType`). Hit flash and jolt,
+ * stun twitch, sparking debris on death; Havok capsule so the player bumps into it.
  */
-export class Humanoid extends Enemy implements AgentBody {
-  readonly agent: HumanoidAgent;
-  model: HumanoidRobotModel;
+export class Quadruped extends Enemy implements QuadrupedBody {
+  readonly agent: QuadrupedAgent;
+  model: QuadrupedRobotModel;
 
   private readonly spawnPosition: Vector3;
   private readonly flashColor: Color3;
   private windupTime = -1;
+  private windups = 0;
+  private leaping = false;
+  private bitThisLeap = false;
+  private lunges = 0;
   private hitLeft = 0;
   private walkPhase = 0;
   private walkWeight = 0;
-  private aim = 0;
+  private leapBlend = 0;
+  private jawBlend = 0;
   private time = 0;
   private lastFeet: Vector3;
-  private shots = 0;
-  private windups = 0;
+  private currentSpeed = 0;
   private broken = false;
   private collider: EnemyCollider | null = null;
-  private currentSpeed = 0;
 
   constructor(
     readonly spawn: EnemySpawnData,
-    readonly data: HumanoidData,
-    private readonly context: HumanoidContext,
+    readonly data: QuadrupedData,
+    private readonly context: QuadrupedContext,
   ) {
     super(spawn.id, spawn.type, data, context.dropRandom);
     this.flashColor = PaletteColor.color3(data.hit.flashColor);
@@ -71,9 +88,9 @@ export class Humanoid extends Enemy implements AgentBody {
     this.spawnPosition = navmesh.closestPoint(wanted)?.point ?? wanted;
     const route = spawn.patrol.map((p) => navmesh.closestPoint(Vector3.FromArray(p))?.point ?? Vector3.FromArray(p));
     this.model = this.buildModel();
-    this.agent = new HumanoidAgent(data, context.agent, this, this.spawnPosition, spawn.yaw, route);
+    this.agent = new QuadrupedAgent(data, context.agent, this, this.spawnPosition, spawn.yaw, route, context.aiSeed);
     this.agent.onStateChanged.add((change) => this.logState(change));
-    this.stateLog.push({ from: null, to: this.agent.state, timeMs: context.agent.now() });
+    this.logState({ from: null, to: this.agent.state, timeMs: context.agent.now() });
     this.lastFeet = this.spawnPosition.clone();
     this.createCollider();
     this.syncModel();
@@ -95,6 +112,10 @@ export class Humanoid extends Enemy implements AgentBody {
     return this.agent.yaw;
   }
 
+  get speed(): number {
+    return this.currentSpeed;
+  }
+
   get seesPlayer(): boolean {
     return this.agent.perception.seesPlayer;
   }
@@ -103,38 +124,30 @@ export class Humanoid extends Enemy implements AgentBody {
     return this.agent.perception.remembersPlayer;
   }
 
-  override get coverId(): string | null {
-    return this.agent.coverId;
+  /** Leaps made. */
+  get attacks(): number {
+    return this.lunges;
   }
 
   override get destination(): Vector3 | null {
     return this.agent.currentDestination;
   }
 
-  get attacks(): number {
-    return this.shots;
-  }
-
   get windingUp(): boolean {
     return this.windupTime >= 0;
   }
 
-  /** Wind-up progress 0–1, or -1 when not winding up. */
   override get windup(): number {
-    return this.windupTime < 0 ? -1 : Math.min(1, this.windupTime / Math.max(Number.EPSILON, this.data.attack.windup));
-  }
-
-  get shotsFired(): number {
-    return this.shots;
+    return this.windupTime < 0 ? -1 : Math.min(1, this.windupTime / Math.max(Number.EPSILON, this.data.lunge.windup));
   }
 
   override get windupsStarted(): number {
     return this.windups;
   }
 
-  /** Current walking speed in m/s (from the last step). */
-  get speed(): number {
-    return this.currentSpeed;
+  /** In the air of a lunge. */
+  get isLeaping(): boolean {
+    return this.leaping;
   }
 
   startWindup(): void {
@@ -147,16 +160,43 @@ export class Humanoid extends Enemy implements AgentBody {
     this.windupTime = -1;
   }
 
-  updateWindup(dt: number, aimPoint: Vector3): boolean {
+  updateWindup(dt: number): boolean {
     if (!this.windingUp) return false;
     this.windupTime += dt;
-    if (this.windupTime < this.data.attack.windup) return false;
+    if (this.windupTime < this.data.lunge.windup) return false;
     this.windupTime = -1;
-    this.fire(aimPoint);
     return true;
   }
 
-  /** Moves the robot to the navmesh point nearest `position` (tests, scripted scenes). */
+  startLeap(): void {
+    this.leaping = true;
+    this.bitThisLeap = false;
+    this.lunges++;
+    this.context.sounds.play(this.data.sounds.lunge);
+  }
+
+  tryBite(): boolean {
+    if (!this.leaping || this.bitThisLeap || !this.alive) return false;
+    const melee = this.context.melee;
+    if (!melee.alive) return false;
+    const mouth = this.model.mouthPosition();
+    const feet = melee.feet;
+    const reach = this.data.lunge.reach;
+    const horizontal = Math.hypot(mouth.x - feet.x, mouth.z - feet.z);
+    const withinHeight = mouth.y >= feet.y - reach && mouth.y <= feet.y + melee.height + reach;
+    if (horizontal > melee.radius + reach || !withinHeight) return false;
+    const { damage, damageType } = this.data.lunge;
+    melee.damage(damage, damageType);
+    this.recordPlayerHit(damage);
+    this.bitThisLeap = true;
+    this.context.sounds.play(this.data.sounds.bite);
+    return true;
+  }
+
+  endLeap(): void {
+    this.leaping = false;
+  }
+
   teleport(position: Vector3, yaw?: number): void {
     const point = this.context.agent.navmesh.closestPoint(position)?.point ?? position;
     this.agent.place(point, yaw);
@@ -164,7 +204,6 @@ export class Humanoid extends Enemy implements AgentBody {
     this.syncModel();
   }
 
-  /** Back to the spawn with full health and a whole body (dev scenes). */
   respawn(): void {
     this.revive();
     if (this.broken) {
@@ -173,8 +212,12 @@ export class Humanoid extends Enemy implements AgentBody {
       this.broken = false;
     }
     this.windupTime = -1;
+    this.leaping = false;
     this.hitLeft = 0;
-    this.aim = 0;
+    this.leapBlend = 0;
+    this.jawBlend = 0;
+    this.lunges = 0;
+    this.windups = 0;
     this.agent.reset(this.spawnPosition, this.spawn.yaw);
     this.lastFeet = this.spawnPosition.clone();
     this.createCollider();
@@ -207,6 +250,7 @@ export class Humanoid extends Enemy implements AgentBody {
 
   protected die(): void {
     this.windupTime = -1;
+    this.leaping = false;
     this.agent.changeState("dead");
     this.model.setFlash(this.flashColor, 0, false);
     this.context.debris.explode(this.model.breakApart(), this.agent.feet.clone(), this.data.death);
@@ -219,46 +263,32 @@ export class Humanoid extends Enemy implements AgentBody {
     if (kind === "stun" && this.alive && this.agent.state !== "stunned") this.agent.changeState("stunned");
   }
 
-  private buildModel(): HumanoidRobotModel {
-    const model = new HumanoidRobotModel(this.context.scene, { name: this.id, variant: this.data.variant, hitLeanDeg: this.data.hit.leanDeg, animation: this.data.animation });
+  private buildModel(): QuadrupedRobotModel {
+    const model = new QuadrupedRobotModel(this.context.scene, { name: this.id, variant: this.data.variant, hitLeanDeg: this.data.hit.leanDeg, animation: this.data.animation });
     DamageTargets.attach(model.root, this);
     return model;
-  }
-
-  private fire(aimPoint: Vector3): void {
-    const origin = this.model.muzzlePosition();
-    const error = this.data.attack.aimErrorDeg * DEG_TO_RAD;
-    const distance = Vector3.Distance(origin, aimPoint);
-    const offset = new Vector3(this.context.aimRandom.range(-1, 1), this.context.aimRandom.range(-1, 1), this.context.aimRandom.range(-1, 1)).scaleInPlace(Math.tan(error) * distance);
-    const { attack, projectile } = this.data;
-    this.context.projectiles.fire(origin, aimPoint.add(offset), projectile, attack.damage, attack.damageType, (damage) => this.recordPlayerHit(damage));
-    this.shots++;
   }
 
   private animate(dt: number, moved: number): void {
     const { animation, movement, hit } = this.data;
     this.walkPhase += moved * this.model.phasePerMetre;
-    const walkTarget = Math.min(1, this.speed / movement.walkSpeed);
-    const blend = Math.min(1, animation.aimBlend * dt);
+    const blend = Math.min(1, animation.blend * dt);
+    const walkTarget = this.leaping ? 0 : Math.min(1, this.speed / movement.walkSpeed);
     this.walkWeight += (walkTarget - this.walkWeight) * blend;
-    const aiming = this.agent.state === "attack" || this.windingUp;
-    this.aim += ((aiming ? 1 : 0) - this.aim) * blend;
+    this.leapBlend += ((this.leaping ? 1 : 0) - this.leapBlend) * blend;
+    const crouch = Math.max(0, this.windup);
+    const jawTarget = this.leaping && !this.bitThisLeap ? 1 : crouch * CROUCH_JAW_SHARE;
+    this.jawBlend += (jawTarget - this.jawBlend) * blend;
     this.hitLeft = Math.max(0, this.hitLeft - dt);
-
-    const aimAt = this.agent.aimPoint(0) ?? this.agent.target.eye;
-    const shoulder = this.agent.feet.y + SHOULDER_HEIGHT;
-    const horizontal = Math.max(0.1, Math.hypot(aimAt.x - this.agent.position.x, aimAt.z - this.agent.position.z));
-    const aimPitch = Math.atan2(shoulder - aimAt.y, horizontal);
-    const twitch = this.stunned ? Math.sin(this.time * TWITCH_RATE) : 0;
-
     this.model.pose({
       walkPhase: this.walkPhase,
       walkWeight: this.walkWeight,
-      aim: this.aim,
-      aimPitch,
+      crouch,
+      leap: this.leapBlend,
+      jaw: this.jawBlend,
       hit: hit.time > 0 ? this.hitLeft / hit.time : 0,
-      charge: Math.max(0, this.windup),
-      twitch,
+      twitch: this.stunned ? Math.sin(this.time * TWITCH_RATE) : 0,
+      time: this.time,
     });
     this.model.setFlash(this.flashColor, hit.flashIntensity, this.hitLeft > 0);
   }

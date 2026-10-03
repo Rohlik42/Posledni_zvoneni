@@ -1,5 +1,5 @@
 import { Ray } from "@babylonjs/core/Culling/ray";
-import type { Vector3 } from "@babylonjs/core/Maths/math.vector";
+import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import type { Scene } from "@babylonjs/core/scene";
 import { DamageTargets } from "../../core/DamageTargets";
@@ -19,6 +19,19 @@ export class LineOfSight {
     this.casts++;
     const pick = this.scene.pickWithRay(new Ray(origin, direction, length), (mesh) => this.blocks(mesh));
     return pick?.hit === true ? pick.distance : null;
+  }
+
+  /**
+   * The first blocking surface along `direction` (normalised) within `length`: its distance and world normal (facing
+   * the ray). Drones steer and collide with it.
+   */
+  probe(origin: Vector3, direction: Vector3, length: number): { distance: number; normal: Vector3 } | null {
+    this.casts++;
+    const pick = this.scene.pickWithRay(new Ray(origin, direction, length), (mesh) => this.blocks(mesh));
+    if (pick?.hit !== true) return null;
+    const normal = pick.getNormal(true, true) ?? direction.scale(-1);
+    if (Vector3.Dot(normal, direction) > 0) normal.scaleInPlace(-1);
+    return { distance: pick.distance, normal };
   }
 
   /** True when something blocks the straight line between `from` and `to`. */

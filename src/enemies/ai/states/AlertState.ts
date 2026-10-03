@@ -1,19 +1,18 @@
 import { State } from "yuka";
-import type { HumanoidAgent } from "../HumanoidAgent";
+import type { GroundAgent } from "../GroundAgent";
 
 /**
- * Something was seen, heard or felt: the robot stops and turns towards it for `senses.alertTime`, then attacks a
- * visible player in range or chases the last known position.
+ * Something was seen, heard or felt: the robot stops and turns towards it for `senses.alertTime`, then engages
+ * (`engageState`: a humanoid attacks a visible player in range, otherwise every robot chases the last known position).
  */
-export class AlertState extends State<HumanoidAgent> {
-  override enter(agent: HumanoidAgent): void {
+export class AlertState extends State<GroundAgent> {
+  override enter(agent: GroundAgent): void {
     agent.stop();
   }
 
-  override execute(agent: HumanoidAgent): void {
+  override execute(agent: GroundAgent): void {
     agent.face(agent.perception.lastKnownPosition);
     if (agent.stateTime < agent.data.senses.alertTime) return;
-    const inRange = agent.distanceToTarget() <= agent.data.attack.range;
-    agent.changeState(agent.perception.seesPlayer && inRange ? "attack" : "chase");
+    agent.changeState(agent.engageState());
   }
 }
