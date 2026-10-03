@@ -6,3 +6,4 @@
 4. Groom (podle seedu) spusť až ve chvíli, kdy jsou všechny fáze z tabulky Done.
 5. **Rychlost:** neověřuj nad rámec quick gate a shift gate. Žádné další běhy plné sady, žádná videa, fps jen ve fázích 21 a 24. Po směně 2 a 5 nečekej na člověka a pokračuj.
 6. Nikdy nepushuj.
+7. **2026-10-03 21:2x:** FEEDBACK.md má bod o světle u zdi. Zapracuje ho **fáze 5 (Weapon feel)** v téhle směně jako součást své práce (je malý a týká se vzhledu v boxroomu). Ve verifikaci fáze 5 přidej A/B snímky u zdi. Po merge fáze 5 připiš do FEEDBACK.md „Zapracováno <datum>“, takže další směna z něj novou fázi nevytvoří.
