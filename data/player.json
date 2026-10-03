@@ -7,7 +7,8 @@
     "eyeHeight": 1.65,
     "maxStepHeight": 0.35,
     "maxSlopeDegrees": 50,
-    "keepDistance": 0.01
+    "keepDistance": 0.01,
+    "stepUpBoost": 2
   },
   "movement": {
     "//": "m/s a m/s². groundAcceleration při stisku směru, groundFriction brzdí bez vstupu, ve vzduchu jen airAcceleration. Skok: výška jumpHeight při gravitaci gravity; coyoteTime = skok ještě chvíli po sejití z hrany, jumpBufferTime = stisk těsně před dopadem se nezahodí.",
@@ -20,7 +21,8 @@
     "jumpHeight": 1.1,
     "coyoteTime": 0.12,
     "jumpBufferTime": 0.12,
-    "maxFallSpeed": 30
+    "maxFallSpeed": 30,
+    "groundSnapDistance": 0.12
   },
   "camera": {
     "fov": 1.25,

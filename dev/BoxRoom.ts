@@ -19,6 +19,8 @@ const CHECKER_TILE_PX = 64;
 const CHECKER_TILES_PER_TEXTURE = 2;
 /** The hemispheric ambient light counts against the material light limit too. */
 const AMBIENT_LIGHTS = 1;
+/** Thickness of the invisible collider slab under a flight of stairs, in metres. */
+const STAIR_SLAB_THICKNESS = 0.3;
 
 /**
  * The 20×20×5 m test room from `data/boxroom.json`: walls, a door opening with an alcove behind it, stairs, a ramp,
@@ -88,7 +90,12 @@ export class BoxRoom {
     return mesh;
   }
 
-  /** Solid steps from the floor up: step i is `(i + 1) × rise` tall and starts `i × run` along the heading. */
+  /**
+   * Stairs: solid visual steps from the floor up (step i is `(i + 1) × rise` tall, `i × run` along the heading) and
+   * one invisible slab collider through the step nosings. The capsule glides up and down it like a ramp, which keeps
+   * the camera smooth and does not depend on the controller's step-up sweep (unreliable for a whole flight of steps,
+   * DECISIONS). The slab starts one run before the first step, so the first nosing lies on it too.
+   */
   private addStairs(stairs: BoxRoomStairs): void {
     const [x, y, z] = stairs.start;
     const sin = Math.sin(stairs.yaw);
@@ -102,12 +109,28 @@ export class BoxRoom {
         size: [stairs.width, height, stairs.run],
         rotationY: stairs.yaw,
         color: stairs.color,
+        collide: false,
       });
     }
+    const slab = this.addSlab({
+      name: `${stairs.name}-collider`,
+      start: [x - sin * stairs.run, y, z - cos * stairs.run],
+      yaw: stairs.yaw,
+      run: stairs.count * stairs.run,
+      rise: stairs.count * stairs.rise,
+      width: stairs.width,
+      thickness: STAIR_SLAB_THICKNESS,
+      color: stairs.color,
+    });
+    slab.isVisible = false;
   }
 
-  /** A tilted slab whose top surface runs from the floor at `start` up `rise` over `run`. */
   private addRamp(ramp: BoxRoomRamp): void {
+    this.addSlab(ramp);
+  }
+
+  /** A tilted slab whose top surface runs from the floor at `start` up `rise` over `run`; a static collider. */
+  private addSlab(ramp: BoxRoomRamp): Mesh {
     const angle = Math.atan2(ramp.rise, ramp.run);
     const length = Math.hypot(ramp.run, ramp.rise);
     const sin = Math.sin(ramp.yaw);
@@ -123,6 +146,7 @@ export class BoxRoom {
     mesh.material = this.matte(ramp.color, ramp.color);
     this.physics.addStatic(mesh);
     this.meshes.push(mesh);
+    return mesh;
   }
 
   private addLights(): void {

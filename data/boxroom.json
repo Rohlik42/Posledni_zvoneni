@@ -38,7 +38,8 @@
     { "name": "jumpBox05", "position": [-2, 0.25, 6], "size": [1.2, 0.5, 1.2], "color": "accent.gold" },
     { "name": "jumpBox10", "position": [-0.4, 0.5, 7], "size": [1.2, 1.0, 1.2], "color": "accent.red" },
     { "name": "jumpBox15", "position": [1.2, 0.75, 8], "size": [1.2, 1.5, 1.2], "color": "accent.teal" },
-    { "name": "crateSmall", "position": [6.5, 0.3, -6.5], "size": [0.6, 0.6, 0.6], "rotationY": 0.4, "color": "world.wood" },
+    { "name": "curb", "position": [5.8, 0.1, -8], "size": [2.4, 0.2, 2.4], "color": "world.rubble" },
+    { "name": "crateSmall", "position": [-2.5, 0.3, -8.6], "size": [0.6, 0.6, 0.6], "rotationY": 0.4, "color": "world.wood" },
     { "name": "crateTall", "position": [-6, 0.6, -7.5], "size": [1.2, 1.2, 1.2], "rotationY": 0.25, "color": "accent.violet" }
   ],
   "stairs": [

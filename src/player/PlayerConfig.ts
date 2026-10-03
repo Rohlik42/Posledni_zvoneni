@@ -9,6 +9,7 @@ export interface PlayerBodyData {
   maxStepHeight: number;
   maxSlopeDegrees: number;
   keepDistance: number;
+  stepUpBoost: number;
 }
 
 export interface PlayerMovementData {
@@ -22,6 +23,7 @@ export interface PlayerMovementData {
   coyoteTime: number;
   jumpBufferTime: number;
   maxFallSpeed: number;
+  groundSnapDistance: number;
 }
 
 export interface PlayerCameraData {
@@ -75,6 +77,7 @@ export class PlayerConfig {
       maxStepHeight: positive(),
       maxSlopeDegrees: Schema.number({ min: 0, max: 89 }),
       keepDistance: positive(),
+      stepUpBoost: Schema.number({ min: 1 }),
     }),
     movement: Schema.object({
       walkSpeed: positive(),
@@ -87,6 +90,7 @@ export class PlayerConfig {
       coyoteTime: positive(),
       jumpBufferTime: positive(),
       maxFallSpeed: positive(),
+      groundSnapDistance: positive(),
     }),
     camera: Schema.object({
       fov: Schema.number({ min: 0.3, max: 2.5 }),

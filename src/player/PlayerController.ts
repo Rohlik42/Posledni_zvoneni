@@ -13,8 +13,14 @@ import type { PlayerBodyData, PlayerMovementData } from "./PlayerConfig";
 const DEGREES_TO_RADIANS = Math.PI / 180;
 /** Velocity along the surface normal above which the player is leaving the ground (jump start), in m/s. */
 const SEPARATING_SPEED = 0.5;
-/** Small gap so the ground-snap ray starts just below the capsule instead of inside it, in metres. */
-const SNAP_RAY_START_OFFSET = 0.01;
+/** The ground-snap ray starts this far above the feet, so it still sees a surface the feet touch, in metres. */
+const SNAP_RAY_START_OFFSET = 0.02;
+/** Extra ray length for the off-centre contact on slopes, in metres (radius × (1/cos 50° − 1) ≈ 0.2). */
+const SLOPE_SNAP_ALLOWANCE = 0.2;
+/** Hovering less than this above the ground is left alone, in metres. */
+const SNAP_EPSILON = 0.002;
+/** Moving slower than this share of the requested speed counts as blocked (step assist), unitless. */
+const BLOCKED_SPEED_FRACTION = 0.5;
 
 /**
  * First-person movement on Havok's `PhysicsCharacterController` (a swept capsule, no rigid-body dynamics).
@@ -36,6 +42,8 @@ export class PlayerController implements Simulated {
   private readonly velocity = Vector3.Zero();
   /** Velocity the controller actually moved with in the last step. */
   private readonly actualVelocity = Vector3.Zero();
+  /** Velocity handed to the controller in the last step (the intent, boosted when blocked, see `stepAssisted`). */
+  private readonly requested = Vector3.Zero();
   private readonly gravity: Vector3;
   private readonly down = new Vector3(0, -1, 0);
   private readonly feet = Vector3.Zero();
@@ -114,6 +122,7 @@ export class PlayerController implements Simulated {
     this.controller.setVelocity(Vector3.Zero());
     this.velocity.setAll(0);
     this.actualVelocity.setAll(0);
+    this.requested.setAll(0);
     this.feet.copyFrom(feet);
     this.previousFeet.copyFrom(feet);
     this.grounded = false;
@@ -131,6 +140,12 @@ export class PlayerController implements Simulated {
     // velocity points steeply up, and feeding that back would launch the player off the stairs.
     const solverY = this.controller.getVelocity().y;
     if (!wasGrounded && Math.abs(solverY) < Math.abs(this.velocity.y)) this.velocity.y = solverY;
+    // In the air the horizontal intent is what really happened: running into a wall and jumping must not carry the
+    // speed the wall swallowed.
+    if (!wasGrounded) {
+      this.velocity.x = this.actualVelocity.x;
+      this.velocity.z = this.actualVelocity.z;
+    }
     this.updateGrounded(dt, support, wasGrounded);
 
     if (this.input.wasPressed("jump")) this.jumpBuffer = this.movement.jumpBufferTime;
@@ -139,15 +154,33 @@ export class PlayerController implements Simulated {
     this.updateHorizontal(dt);
     this.updateVertical(dt, support);
 
-    this.controller.setVelocity(this.velocity);
+    this.controller.setVelocity(this.stepAssisted(this.velocity));
     this.controller.integrate(dt, support, this.gravity);
     this.actualVelocity.copyFrom(this.controller.getVelocity());
-    if (wasGrounded && !this.grounded && this.velocity.y <= 0) this.snapToGround();
+    // On the ground: settle onto it (the controller counts itself supported a few centimetres above a surface it
+    // landed on and would stay hovering there). Just walked off a stair edge: pull down onto the next step.
+    if (this.grounded) this.snapToGround(this.movement.groundSnapDistance);
+    else if (wasGrounded && this.velocity.y <= 0 && this.snapToGround(this.body.maxStepHeight)) this.grounded = true;
 
     this.previousFeet.copyFrom(this.feet);
     this.feetFromCenterToRef(this.controller.getPosition(), this.feet);
     this.horizontalSpeed = Math.hypot(this.actualVelocity.x, this.actualVelocity.z);
     if (!this.grounded) this.lastAirborneVerticalSpeed = this.velocity.y;
+  }
+
+  /**
+   * The controller's step-up sweep only looks one step's travel ahead; at walking speed that lands on the rounded
+   * edge of a curb at too steep an angle and the step-up is refused. When the player pushes forward on the ground
+   * but last step moved less than half as fast as intended, the controller gets `stepUpBoost` × the velocity for one
+   * step: over a curb it steps up, against a wall the solver removes it anyway.
+   */
+  private stepAssisted(velocity: Vector3): Vector3 {
+    const requested = Math.hypot(this.requested.x, this.requested.z);
+    const along = requested === 0 ? 0 : (this.actualVelocity.x * this.requested.x + this.actualVelocity.z * this.requested.z) / requested;
+    const blocked = this.grounded && requested > 0 && along < requested * BLOCKED_SPEED_FRACTION;
+    const boost = blocked ? this.body.stepUpBoost : 1;
+    this.requested.set(velocity.x * boost, velocity.y, velocity.z * boost);
+    return this.requested;
   }
 
   dispose(): void {
@@ -230,21 +263,26 @@ export class PlayerController implements Simulated {
     this.velocity.y = Math.max(this.velocity.y - this.movement.gravity * dt, -this.movement.maxFallSpeed);
   }
 
-  /** Walking off a stair edge: pull the capsule down onto walkable ground within `maxStepHeight`. */
-  private snapToGround(): void {
+  /**
+   * Moves the capsule straight down onto walkable ground found within `maxDistance` below its feet; returns whether
+   * it found ground. On a slope the capsule's sphere touches the surface off-centre, so its lowest point rests
+   * `radius × (1 / cos(slope) − 1)` above the surface under the centre.
+   */
+  private snapToGround(maxDistance: number): boolean {
     const center = this.controller.getPosition().clone();
     const feetY = center.y - this.body.height / 2;
-    const from = new Vector3(center.x, feetY - SNAP_RAY_START_OFFSET, center.z);
-    const to = new Vector3(center.x, feetY - this.body.maxStepHeight - this.body.keepDistance, center.z);
+    const from = new Vector3(center.x, feetY + SNAP_RAY_START_OFFSET, center.z);
+    const to = new Vector3(center.x, feetY - maxDistance - this.body.keepDistance - SLOPE_SNAP_ALLOWANCE, center.z);
     const hit = this.physics.raycast(from, to);
-    if (hit === null || hit.normal.y < this.maxSlopeCosine) return;
-    const drop = feetY - hit.point.y - this.body.keepDistance;
-    if (drop <= 0) return;
-    center.y -= drop;
-    this.controller.setPosition(center);
-    this.velocity.y = 0;
-    this.controller.setVelocity(this.velocity);
-    this.grounded = true;
+    if (hit === null || hit.normal.y < this.maxSlopeCosine) return false;
+    const restY = hit.point.y + this.body.radius * (1 / hit.normal.y - 1) + this.body.keepDistance;
+    const drop = feetY - restY;
+    if (drop > maxDistance) return false;
+    if (drop > SNAP_EPSILON) {
+      center.y -= drop;
+      this.controller.setPosition(center);
+    }
+    return true;
   }
 
   private centerFromFeet(feet: Vector3): Vector3 {
