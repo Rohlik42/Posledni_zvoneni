@@ -1,0 +1,14 @@
+{
+  "//": "Nastavení RenderPipeline (src/rendering/RenderPipeline.ts). Každá část jde vypnout ('enabled'); presety kvality (fáze 21) přepisují tyto hodnoty. Barvy jsou klíče z palette.json.",
+  "clearColor": "fog.night",
+  "hdr": true,
+  "msaaSamples": 4,
+  "fxaa": { "enabled": false },
+  "toneMapping": { "enabled": true, "type": "aces", "exposure": 1.1, "contrast": 1.2 },
+  "bloom": { "enabled": true, "threshold": 0.75, "weight": 0.55, "kernel": 64, "scale": 0.5 },
+  "grain": { "enabled": true, "intensity": 14, "animated": true },
+  "chromaticAberration": { "enabled": true, "amount": 22, "radialIntensity": 1.2 },
+  "vignette": { "enabled": true, "weight": 3.2, "stretch": 0.2, "color": "base.black" },
+  "ssao": { "enabled": true, "ratio": 0.5, "blurRatio": 0.5, "totalStrength": 1.3, "radius": 1.2, "samples": 16, "maxZ": 60, "base": 0.1 },
+  "fog": { "enabled": true, "mode": "exp2", "density": 0.06, "color": "fog.night" }
+}

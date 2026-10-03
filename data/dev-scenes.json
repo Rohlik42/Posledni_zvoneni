@@ -1,0 +1,26 @@
+{
+  "//": "Obsah dev scén, které nejsou herní (dev/scenes/*). 'pipeline' = pár barevných krabic a bodové světlo v mlze pro kontrolu RenderPipeline (snímek screenshots/01-pipeline.png).",
+  "pipeline": {
+    "floor": { "size": 30, "color": "world.floorTile" },
+    "walls": [
+      { "position": [0, 2.5, 7], "size": [30, 5, 0.4], "color": "world.plasterDark" },
+      { "position": [-7, 2.5, 0], "size": [0.4, 5, 30], "color": "world.plinth" }
+    ],
+    "boxes": [
+      { "position": [-2.6, 0.6, 1.6], "size": [1.2, 1.2, 1.2], "rotationY": 0.35, "color": "accent.red" },
+      { "position": [-1.0, 0.4, 3.2], "size": [0.8, 0.8, 0.8], "rotationY": 0.8, "color": "accent.gold" },
+      { "position": [1.6, 0.75, 2.2], "size": [1.0, 1.5, 1.0], "rotationY": -0.4, "color": "accent.teal" },
+      { "position": [3.4, 0.5, 4.6], "size": [1.0, 1.0, 1.0], "rotationY": 0.2, "color": "accent.violet" },
+      { "position": [0.3, 0.25, 0.4], "size": [0.5, 0.5, 0.5], "rotationY": 0.6, "color": "accent.lime" },
+      { "position": [-4.2, 1.0, 5.2], "size": [1.4, 2.0, 1.0], "rotationY": 0.1, "color": "world.wood" }
+    ],
+    "lights": [
+      { "position": [0.2, 2.4, 2.6], "color": "light.lamp", "intensity": 2.2, "range": 12, "bulbRadius": 0.14, "bulbEmissive": 8 },
+      { "position": [4.8, 1.4, 6.2], "color": "light.fire", "intensity": 1.4, "range": 7, "bulbRadius": 0.1, "bulbEmissive": 6 }
+    ],
+    "neon": [
+      { "position": [1.0, 3.2, 6.75], "size": [3.2, 0.14, 0.14], "color": "neon.water", "emissive": 5 },
+      { "position": [-6.75, 2.2, 3.0], "size": [0.14, 0.14, 2.4], "color": "neon.robot", "emissive": 5 }
+    ]
+  }
+}
