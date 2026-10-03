@@ -188,18 +188,39 @@ test("viewmodel: drawn in its own rendering group, within the weapon triangle bu
   expect(vm?.triangles).toBeLessThanOrEqual(budgets.weapon);
 });
 
-test("slots 1–6 list all six weapons; only the pistol is owned and disabled ones (none since phase 13) cannot be given", async () => {
+test("slots 1–6 hold the six weapons in slot order; a key selects only an owned weapon, the HUD slot follows", async () => {
+  // Phase 16 (critique of shift 3): since phase 13 every weapon is enabled, so the old loop over disabled weapons checked
+  // nothing. Now: ownership, key selection of an owned and an unowned slot, and the HUD slot bar.
   const list = await page.evaluate(() => window.__game!.weapons!.list());
   expect(list.map((w) => w.slot)).toEqual([1, 2, 3, 4, 5, 6]);
+  expect(list.map((w) => w.id)).toEqual([...weapons.weapons].sort((a, b) => a.slot - b.slot).map((w) => w.id));
+  expect(list.every((w) => w.enabled)).toBe(true);
   expect(list.filter((w) => w.owned).map((w) => w.id)).toEqual(["waterPistol"]);
-  for (const weapon of weapons.weapons.filter((w) => !w.enabled)) {
-    expect(await page.evaluate((id) => window.__game!.weapons!.give(id), weapon.id)).toBe(false);
-    expect(await page.evaluate((slot) => window.__game!.weapons!.select(slot), weapon.slot)).toBe(false);
-  }
-  // Key 2 (not owned) keeps the pistol in hand; key 1 selects it.
+  expect(await page.evaluate(() => window.__game!.weapons!.give("noSuchWeapon"))).toBe(false);
+
+  // Key 2 while slot 2 is not owned keeps the pistol in hand.
+  const slot2 = weapons.weapons.find((w) => w.slot === 2)!;
+  expect(await page.evaluate(() => window.__game!.weapons!.select(2))).toBe(false);
   await page.evaluate(() => window.__game!.input!.simulate("Digit2", 1000 / 60));
-  await page.evaluate(() => window.__game!.input!.simulate("Digit1", 1000 / 60));
   await page.evaluate((ms) => window.__game!.step(ms), weapons.switchTime * 1000);
+  expect(await page.evaluate(() => window.__game!.weapons!.active)).toBe("waterPistol");
+
+  // Once given, key 2 switches to it and the HUD marks slot 2 owned and active.
+  expect(await page.evaluate((id) => window.__game!.weapons!.give(id), slot2.id)).toBe(true);
+  await page.evaluate(() => window.__game!.input!.simulate("Digit2", 1000 / 60));
+  await page.evaluate((ms) => window.__game!.step(ms), weapons.switchTime * 1000 + 50);
+  expect(await page.evaluate(() => window.__game!.weapons!.active)).toBe(slot2.id);
+  const hudSlots = await page.evaluate(() => window.__game!.hud!.slots());
+  expect(hudSlots.find((s) => s.slot === 2)).toMatchObject({ owned: true, active: true });
+  expect(hudSlots.find((s) => s.slot === 1)).toMatchObject({ owned: true, active: false });
+  expect(hudSlots.filter((s) => s.slot > 2).every((s) => !s.owned)).toBe(true);
+
+  // Key 6 (not owned) changes nothing; key 1 brings the pistol back for the remaining tests.
+  await page.evaluate(() => window.__game!.input!.simulate("Digit6", 1000 / 60));
+  await page.evaluate((ms) => window.__game!.step(ms), weapons.switchTime * 1000);
+  expect(await page.evaluate(() => window.__game!.weapons!.active)).toBe(slot2.id);
+  await page.evaluate(() => window.__game!.input!.simulate("Digit1", 1000 / 60));
+  await page.evaluate((ms) => window.__game!.step(ms), weapons.switchTime * 1000 + 50);
   expect(await page.evaluate(() => window.__game!.weapons!.active)).toBe("waterPistol");
   expect(await page.evaluate(() => window.__game!.weapons!.switching)).toBe(false);
 });
