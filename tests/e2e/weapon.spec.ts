@@ -204,6 +204,21 @@ test("slots 1–6 list all six weapons; only the pistol is owned and the disable
   expect(await page.evaluate(() => window.__game!.weapons!.switching)).toBe(false);
 });
 
+test("a real left mouse button held on the canvas fires (Babylon must not swallow mousedown)", async () => {
+  await aimAtTarget("targetCenter");
+  const before = await page.evaluate(() => window.__game!.weapons!.shots);
+  await page.evaluate(() => window.__game!.setPaused(false));
+  const box = (await page.locator("canvas").first().boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  // Real frames: wait until a shot lands instead of a fixed time (machine load varies).
+  await page.waitForFunction((b) => window.__game!.weapons!.shots > b, before, { timeout: 5000 });
+  expect(await page.evaluate(() => window.__game!.input!.isDown("fire"))).toBe(true);
+  await page.mouse.up();
+  expect(await page.evaluate(() => window.__game!.input!.isDown("fire"))).toBe(false);
+  await page.evaluate(() => window.__game!.setPaused(true));
+});
+
 test("synthesized sounds exist and are audible: pistol shot, splash, empty click", async () => {
   const audio = await page.evaluate((s) => {
     const a = window.__game!.audio!;
