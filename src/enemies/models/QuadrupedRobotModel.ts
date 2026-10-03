@@ -187,5 +187,5 @@ ModelRegistry.register({
   name: "QuadrupedRobotModel",
   category: "robot",
   title: "Čtyřnohý robot (rychlý melee: sprint, obíhání, výpad s čelistmi)",
-  create: (scene) => new QuadrupedRobotModel(scene),
+  create: (scene, options) => new QuadrupedRobotModel(scene, options),
 });

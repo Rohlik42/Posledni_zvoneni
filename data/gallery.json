@@ -1,0 +1,97 @@
+{
+  "//": "Dev scéna 'gallery' (dev/scenes/GalleryScene.ts, fáze 15): všechny modely z ModelRegistry na podstavcích s popiskem a počtem trojúhelníků, pod herním osvětlením (ambient, zářivky, mlha a pipeline jako ve hře). Sekce jdou odpředu dozadu a každá další stojí o rowRise výš (tribuna); sekce s víc než 'columns' kusy se zalomí. Model se zmenší, aby se vešel do buňky (cell.fill × width, maxHeight), a zvětší nejvýš na maxScale sekce. 'teachers' rozvine model na 9 podob z data/teachers.json. Modely, které žádná sekce nejmenuje, skončí v poslední sekci 'Ostatní'. yawDeg otočí přední stranu (+z) ke kameře, zbraně bokem. ?section=<id> zabere kameru na jednu sekci.",
+  "columns": 10,
+  "cell": { "width": 1.5, "depth": 2.0, "maxHeight": 1.9, "fill": 0.85 },
+  "rowRise": 0.5,
+  "pedestal": { "size": 1.3, "height": 0.12, "color": "base.ash" },
+  "floorColor": "world.floorTileDark",
+  "yawDeg": { "default": 180, "weapon": -90 },
+  "camera": { "fov": 0.7, "pitchDeg": 22, "margin": 1.08, "focusMargin": 1.25 },
+  "lights": { "spacing": 4.5, "height": 2.6, "forward": -1.2, "color": "light.fluorescent", "intensity": 1.3, "range": 6 },
+  "labelDrop": 0.18,
+  "otherTitle": "Ostatní",
+  "sections": [
+    {
+      "id": "weapons",
+      "title": "Zbraně (≤ 1 000 tri)",
+      "maxScale": 2.2,
+      "items": [
+        { "model": "WaterPistolModel" },
+        { "model": "WaterPistolModel", "label": "toxic", "options": { "variant": "toxic" } },
+        { "model": "ExtinguisherModel" },
+        { "model": "WaterBalloonModel" },
+        { "model": "TaserModel" },
+        { "model": "RailgunModel" },
+        { "model": "HoseModel" }
+      ]
+    },
+    {
+      "id": "robots",
+      "title": "Roboti (≤ 2 000 tri)",
+      "maxScale": 1,
+      "items": [
+        { "model": "HumanoidRobotModel", "label": "patrol", "options": { "variant": "patrol" } },
+        { "model": "HumanoidRobotModel", "label": "heavy", "options": { "variant": "heavy" } },
+        { "model": "QuadrupedRobotModel", "label": "hound", "options": { "variant": "hound" } },
+        { "model": "QuadrupedRobotModel", "label": "feral", "options": { "variant": "feral" } },
+        { "model": "DroneModel", "label": "scout", "options": { "variant": "scout" } },
+        { "model": "DroneModel", "label": "hornet", "options": { "variant": "hornet" } }
+      ]
+    },
+    {
+      "id": "teachers",
+      "title": "Učitelé (≤ 2 000 tri)",
+      "maxScale": 1,
+      "teachers": "TeacherModel",
+      "items": []
+    },
+    {
+      "id": "pickups",
+      "title": "Klíče a power-upy (≤ 500 tri)",
+      "maxScale": 3,
+      "items": [
+        { "model": "KeyModel", "label": "red", "options": { "variant": "red" } },
+        { "model": "KeyModel", "label": "yellow", "options": { "variant": "yellow" } },
+        { "model": "KeyModel", "label": "blue", "options": { "variant": "blue" } },
+        { "model": "MedkitModel" },
+        { "model": "EnergyDrinkModel" },
+        { "model": "RubberBootsModel" },
+        { "model": "BalloonPackModel" },
+        { "model": "CapacitorModel" },
+        { "model": "CanisterModel" }
+      ]
+    },
+    {
+      "id": "props",
+      "title": "Rekvizity učeben (≤ 1 000 tri)",
+      "maxScale": 1,
+      "items": [
+        { "model": "SchoolDeskModel" },
+        { "model": "SchoolDeskModel", "label": "worn", "options": { "variant": "worn" } },
+        { "model": "SchoolChairModel" },
+        { "model": "TeacherDeskModel" },
+        { "model": "BlackboardModel" },
+        { "model": "CabinetModel" },
+        { "model": "CabinetModel", "label": "locker", "options": { "variant": "locker" } },
+        { "model": "GlobeModel" },
+        { "model": "PianoModel" },
+        { "model": "LabBenchModel" },
+        { "model": "WallBarsModel" }
+      ]
+    },
+    {
+      "id": "fixtures",
+      "title": "Dveře a vybavení (≤ 1 000 tri)",
+      "maxScale": 1,
+      "items": [
+        { "model": "DoorModel", "label": "none", "options": { "lock": "none" } },
+        { "model": "DoorModel", "label": "red", "options": { "lock": "red" } },
+        { "model": "DoorModel", "label": "yellow", "options": { "lock": "yellow" } },
+        { "model": "DoorModel", "label": "blue", "options": { "lock": "blue" } },
+        { "model": "ExtinguisherCabinetModel" },
+        { "model": "HydrantModel" },
+        { "model": "TargetModel" }
+      ]
+    }
+  ]
+}

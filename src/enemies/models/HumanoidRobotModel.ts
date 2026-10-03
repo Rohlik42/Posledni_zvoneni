@@ -203,5 +203,5 @@ ModelRegistry.register({
   name: "HumanoidRobotModel",
   category: "robot",
   title: "Humanoidní robot (základní nepřítel, elektrický kanón)",
-  create: (scene) => new HumanoidRobotModel(scene),
+  create: (scene, options) => new HumanoidRobotModel(scene, options),
 });
