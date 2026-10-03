@@ -64,6 +64,7 @@ export class LevelBuilder {
     game.addAmbientLight();
     // The view out of every window (no per-window pictures).
     Skybox.create(scene);
+    const lightRooms = new Map<PointLight, string[]>();
     const lights = level.lights.map((light) => {
       const room = layout.room(light.room);
       const position = LevelLayout.toWorld(light.x, layout.floorY(room) + light.height, light.z);
@@ -77,9 +78,10 @@ export class LevelBuilder {
       const stairwell = level.stairs.filter((s) => s.fromFloor !== s.toFloor && (s.bottomRoom === room.id || s.topRoom === room.id));
       const rooms = new Set([room.id, ...stairwell.flatMap((s) => [s.bottomRoom, s.topRoom])]);
       point.includedOnlyMeshes = [...rooms].flatMap((id) => geometry.owners.get(id)?.visible ?? []);
+      lightRooms.set(point, [...rooms]);
       return point;
     });
-    return new Level(layout, geometry, materials, lights);
+    return new Level(layout, geometry, materials, lights, lightRooms);
   }
 
   /** Rubble boxes standing on the room floor (collapsed-ceiling chunks the same until phase 19 details them). */

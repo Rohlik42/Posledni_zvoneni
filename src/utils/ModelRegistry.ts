@@ -1,6 +1,7 @@
 import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import type { TransformNode } from "@babylonjs/core/Meshes/transformNode";
 import type { Scene } from "@babylonjs/core/scene";
+import type { BlueprintOptions } from "../rendering/BlueprintBuilder";
 import { ModelBlueprints, type ModelCategory } from "../rendering/ModelBlueprints";
 
 const VERTICES_PER_TRIANGLE = 3;
@@ -17,8 +18,8 @@ export interface ModelEntry {
   category: ModelCategory;
   /** One line for the gallery label. */
   title: string;
-  /** Builds the model with default parameters. */
-  create(scene: Scene): ModelInstance;
+  /** Builds the model with default parameters, or with a variant / colours / scale (pickups, phase 10). */
+  create(scene: Scene, options?: BlueprintOptions): ModelInstance;
 }
 
 /**

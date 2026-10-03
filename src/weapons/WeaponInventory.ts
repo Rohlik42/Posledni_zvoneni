@@ -135,6 +135,11 @@ export class WeaponInventory {
     return this.switchProgress < 1;
   }
 
+  /** The weapon `id` if the player owns it (ammo pickups of the inventory, phase 10). */
+  weapon(id: string): Weapon | undefined {
+    return this.owned.get(id);
+  }
+
   /** Slot table for the HUD: every slot 1–6 with its weapon and whether the player has it. */
   slots(): WeaponSlotInfo[] {
     return [...this.data.weapons]

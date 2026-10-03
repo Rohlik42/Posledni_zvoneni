@@ -56,6 +56,51 @@
         { "kind": "tone", "wave": "triangle", "start": 0.06, "duration": 0.03, "volume": 0.13, "attack": 0.002, "from": 1400, "to": 550 }
       ]
     },
+    "doorOpen": {
+      "//": "Otevření dveří (fáze 10): kovové cvak-cvak kliky jako nůžky ze staré hry (LEGACY §5 scissors) a tlumené zavrzání pantu.",
+      "layers": [
+        { "kind": "tone", "wave": "triangle", "start": 0, "duration": 0.045, "volume": 0.2, "attack": 0.002, "from": 2200, "to": 800 },
+        { "kind": "tone", "wave": "triangle", "start": 0.07, "duration": 0.04, "volume": 0.16, "attack": 0.002, "from": 1400, "to": 550 },
+        { "kind": "noise", "start": 0.08, "duration": 0.32, "volume": 0.08, "attack": 0.06, "from": 900, "to": 420, "q": 6 }
+      ]
+    },
+    "doorClose": {
+      "//": "Zavření dveří: tupé bouchnutí křídla do zárubně a cvaknutí zámku.",
+      "layers": [
+        { "kind": "tone", "wave": "triangle", "start": 0, "duration": 0.14, "volume": 0.24, "attack": 0.003, "from": 180, "to": 70 },
+        { "kind": "noise", "start": 0, "duration": 0.1, "volume": 0.16, "attack": 0.002, "from": 1200, "to": 500, "q": 0.8 },
+        { "kind": "tone", "wave": "triangle", "start": 0.09, "duration": 0.04, "volume": 0.14, "attack": 0.002, "from": 1900, "to": 900 }
+      ]
+    },
+    "doorLocked": {
+      "//": "Zamčené dveře: dvakrát zacloumání klikou a nízké bzučení zámku.",
+      "layers": [
+        { "kind": "tone", "wave": "triangle", "start": 0, "duration": 0.04, "volume": 0.16, "attack": 0.002, "from": 1600, "to": 900 },
+        { "kind": "tone", "wave": "triangle", "start": 0.11, "duration": 0.04, "volume": 0.16, "attack": 0.002, "from": 1600, "to": 900 },
+        { "kind": "tone", "wave": "square", "start": 0.04, "duration": 0.22, "volume": 0.05, "attack": 0.01, "from": 120, "to": 110 }
+      ]
+    },
+    "itemPickup": {
+      "//": "Sebrání věci: stoupající sine jako 'pickup' ze staré hry (LEGACY §5).",
+      "layers": [{ "kind": "tone", "wave": "sine", "start": 0, "duration": 0.15, "volume": 0.16, "attack": 0.008, "from": 600, "to": 1100 }]
+    },
+    "keyPickup": {
+      "//": "Sebrání klíče: tři stoupající tóny jako školní zvonek (LEGACY §5 bell), kratší.",
+      "layers": [
+        { "kind": "tone", "wave": "sine", "start": 0, "duration": 0.18, "volume": 0.16, "attack": 0.005, "from": 880, "to": 860 },
+        { "kind": "tone", "wave": "sine", "start": 0.1, "duration": 0.18, "volume": 0.16, "attack": 0.005, "from": 1100, "to": 1080 },
+        { "kind": "tone", "wave": "sine", "start": 0.2, "duration": 0.3, "volume": 0.18, "attack": 0.005, "from": 1320, "to": 1300 }
+      ]
+    },
+    "powerUp": {
+      "//": "Power-up (energeťák, gumáky): bublání 'drink' ze staré hry zkrácené na tři bubliny a stoupající tón.",
+      "layers": [
+        { "kind": "tone", "wave": "sine", "start": 0, "duration": 0.085, "volume": 0.25, "attack": 0.008, "from": 180, "to": 500 },
+        { "kind": "tone", "wave": "sine", "start": 0.13, "duration": 0.085, "volume": 0.25, "attack": 0.008, "from": 270, "to": 500 },
+        { "kind": "tone", "wave": "sine", "start": 0.26, "duration": 0.085, "volume": 0.25, "attack": 0.008, "from": 180, "to": 500 },
+        { "kind": "tone", "wave": "triangle", "start": 0.36, "duration": 0.25, "volume": 0.12, "attack": 0.01, "from": 500, "to": 1200 }
+      ]
+    },
     "pump": {
       "//": "Napumpování pistolky: dva tahy pumpy (šum nahoru a dolů) s nízkým tónem.",
       "layers": [

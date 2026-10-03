@@ -56,6 +56,7 @@ export class PlayerController implements Simulated {
   private jumpBuffer = 0;
   private lastAirborneVerticalSpeed = 0;
   private horizontalSpeed = 0;
+  private speedFactor = 1;
 
   constructor(
     private readonly physics: Physics,
@@ -78,6 +79,16 @@ export class PlayerController implements Simulated {
     this.controller.maxCharacterSpeedForSolver = Math.max(movement.sprintSpeed, movement.maxFallSpeed);
     this.feet.copyFrom(feet);
     this.previousFeet.copyFrom(feet);
+  }
+
+  /** Multiplies walking and sprinting speed (energy drink power-up, phase 10). */
+  get speedMultiplier(): number {
+    return this.speedFactor;
+  }
+
+  set speedMultiplier(factor: number) {
+    this.speedFactor = factor;
+    this.controller.maxCharacterSpeedForSolver = Math.max(this.movement.sprintSpeed * factor, this.movement.maxFallSpeed);
   }
 
   /** Feet position after the last step. */
@@ -218,7 +229,7 @@ export class PlayerController implements Simulated {
       let x = forward * sin + strafe * cos;
       let z = forward * cos - strafe * sin;
       const length = Math.hypot(x, z);
-      const speed = this.sprinting ? this.movement.sprintSpeed : this.movement.walkSpeed;
+      const speed = (this.sprinting ? this.movement.sprintSpeed : this.movement.walkSpeed) * this.speedFactor;
       x = (x / length) * speed;
       z = (z / length) * speed;
       targetX = x;

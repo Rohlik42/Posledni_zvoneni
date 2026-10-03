@@ -59,6 +59,8 @@ export class Level {
     readonly geometry: StaticGeometry,
     readonly materials: MaterialLibrary,
     readonly lights: PointLight[],
+    /** Rooms each light shines into (its own, plus the paired room of a stairwell). */
+    private readonly lightRooms: ReadonlyMap<PointLight, readonly string[]> = new Map(),
   ) {
     this.graph = new LevelGraph(layout);
     this.registerTestHooks();
@@ -94,6 +96,34 @@ export class Level {
       }
     }
     return GeometryAudit.run(surfaces, this.layout.greybox.audit);
+  }
+
+  /** Point lights that shine into `roomId` (`RoomLighting` adds door leaves, pickups and robots to them). */
+  lightsFor(roomId: string): PointLight[] {
+    return this.lights.filter((light) => this.lightRooms.get(light)?.includes(roomId) === true);
+  }
+
+  /** Rendered static meshes of a room. */
+  roomMeshes(roomId: string): Mesh[] {
+    return this.geometry.owners.get(roomId)?.visible ?? [];
+  }
+
+  /**
+   * The room a world point lies in: its plan rectangle contains the point and its floor is the highest one at most
+   * `floorTolerance` m above the point (stairwells overlap on all floors). Null outside every room.
+   */
+  roomAt(position: Vec3Like, floorTolerance: number): string | null {
+    const x = position.x;
+    const z = -position.z;
+    let best: { id: string; floorY: number } | null = null;
+    for (const room of this.layout.level.rooms) {
+      const r = room.rect;
+      if (x < r.x0 || x > r.x1 || z < r.z0 || z > r.z1) continue;
+      const floorY = this.layout.floorY(room);
+      if (floorY > position.y + floorTolerance) continue;
+      if (best === null || floorY > best.floorY) best = { id: room.id, floorY };
+    }
+    return best?.id ?? null;
   }
 
   /** The player's start from `level.json → spawns.player` (feet on the room floor, facing `lookAt`). */

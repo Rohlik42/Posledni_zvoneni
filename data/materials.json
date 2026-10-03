@@ -16,6 +16,7 @@
     "rubble": { "texture": "ph-rubble", "tint": "world.rubble", "tintStrength": 0.4, "fallback": { "pattern": "noise", "colors": ["world.rubble", "base.ash"], "sizeM": 1.0 } },
     "railing": { "tint": "world.metal", "tintStrength": 1, "fallback": { "pattern": "noise", "colors": ["world.metal", "world.steel"], "sizeM": 0.5 } },
     "door-frame": { "texture": "beam-wood", "tint": "world.woodDark", "tintStrength": 0.4, "fallback": { "pattern": "grid", "colors": ["world.wood", "world.woodDark"], "sizeM": 0.5 } },
+    "door-leaf": { "texture": "door-wood", "tint": "world.wood", "tintStrength": 0.25, "fallback": { "pattern": "grid", "colors": ["world.wood", "world.woodDark"], "sizeM": 0.7 } },
     "glass": { "tint": "world.glass", "tintStrength": 1, "alpha": 0.18, "emissive": "world.glass", "emissiveIntensity": 0.05, "fallback": { "pattern": "noise", "colors": ["world.glass", "world.glass"], "sizeM": 1.0 } },
     "gym-lines": { "texture": "floor-gym-lines", "tint": "base.white", "tintStrength": 0, "fallback": { "pattern": "grid", "colors": ["accent.pen", "accent.pencil"], "sizeM": 16.5 } }
   }

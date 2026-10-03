@@ -21,6 +21,8 @@ export class PlayerHealth {
   readonly onDeath = new Observable<void>();
 
   private current: number;
+  /** Incoming damage multiplier per type (power-ups, e.g. rubber boots against `electric`; phase 10). */
+  private readonly multipliers = new Map<DamageType, number>();
 
   constructor(private maxHealth: number) {
     this.current = maxHealth;
@@ -38,9 +40,21 @@ export class PlayerHealth {
     return this.current <= 0;
   }
 
-  /** Applies `amount` of damage (ignored when dead or not positive) and returns the health left. */
+  /** Multiplies incoming damage of `type` (1 = normal); power-ups set it, `reset` keeps it. */
+  setDamageMultiplier(type: DamageType, multiplier: number): void {
+    if (multiplier === 1) this.multipliers.delete(type);
+    else this.multipliers.set(type, multiplier);
+  }
+
+  damageMultiplier(type: DamageType): number {
+    return this.multipliers.get(type) ?? 1;
+  }
+
+  /** Applies `amount` (× the multiplier of `type`) of damage (ignored when dead or not positive); returns the health left. */
   damage(amount: number, type: DamageType = "kinetic"): number {
     if (this.isDead || !(amount > 0)) return this.current;
+    amount *= this.damageMultiplier(type);
+    if (!(amount > 0)) return this.current;
     this.current = Math.max(0, this.current - amount);
     this.onDamaged.notifyObservers({ amount, type, health: this.current });
     if (this.current === 0) this.onDeath.notifyObservers();

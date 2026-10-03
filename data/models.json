@@ -204,6 +204,123 @@
         { "name": "bull", "shape": "cylinder", "size": [0.1, 0.012, 0.1], "tessellation": 8, "position": [0, 1.35, -0.052], "rotationDeg": [90, 0, 0], "color": "bull", "emissive": 0.5, "group": "board" }
       ]
     },
+    "key": {
+      "//": "Klíč (src/level/models/KeyModel.ts, fáze 10): stojící klíč s hranatým okem, krčkem a dvěma zuby, svítící kámen v oku. Varianta = barva zámku (red, yellow, blue). Počátek = spodek dříku, klíč se točí kolem +y (KeyPickup).",
+      "category": "pickup",
+      "defaultVariant": "red",
+      "variants": {
+        "red": { "metal": "keys.red", "glow": "keys.red" },
+        "yellow": { "metal": "keys.yellow", "glow": "keys.yellow" },
+        "blue": { "metal": "keys.blue", "glow": "keys.blue" }
+      },
+      "parts": [
+        { "name": "bowTop", "shape": "box", "size": [0.14, 0.03, 0.03], "position": [0, 0.355, 0], "color": "metal", "emissive": 0.5 },
+        { "name": "bowBottom", "shape": "box", "size": [0.14, 0.03, 0.03], "position": [0, 0.245, 0], "color": "metal", "emissive": 0.5 },
+        { "name": "bowLeft", "shape": "box", "size": [0.03, 0.08, 0.03], "position": [-0.055, 0.3, 0], "color": "metal", "emissive": 0.5 },
+        { "name": "bowRight", "shape": "box", "size": [0.03, 0.08, 0.03], "position": [0.055, 0.3, 0], "color": "metal", "emissive": 0.5 },
+        { "name": "gem", "shape": "box", "size": [0.045, 0.045, 0.012], "position": [0, 0.3, 0], "rotationDeg": [0, 0, 45], "color": "glow", "emissive": 1.6 },
+        { "name": "collar", "shape": "cylinder", "size": [0.05, 0.03, 0.05], "tessellation": 6, "position": [0, 0.215, 0], "color": "metal", "emissive": 0.5 },
+        { "name": "shaft", "shape": "box", "size": [0.025, 0.2, 0.025], "position": [0, 0.1, 0], "color": "metal", "emissive": 0.5 },
+        { "name": "toothLow", "shape": "box", "size": [0.06, 0.025, 0.025], "position": [0.035, 0.0125, 0], "color": "metal", "emissive": 0.5 },
+        { "name": "toothHigh", "shape": "box", "size": [0.045, 0.025, 0.025], "position": [0.028, 0.06, 0], "color": "metal", "emissive": 0.5 }
+      ]
+    },
+    "medkit": {
+      "//": "Lékárnička (src/level/models/MedkitModel.ts): bílý kufřík s červeným křížem na obou stranách a madlem. Počátek = střed dna.",
+      "category": "pickup",
+      "defaultVariant": "classic",
+      "variants": { "classic": { "case": "base.white", "cross": "accent.red", "trim": "base.ash" } },
+      "parts": [
+        { "name": "case", "shape": "box", "size": [0.42, 0.26, 0.16], "position": [0, 0.13, 0], "color": "case" },
+        { "name": "crossFrontV", "shape": "box", "size": [0.06, 0.17, 0.012], "position": [0, 0.13, -0.085], "color": "cross", "emissive": 0.5 },
+        { "name": "crossFrontH", "shape": "box", "size": [0.17, 0.06, 0.012], "position": [0, 0.13, -0.085], "color": "cross", "emissive": 0.5 },
+        { "name": "crossBackV", "shape": "box", "size": [0.06, 0.17, 0.012], "position": [0, 0.13, 0.085], "color": "cross", "emissive": 0.5 },
+        { "name": "crossBackH", "shape": "box", "size": [0.17, 0.06, 0.012], "position": [0, 0.13, 0.085], "color": "cross", "emissive": 0.5 },
+        { "name": "handle", "shape": "box", "size": [0.16, 0.03, 0.04], "position": [0, 0.3, 0], "color": "trim" },
+        { "name": "handleLeft", "shape": "box", "size": [0.025, 0.04, 0.04], "position": [-0.07, 0.275, 0], "color": "trim" },
+        { "name": "handleRight", "shape": "box", "size": [0.025, 0.04, 0.04], "position": [0.07, 0.275, 0], "color": "trim" },
+        { "name": "latch", "shape": "box", "size": [0.06, 0.03, 0.012], "position": [0, 0.235, -0.085], "color": "trim" }
+      ]
+    },
+    "energyDrink": {
+      "//": "Energetický drink (src/level/models/EnergyDrinkModel.ts): plechovka s tmavou páskou a svítícím bleskem. Počátek = střed dna.",
+      "category": "pickup",
+      "defaultVariant": "toxic",
+      "variants": { "toxic": { "can": "neon.toxic", "label": "base.night", "metal": "world.steel" } },
+      "parts": [
+        { "name": "can", "shape": "cylinder", "size": [0.12, 0.2, 0.12], "tessellation": 10, "position": [0, 0.112, 0], "color": "can", "emissive": 0.2 },
+        { "name": "band", "shape": "cylinder", "size": [0.126, 0.07, 0.126], "tessellation": 10, "position": [0, 0.12, 0], "color": "label" },
+        { "name": "boltFront", "shape": "box", "size": [0.026, 0.065, 0.01], "position": [0, 0.12, -0.064], "rotationDeg": [0, 0, 25], "color": "can", "emissive": 1.2 },
+        { "name": "boltBack", "shape": "box", "size": [0.026, 0.065, 0.01], "position": [0, 0.12, 0.064], "rotationDeg": [0, 0, -25], "color": "can", "emissive": 1.2 },
+        { "name": "top", "shape": "cylinder", "size": [0.1, 0.014, 0.12], "tessellation": 10, "position": [0, 0.219, 0], "color": "metal" },
+        { "name": "bottom", "shape": "cylinder", "size": [0.12, 0.012, 0.1], "tessellation": 10, "position": [0, 0.006, 0], "color": "metal" },
+        { "name": "tab", "shape": "box", "size": [0.03, 0.006, 0.045], "position": [0, 0.229, 0.012], "color": "metal" }
+      ]
+    },
+    "rubberBoots": {
+      "//": "Gumáky (src/level/models/RubberBootsModel.ts): pár hranatých žlutých holínek s tmavou podrážkou a lemem. Počátek = mezi podrážkami na zemi, špičky míří k −z.",
+      "category": "pickup",
+      "defaultVariant": "yellow",
+      "variants": { "yellow": { "rubber": "neon.warning", "sole": "base.ash" } },
+      "parts": [
+        { "name": "shaftLeft", "shape": "box", "size": [0.12, 0.3, 0.14], "position": [-0.08, 0.2, 0.03], "color": "rubber" },
+        { "name": "footLeft", "shape": "box", "size": [0.12, 0.09, 0.28], "position": [-0.08, 0.075, -0.04], "color": "rubber" },
+        { "name": "soleLeft", "shape": "box", "size": [0.13, 0.03, 0.3], "position": [-0.08, 0.015, -0.04], "color": "sole" },
+        { "name": "rimLeft", "shape": "box", "size": [0.13, 0.03, 0.15], "position": [-0.08, 0.36, 0.03], "color": "sole" },
+        { "name": "shaftRight", "shape": "box", "size": [0.12, 0.3, 0.14], "position": [0.08, 0.2, 0.03], "color": "rubber" },
+        { "name": "footRight", "shape": "box", "size": [0.12, 0.09, 0.28], "position": [0.08, 0.075, -0.04], "color": "rubber" },
+        { "name": "soleRight", "shape": "box", "size": [0.13, 0.03, 0.3], "position": [0.08, 0.015, -0.04], "color": "sole" },
+        { "name": "rimRight", "shape": "box", "size": [0.13, 0.03, 0.15], "position": [0.08, 0.36, 0.03], "color": "sole" }
+      ]
+    },
+    "balloonPack": {
+      "//": "Vodní balónky (src/level/models/BalloonPackModel.ts): kovový košík se třemi balónky (válec + kužel + uzlík). Počátek = střed dna košíku.",
+      "category": "pickup",
+      "defaultVariant": "water",
+      "variants": { "water": { "basket": "world.metal", "rim": "accent.lime", "balloon": "neon.water", "knot": "neon.waterDeep" } },
+      "parts": [
+        { "name": "basket", "shape": "box", "size": [0.32, 0.1, 0.2], "position": [0, 0.05, 0], "color": "basket" },
+        { "name": "basketRim", "shape": "box", "size": [0.34, 0.02, 0.22], "position": [0, 0.11, 0], "color": "rim" },
+        { "name": "balloonLeft", "shape": "cylinder", "size": [0.14, 0.12, 0.12], "tessellation": 8, "position": [-0.085, 0.18, 0], "color": "balloon", "emissive": 0.25 },
+        { "name": "balloonLeftTop", "shape": "cylinder", "size": [0.05, 0.05, 0.14], "tessellation": 8, "position": [-0.085, 0.265, 0], "color": "balloon", "emissive": 0.25 },
+        { "name": "knotLeft", "shape": "box", "size": [0.025, 0.025, 0.025], "position": [-0.085, 0.3, 0], "color": "knot" },
+        { "name": "balloonMid", "shape": "cylinder", "size": [0.15, 0.13, 0.13], "tessellation": 8, "position": [0.0, 0.2, 0.02], "color": "balloon", "emissive": 0.25 },
+        { "name": "balloonMidTop", "shape": "cylinder", "size": [0.05, 0.05, 0.15], "tessellation": 8, "position": [0.0, 0.29, 0.02], "color": "balloon", "emissive": 0.25 },
+        { "name": "knotMid", "shape": "box", "size": [0.025, 0.025, 0.025], "position": [0.0, 0.325, 0.02], "color": "knot" },
+        { "name": "balloonRight", "shape": "cylinder", "size": [0.14, 0.12, 0.12], "tessellation": 8, "position": [0.085, 0.18, -0.01], "color": "balloon", "emissive": 0.25 },
+        { "name": "balloonRightTop", "shape": "cylinder", "size": [0.05, 0.05, 0.14], "tessellation": 8, "position": [0.085, 0.265, -0.01], "color": "balloon", "emissive": 0.25 },
+        { "name": "knotRight", "shape": "box", "size": [0.025, 0.025, 0.025], "position": [0.085, 0.3, -0.01], "color": "knot" }
+      ]
+    },
+    "capacitor": {
+      "//": "Munice školního railgunu (src/level/models/CapacitorModel.ts): kondenzátor z fyziky, kovový válec se svítícími pásy a dvěma vývody. Počátek = střed dna.",
+      "category": "pickup",
+      "defaultVariant": "lab",
+      "variants": { "lab": { "shell": "world.metal", "glow": "neon.electric", "dark": "base.ash", "pin": "world.steel" } },
+      "parts": [
+        { "name": "base", "shape": "box", "size": [0.18, 0.02, 0.18], "position": [0, 0.01, 0], "color": "dark" },
+        { "name": "body", "shape": "cylinder", "size": [0.14, 0.24, 0.14], "tessellation": 10, "position": [0, 0.14, 0], "color": "shell" },
+        { "name": "bandLow", "shape": "cylinder", "size": [0.146, 0.03, 0.146], "tessellation": 10, "position": [0, 0.08, 0], "color": "glow", "emissive": 1.2 },
+        { "name": "bandHigh", "shape": "cylinder", "size": [0.146, 0.03, 0.146], "tessellation": 10, "position": [0, 0.2, 0], "color": "glow", "emissive": 1.2 },
+        { "name": "cap", "shape": "cylinder", "size": [0.12, 0.02, 0.14], "tessellation": 10, "position": [0, 0.27, 0], "color": "dark" },
+        { "name": "pinPlus", "shape": "cylinder", "size": [0.025, 0.05, 0.025], "tessellation": 6, "position": [0.03, 0.305, 0], "color": "pin" },
+        { "name": "pinMinus", "shape": "cylinder", "size": [0.025, 0.05, 0.025], "tessellation": 6, "position": [-0.03, 0.305, 0], "color": "pin" }
+      ]
+    },
+    "canister": {
+      "//": "Náplň hasicího přístroje (src/level/models/CanisterModel.ts): malá červená bombička s bílým štítkem, ventilem a tryskou. Počátek = střed dna.",
+      "category": "pickup",
+      "defaultVariant": "red",
+      "variants": { "red": { "body": "accent.red", "label": "base.white", "metal": "world.steel", "dark": "base.ash" } },
+      "parts": [
+        { "name": "base", "shape": "cylinder", "size": [0.115, 0.02, 0.115], "tessellation": 10, "position": [0, 0.01, 0], "color": "dark" },
+        { "name": "body", "shape": "cylinder", "size": [0.11, 0.26, 0.11], "tessellation": 10, "position": [0, 0.15, 0], "color": "body", "emissive": 0.1 },
+        { "name": "label", "shape": "cylinder", "size": [0.116, 0.06, 0.116], "tessellation": 10, "position": [0, 0.13, 0], "color": "label" },
+        { "name": "shoulder", "shape": "cylinder", "size": [0.05, 0.04, 0.11], "tessellation": 10, "position": [0, 0.3, 0], "color": "body" },
+        { "name": "valve", "shape": "box", "size": [0.05, 0.04, 0.04], "position": [0, 0.34, 0], "color": "metal" },
+        { "name": "nozzle", "shape": "box", "size": [0.02, 0.02, 0.08], "position": [0, 0.345, -0.05], "color": "dark" }
+      ]
+    },
     "humanoidRobot": {
       "//": "Humanoidní robot (src/enemies/models/HumanoidRobotModel.ts): hranatý bojový stroj z kvádrů a válců, ~1,95 m. Počátek = mezi chodidly na zemi, robot hledí k +z, +x je jeho pravá strana. Klouby jsou vnořené skupiny (groupParents): boky → trup → hlava a ramena → předloktí, boky → stehna → holeně. Pivot skupiny = bod otáčení kloubu. Pravé předloktí nese elektrický kanón, 'muzzle' je jeho ústí (pohybuje se s předloktím, anchorParents). 'eye' svítí (oko), 'core' je jádro na hrudi, 'glow' jsou průduchy a ústí kanónu; emissive drží robota čitelného ve tmě.",
       "category": "robot",
