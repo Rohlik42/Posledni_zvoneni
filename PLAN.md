@@ -48,7 +48,7 @@ Fakta, na která se fáze odkazují. Nic se tu neimplementuje.
 **Spec**
 - Herní smyčka, kvíz, klíče: DESIGN §3. Zbraně: §4 (tabulka 6 zbraní). Nepřátelé: §5. Učitelé, kvíz a power-upy: §6. Level: §7. Technologie a presety kvality: §8. Struktura repa a pravidla: §9 + `CLAUDE.md`. Pořadí práce: §10. Zdroje assetů, paleta a rozpočty trojúhelníků: §13. DoD: §15. Smyčka ověřování: §16.
 - Obsah ze staré hry: `LEGACY.md` §1 Učitelé (8 jmen + placeholder fyzika), §2 Obtížnost (5 stupňů `baby/schoolkid/truant/rascal/ultra`, výchozí `truant`; tabulka násobičů; motta; SVG portréty v `legacy/index.html:3`; návrh mapování), §3 Texty (humor, tón), §4 Barvy a písma, §5 Zvuky (Web Audio recepty).
-- Budova: `reference/matterport/README.md`. Půdorysy `floorplans/floor{1..6}_*.jpg` mají 4968×3043 px a **≈85 px/m**. Všechna patra mají stejný výřez. Výška patra je ≈5 m. Seznam místností s patry je `rooms.json`, popisky jsou ve `views/labels_floor{2,3,6}.jpg` a fotky povrchů v `panoramas/*/{a,b,c,d,down}.jpg`.
+- Budova: `reference/matterport/README.md`. Půdorysy `floorplans/floor{1..6}_*.jpg` mají 4968×3043 px a **83 px/m** (změřeno na měřítku v obrázku ve fázi 8, DECISIONS „Měřítko půdorysů je 83 px/m“; README uvádí ≈85, to neplatí). Geometrie (`data/level.json → plan.pxPerMeter`) i textury z půdorysu (`tools/matterport-textures.json`) používají 83. Všechna patra mají stejný výřez. Výška patra je ≈5 m. Seznam místností s patry je `rooms.json`, popisky jsou ve `views/labels_floor{2,3,6}.jpg` a fotky povrchů v `panoramas/*/{a,b,c,d,down}.jpg`.
 
 **API (ověřené v `node_modules`, verze z package.json)**
 - Engine: `src/core/EngineFactory.ts` (WebGPU s fallbackem na WebGL2, `?renderer=webgl2` vynutí fallback). `WebGPUEngine.IsSupportedAsync` + `initAsync()`.
@@ -229,6 +229,8 @@ Quick gate: `tests/e2e/level-walk.spec.ts` (jedna načtená stránka pro všechn
 
 **Do not**
 Detaily, suť a oheň (fáze 19). Ruční pozice v kódu.
+
+**Done 2026-10-03** (handoff `handoff/phase-9.md`). `?scene=level` staví celý level (28 místností, 3 patra) za < 1 s; quick gate zelený (39 datových testů, 5 smoke + 6 `level-walk`). Odchylky od litery: kromě `WallBuilder`/`StairBuilder`/`OpeningBuilder` jsou samostatné třídy `LevelLayout` (dotazy bez enginu, sdílí je data test), `RailingBuilder`, `StaticGeometry` (sloučení + Havok compound), `LevelGraph` (`pathLength` po dveřích a schodech, bez navmeshe) a `Level`; parametry generátoru jsou v `data/greybox.json`. Kolize jsou box tvary v jednom statickém compoundu na místnost, ne Havok aggregate na mesh. Okna: sklo s kolizí + samosvítící billboard `window-prague` (tónovaný podle `view`). Závaly jsou zatím jeden box suti. Opravy z kritiky směny 1: barvy světel v `level.json` jsou klíče palety (+ test), textury z půdorysu přegenerované v 83 px/m, Evidence opravena; navíc 6 světel do neosvětlených místností, `ceilingHeight` snížených místností a Vite `cacheDir` per worktree (sdílený cache rozbíjel paralelní dev servery).
 
 ## Phase 10 — Dveře, klíče, inventář, HUD, pickupy
 

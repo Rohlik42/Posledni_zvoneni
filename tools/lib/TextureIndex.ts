@@ -24,7 +24,7 @@ export interface TextureEntry {
   source: string;
   license: string;
   notes?: string;
-  /** Decals: where the texture lies in the floor plan (Matterport floor number, px rect at 85 px/m). */
+  /** Decals: where the texture lies in the floor plan (Matterport floor number, px rect; metres = px / level.json plan.pxPerMeter (83)). */
   plan?: { floor: number; rectPx: [number, number, number, number] };
 }
 
