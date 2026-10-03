@@ -148,6 +148,16 @@ export class TeacherSystem {
     return Texts.format(teacher.isBound ? t.hintFree : t.hintTalk, values);
   }
 
+  /** Ids of the freed teachers (checkpoints, phase 16). */
+  freedIds(): string[] {
+    return this.teachers.filter((t) => !t.isBound).map((t) => t.id);
+  }
+
+  /** Frees exactly the teachers in `freed` (standing) and ties the others back to their chairs. */
+  restore(freed: readonly string[]): void {
+    for (const teacher of this.teachers) teacher.restore(freed.includes(teacher.id) ? "freed" : "bound");
+  }
+
   dispose(): void {
     this.removeSystem();
     this.game.scene.onBeforeRenderObservable.remove(this.frameObserver);

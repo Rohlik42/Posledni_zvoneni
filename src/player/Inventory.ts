@@ -26,6 +26,15 @@ export interface ActivePowerUp {
   duration: number;
 }
 
+/** What a checkpoint keeps of the inventory (phase 16); a permanent power-up has `remaining: null`. */
+export interface InventorySnapshot {
+  keys: KeyColor[];
+  weapons: string[];
+  stash: Record<string, number>;
+  powerUps: { id: string; remaining: number | null }[];
+  taken: Record<string, number>;
+}
+
 /** `window.__game.inventory` — keys, ammo kept for weapons not owned yet, power-ups, everything picked up. */
 export interface InventoryTestApi {
   readonly keys: KeyColor[];
@@ -63,6 +72,8 @@ export class Inventory {
   /** Toast text for the HUD. */
   readonly onMessage = new Observable<string>();
   readonly onChanged = new Observable<void>();
+  /** A key was taken (checkpoint after each key, phase 16); fires after the inventory changed. */
+  readonly onKey = new Observable<KeyColor>();
 
   private readonly data: PickupsData;
   private readonly texts: TextsData;
@@ -142,13 +153,45 @@ export class Inventory {
     const message = template === undefined ? null : Texts.format(template, values);
     if (message !== null) this.onMessage.notifyObservers(message);
     this.onChanged.notifyObservers();
+    if (item.kind === "key") this.onKey.notifyObservers(item.key!);
     return { taken: true, message };
+  }
+
+  /** Keys, received weapons, stashed ammo, power-ups and pickup counts (checkpoints, phase 16; JSON-safe). */
+  snapshot(): InventorySnapshot {
+    return {
+      keys: this.keys,
+      weapons: [...this.weaponIds],
+      stash: Object.fromEntries(this.ammoStash),
+      powerUps: [...this.active.values()].map((p) => ({ id: p.id, remaining: Number.isFinite(p.remaining) ? p.remaining : null })),
+      taken: Object.fromEntries(this.counts),
+    };
+  }
+
+  /** Back to a snapshot (no toasts, no sounds). The weapons themselves are restored by `WeaponInventory.restore`. */
+  restore(snapshot: InventorySnapshot): void {
+    this.keySet.clear();
+    for (const key of snapshot.keys) this.keySet.add(key);
+    this.weaponIds.clear();
+    for (const id of snapshot.weapons) this.weaponIds.add(id);
+    this.ammoStash.clear();
+    for (const [id, amount] of Object.entries(snapshot.stash)) this.ammoStash.set(id, amount);
+    this.active.clear();
+    for (const p of snapshot.powerUps) {
+      const data = this.data.powerUps[p.id];
+      if (data !== undefined) this.active.set(p.id, { id: p.id, remaining: p.remaining ?? Number.POSITIVE_INFINITY, duration: data.duration });
+    }
+    this.applyEffects();
+    this.counts.clear();
+    for (const [id, count] of Object.entries(snapshot.taken)) this.counts.set(id, count);
+    this.onChanged.notifyObservers();
   }
 
   dispose(): void {
     this.removeSystem();
     this.onMessage.clear();
     this.onChanged.clear();
+    this.onKey.clear();
   }
 
   /** Does what the item does; returns the values its toast can show. */

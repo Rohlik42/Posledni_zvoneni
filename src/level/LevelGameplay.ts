@@ -8,15 +8,23 @@ import { EnemyManager } from "../enemies/EnemyManager";
 import { DEFAULT_COUNT_DELTA, LevelEnemySpawns } from "../enemies/LevelEnemySpawns";
 import { Inventory } from "../player/Inventory";
 import { Player, type PlayerSpawn } from "../player/Player";
+import { QuizSystem } from "../quiz/QuizSystem";
 import { Hud } from "../ui/Hud";
 import { WeaponInventory } from "../weapons/WeaponInventory";
+import { WeaponStations } from "../weapons/WeaponStations";
 import { DoorSystem } from "./DoorSystem";
 import type { Level } from "./Level";
 import { LevelBuilder } from "./LevelBuilder";
 import { LevelLayout } from "./LevelLayout";
+import { LevelProgress } from "./LevelProgress";
+import { LevelStations } from "./LevelStations";
 import { NavMeshService } from "./NavMeshService";
 import { PickupField } from "./PickupField";
+import { ProgressionConfig } from "./ProgressionConfig";
+import { PropColliders } from "./PropColliders";
+import { PropPlacer, type PlacedProps } from "./PropPlacer";
 import { RoomLighting } from "./RoomLighting";
+import { TeacherSystem } from "./TeacherSystem";
 
 const DEGREES_TO_RADIANS = Math.PI / 180;
 
@@ -25,8 +33,35 @@ export interface LevelGameplayOptions {
   room?: string | null;
   /** Override the start heading (degrees). */
   yawDeg?: number | null;
-  /** Level robots to place by spawn id (`data/level.json → spawns.enemies`), or "all"; phase 16 places them for real. */
+  /**
+   * Level robots to place by spawn id (`data/level.json → spawns.enemies`), or "all". Without it the bare level has
+   * none and the full game (`play`) has those of the difficulty's `countDelta`.
+   */
   enemies?: readonly string[] | "all" | null;
+  /**
+   * The full game (phase 16, `/`): captive teachers and the quiz, robots, wall extinguishers and the hydrant,
+   * checkpoints, the level end. Without it the level stays bare for geometry tests (`?scene=level`).
+   */
+  play?: boolean;
+  /** Show the story screen at the start (`/`). */
+  intro?: boolean;
+  /** Continue from the stored checkpoint (`?continue=1`, the menu's „Pokračovat“). */
+  resume?: boolean;
+  /** Robot count delta of the difficulty (phase 17); default `data/progression.json → countDelta`. */
+  countDelta?: number;
+  /** Name of the difficulty for the level-end screen (phase 17); default `texts.json → levelEnd.difficulty`. */
+  difficultyName?: string;
+}
+
+/** The full game's systems on top of the level (`play`, phase 16). */
+export interface GameParts {
+  /** Furniture of `data/props.json` (phase 15), lit by its rooms, with static colliders (`PropColliders`). */
+  props: PlacedProps;
+  colliders: PropColliders;
+  quiz: QuizSystem;
+  teachers: TeacherSystem;
+  stations: WeaponStations;
+  progress: LevelProgress;
 }
 
 /** `window.__game.lighting` — which room the tracked things (weapon in hand, robots) are lit by. */
@@ -36,16 +71,31 @@ export interface LightingTestApi {
   lightsOn: (prefix: string) => number;
 }
 
+/** `window.__game.furniture` — props placed in the full game (`play`). */
+export interface FurnitureTestApi {
+  /** Placed props with their plan footprint (x right, z down the floorplan). */
+  instances: () => { room: string; blueprint: string; footprint: { x0: number; z0: number; x1: number; z1: number } }[];
+  /** Prop meshes in the scene (one per room × blueprint × variant × material). */
+  meshes: () => number;
+  /** Triangles drawn by all props (thin instances counted). */
+  triangles: () => number;
+  /** Static collider boxes over the props (one per prop). */
+  colliders: () => number;
+}
+
 declare module "../core/TestHooks" {
   interface GameTestModules {
     lighting: LightingTestApi;
+    furniture: FurnitureTestApi;
   }
 }
 
 /**
  * The playable school (phase 10): greybox level, tile-cache navmesh with closed doors cut out, player with weapons,
  * inventory and HUD, doors, pickups from level.json and robot drops, and room lighting for everything that is not
- * level geometry. `/` and the dev scene `level` both start here; phase 16 adds teachers, robots and checkpoints.
+ * level geometry. `/` and the dev scene `level` both start here. With `play` (phase 16, `/`) it is the whole game:
+ * captive teachers with the quiz, the robots of the difficulty, wall extinguishers and the gym hydrant, checkpoints, the
+ * story screen and the level end (`LevelProgress`).
  */
 export class LevelGameplay {
   private constructor(
@@ -59,12 +109,18 @@ export class LevelGameplay {
     readonly pickups: PickupField,
     readonly lighting: RoomLighting,
     readonly enemies: EnemyManager | null,
+    readonly game: GameParts | null,
   ) {}
 
   static async create(game: Game, options: LevelGameplayOptions = {}): Promise<LevelGameplay> {
     const physics = await Physics.create(game);
     const level = await LevelBuilder.build(game, physics);
-    const navmesh = await NavMeshService.create(game.scene, level.getNavigableMeshes(), { obstacles: true });
+    const play = options.play === true;
+    // The full game furnishes the rooms (phase 15 props) before the navmesh bakes, so robots walk around the furniture;
+    // the bare level stays empty for geometry tests and `?scene=props`.
+    const props = play ? PropPlacer.place(game.scene, level.layout) : null;
+    const colliders = props === null ? null : PropColliders.build(game.scene, physics, props.props);
+    const navmesh = await NavMeshService.create(game.scene, [...level.getNavigableMeshes(), ...(colliders?.meshes ?? [])], { obstacles: true });
     const spawn = LevelGameplay.spawn(level, options);
     const player = Player.create(game, physics, spawn);
     level.attachPlayer(player);
@@ -83,33 +139,87 @@ export class LevelGameplay {
     hud.setHintSource(() => doors.hint);
     const pickups = PickupField.create(game, player, inventory, lighting);
     pickups.spawnLevel(level.layout);
-    const enemies = LevelGameplay.enemies(game, player, navmesh, level, options.enemies ?? null);
+    // Props are lit by their room's lamps.
+    for (const [room, meshes] of props?.meshesByRoom ?? []) lighting.attach(meshes, [room]);
+    const countDelta = options.countDelta ?? ProgressionConfig.load().countDelta;
+    const enemies = LevelGameplay.enemies(game, player, navmesh, level, options.enemies ?? (play ? "all" : null), countDelta);
     if (enemies !== null) {
       enemies.onEnemyDeath.add((enemy) => weapons.feedback.robotDestroyed(enemy.position));
       pickups.attachDrops(enemies.enemies);
       for (const enemy of enemies.enemies) lighting.track(() => LevelGameplay.robotMeshes(enemy), () => enemy.position);
     }
-    // Until checkpoints (phase 16) and the death screen (phase 18): back to the start at once.
-    player.health.onDeath.add(() => {
-      player.respawn(spawn);
-      enemies?.respawnAll();
-    });
-    const gameplay = new LevelGameplay(level, navmesh, player, weapons, inventory, hud, doors, pickups, lighting, enemies);
+    const furniture = props !== null && colliders !== null ? { props, colliders } : null;
+    const parts = furniture !== null ? LevelGameplay.play(game, physics, level, navmesh, player, weapons, inventory, hud, doors, pickups, lighting, enemies, furniture, options) : null;
+    if (parts === null) {
+      // The bare level (geometry tests): back to the start at once. The full game goes back to its checkpoint.
+      player.health.onDeath.add(() => {
+        player.respawn(spawn);
+        enemies?.respawnAll();
+      });
+    }
+    const gameplay = new LevelGameplay(level, navmesh, player, weapons, inventory, hud, doors, pickups, lighting, enemies, parts);
     gameplay.registerTestHooks();
     return gameplay;
   }
 
-  /** Options from the page URL: `?room=<id>&yaw=<deg>&enemies=e01,e04|all`. */
+  /** Options from the page URL: `?room=<id>&yaw=<deg>&enemies=e01,e04|all&play=1&intro=1&continue=1&delta=<n>`. */
   static optionsFromUrl(search: string): LevelGameplayOptions {
     const params = new URLSearchParams(search);
     const yaw = params.get("yaw");
     const enemies = params.get("enemies");
+    const delta = params.get("delta");
+    const flag = (name: string): boolean => params.get(name) === "1";
     return {
       room: params.get("room"),
       yawDeg: yaw === null ? null : Number(yaw),
       enemies: enemies === null ? null : enemies === "all" ? "all" : enemies.split(",").filter((id) => id.length > 0),
+      play: flag("play"),
+      intro: flag("intro"),
+      resume: flag("continue"),
+      countDelta: delta === null ? undefined : Number(delta),
     };
   }
+
+  /** The full game on top of the level: teachers and quiz, weapon stations, checkpoints and the level end. */
+  private static play(
+    game: Game,
+    physics: Physics,
+    level: Level,
+    navmesh: NavMeshService,
+    player: Player,
+    weapons: WeaponInventory,
+    inventory: Inventory,
+    hud: Hud,
+    doors: DoorSystem,
+    pickups: PickupField,
+    lighting: RoomLighting,
+    enemies: EnemyManager | null,
+    furniture: { props: PlacedProps; colliders: PropColliders },
+    options: LevelGameplayOptions,
+  ): GameParts {
+    const data = ProgressionConfig.load();
+    const quiz = QuizSystem.create(game, player, inventory, (item, amount, at) => pickups.spawn(item, at, { amount }));
+    const teachers = TeacherSystem.create(game, physics, player, quiz, TeacherSystem.levelSpecs(level.layout), lighting);
+    doors.yieldInteract(() => teachers.takesInteract);
+    hud.setHintSource(() => teachers.hint ?? doors.hint);
+    hud.showMessages(quiz.onMessage);
+    hud.showMessages(teachers.onMessage);
+    const stations = WeaponStations.create(game, player, weapons, LevelStations.placements(game.scene, level.layout, data.stations));
+    for (const station of [...stations.refills, ...stations.hydrants]) {
+      const room = lighting.roomAt(station.position);
+      if (room !== null) lighting.attach(station.model.meshes, [room]);
+    }
+    // No robots asked for (`?enemies=` with unknown ids): an empty manager keeps checkpoints uniform.
+    const robots = enemies ?? EnemyManager.create(game, player, navmesh, { navExclude: [], enemies: [], coverPoints: [] });
+    const progress = new LevelProgress(
+      game,
+      { player, inventory, weapons, hud, doors, pickups, teachers, quiz, enemies: robots, stations },
+      { intro: options.intro === true, resume: options.resume === true },
+      options.difficultyName ?? null,
+    );
+    return { ...furniture, quiz, teachers, stations, progress };
+  }
+
 
   private static spawn(level: Level, options: LevelGameplayOptions): PlayerSpawn {
     const spawn = options.room == null ? level.playerSpawn() : level.roomSpawn(options.room);
@@ -118,10 +228,17 @@ export class LevelGameplay {
   }
 
   /** Robots of `data/level.json` by spawn id (with the level's cover points), or null when none were asked for. */
-  private static enemies(game: Game, player: Player, navmesh: NavMeshService, level: Level, ids: readonly string[] | "all" | null): EnemyManager | null {
+  private static enemies(
+    game: Game,
+    player: Player,
+    navmesh: NavMeshService,
+    level: Level,
+    ids: readonly string[] | "all" | null,
+    countDelta: number = DEFAULT_COUNT_DELTA,
+  ): EnemyManager | null {
     if (ids === null) return null;
     const layout: LevelLayout = level.layout;
-    const all = LevelEnemySpawns.encounter(layout, DEFAULT_COUNT_DELTA);
+    const all = LevelEnemySpawns.encounter(layout, countDelta);
     const chosen = ids === "all" ? all : all.filter((spawn) => ids.includes(spawn.id));
     if (chosen.length === 0) return null;
     const coverPoints = layout.level.coverPoints.map((point, i) => {
@@ -144,5 +261,15 @@ export class LevelGameplay {
       rooms: () => lighting.trackedRooms(),
       lightsOn: (prefix) => level.lights.filter((light) => light.includedOnlyMeshes.some((mesh) => mesh.name.startsWith(prefix))).length,
     });
+    const props = this.game?.props;
+    const colliders = this.game?.colliders;
+    if (props !== undefined && colliders !== undefined) {
+      TestHooks.register("furniture", {
+        instances: () => props.props.instances.map((i) => ({ room: i.room, blueprint: i.blueprint, footprint: { ...i.footprint } })),
+        meshes: () => [...props.meshesByRoom.values()].reduce((sum, list) => sum + list.length, 0),
+        triangles: () => props.triangles(),
+        colliders: () => colliders.meshes.length,
+      });
+    }
   }
 }

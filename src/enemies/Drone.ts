@@ -18,6 +18,7 @@ import type { StatusKind } from "./StatusEffects";
 
 const DEG_TO_RAD = Math.PI / 180;
 const TWO_PI = Math.PI * 2;
+const HALF = 0.5;
 /** Stun wobble frequency in rad/s of simulated time. */
 const WOBBLE_RATE = 23;
 
@@ -83,6 +84,12 @@ export class Drone extends Enemy implements DroneBody {
 
   get center(): Vector3 {
     return this.position.addInPlace(new Vector3(0, this.data.body.aimHeight, 0));
+  }
+
+  /** The body box around the centre (`position` is the centre, not the feet). */
+  override get footprint(): { feet: Vector3; radius: number; height: number } {
+    const { radius, height } = this.data.body;
+    return { feet: this.position.addInPlace(new Vector3(0, -height * HALF, 0)), radius, height };
   }
 
   get state(): AiStateId {

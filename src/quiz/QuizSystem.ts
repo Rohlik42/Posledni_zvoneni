@@ -75,6 +75,8 @@ declare module "../core/TestHooks" {
  */
 export class QuizSystem {
   readonly onFreed = new Observable<Teacher>();
+  /** Every answer given, right or wrong (level statistics, phase 16). */
+  readonly onAnswered = new Observable<AnswerResult>();
   /** Toasts for the HUD (leaving the teacher). */
   readonly onMessage = new Observable<string>();
   /** Multiplies the trap damage; the difficulty (phase 17) sets it. */
@@ -161,7 +163,9 @@ export class QuizSystem {
     if (this.phaseValue !== "question" || teacher === null || question === null) return null;
     if (index === question.correct) {
       this.release(teacher);
-      return { correct: true, damage: 0 };
+      const right = { correct: true, damage: 0 };
+      this.onAnswered.notifyObservers(right);
+      return right;
     }
     this.wrongCount++;
     const damage = Math.round(this.data.wrongAnswerDamage * this.damageMultiplier);
@@ -170,7 +174,9 @@ export class QuizSystem {
     this.player.health.damage(damage, this.config.trap.damageType);
     // Dying closes the quiz (onDeath); otherwise the next question of the same subject.
     if (this.active) this.ask(teacher.data.wrongLine, Texts.format(this.texts.quiz.wrong, { damage }));
-    return { correct: false, damage };
+    const wrong = { correct: false, damage };
+    this.onAnswered.notifyObservers(wrong);
+    return wrong;
   }
 
   /** Leaves an open question (the teacher stays bound). */
@@ -194,6 +200,7 @@ export class QuizSystem {
     this.ui.dispose();
     this.explosion.dispose();
     this.onFreed.clear();
+    this.onAnswered.clear();
     this.onMessage.clear();
   }
 

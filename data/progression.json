@@ -1,0 +1,37 @@
+{
+  "//": "Fáze 16: průchod levelem (src/level/LevelProgress.ts, LevelStations.ts, src/core/Checkpoint.ts, src/ui/ScreenOverlay.ts). stations = nástěnné hasičáky a hydrant z level.json → pickups (položky extinguisher-refill a weapon-hose): ke zdi se hledají vodorovné paprsky z bodu v level.json ve výšce probeHeight m do vzdálenosti probeDistance m, stanice stojí wallGap m před nalezenou zdí čelem do místnosti. checkpoint = uložení do localStorage (storageKey, version: starší verze se zahodí) na startu a po každém klíči; restoreDelay s simulovaného času po smrti se hra vrátí na checkpoint; minHealth = nejméně tolik zdraví po obnovení. levelEnd.lock = zámek dveří, jejichž otevření ukončí level. countDelta = enemyCountDelta, dokud ho nedodá obtížnost (fáze 17; level.json → spawns.enemies[].minCountDelta). screen = vzhled úvodní obrazovky a obrazovky konce levelu (DOM, styl LEGACY §4 jako kvíz; rozměry v px, barvy = klíče palety).",
+  "stations": { "probeHeight": 0.5, "probeDistance": 1.6, "wallGap": 0.05 },
+  "checkpoint": { "storageKey": "malgym2066.checkpoint", "version": 1, "restoreDelay": 1.5, "minHealth": 50 },
+  "levelEnd": { "lock": "exit" },
+  "countDelta": 0,
+  "screen": {
+    "fontFamily": "'Barlow Condensed', 'Arial Narrow', Arial, sans-serif",
+    "textFamily": "Inter, Arial, sans-serif",
+    "width": 760,
+    "kickerSize": 13,
+    "titleSize": 64,
+    "leadSize": 21,
+    "textSize": 17,
+    "statSize": 22,
+    "controlsSize": 13,
+    "buttonSize": 22,
+    "blurPx": 4,
+    "acceptAfter": 0.4,
+    "colors": {
+      "overlayTop": "ui.overlayTop",
+      "overlayBottom": "ui.overlayBottom",
+      "panel": "ui.panel",
+      "kicker": "ui.textDim",
+      "title": "ui.text",
+      "accent": "ui.difficultySelected",
+      "text": "ui.text",
+      "lead": "ui.toast",
+      "label": "ui.label",
+      "value": "ui.highlight",
+      "border": "ui.highlight",
+      "button": "ui.button",
+      "buttonText": "ui.buttonText",
+      "buttonShadow": "ui.buttonShadow"
+    }
+  }
+}

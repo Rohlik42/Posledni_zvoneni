@@ -71,6 +71,12 @@ export interface WeaponsTestApi {
   state: (id: string) => WeaponStateInfo | null;
 }
 
+/** Owned weapons and their ammo in a checkpoint (phase 16); `reserve` null = endless. */
+export interface WeaponsSnapshot {
+  weapons: { id: string; magazine: number; reserve: number | null }[];
+  active: string | null;
+}
+
 /** `__game.weapons.state(id)`. */
 export interface WeaponStateInfo {
   id: string;
@@ -223,6 +229,34 @@ export class WeaponInventory {
     }
     weapon.dispose();
     return true;
+  }
+
+  /** Owned weapons with their ammo and the one in hand (checkpoints, phase 16); `skip` = weapons not to save (the hose). */
+  snapshot(skip: readonly string[] = []): WeaponsSnapshot {
+    const weapons = [...this.owned.values()]
+      .filter((w) => !skip.includes(w.id))
+      .map((w) => ({ id: w.id, magazine: w.data.ammo.capacity > 0 ? w.magazine : 0, reserve: Number.isFinite(w.reserve) ? w.reserve : null }));
+    const selected = this.selected?.id ?? null;
+    return { weapons, active: selected !== null && !skip.includes(selected) ? selected : null };
+  }
+
+  /**
+   * Back to a snapshot: weapons not in it are taken away, missing ones given, ammo set, the saved weapon raised at
+   * once (no switch animation).
+   */
+  restore(snapshot: WeaponsSnapshot): void {
+    const keep = new Set(snapshot.weapons.map((w) => w.id));
+    for (const id of [...this.owned.keys()]) if (!keep.has(id)) this.remove(id);
+    for (const saved of snapshot.weapons) {
+      if (!this.give(saved.id)) continue;
+      this.owned.get(saved.id)!.setAmmo(saved.magazine, saved.reserve ?? 0);
+    }
+    const active = (snapshot.active === null ? undefined : this.owned.get(snapshot.active)) ?? this.lowestOwned();
+    if (active === undefined) return;
+    if (this.current !== null && this.current !== active) this.current.holster = 1;
+    this.current = active;
+    this.pending = null;
+    this.switchProgress = SWITCH_MIDPOINT;
   }
 
   /** Switches to the weapon in `slot` if the player owns it. */

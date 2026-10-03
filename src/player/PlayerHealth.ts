@@ -77,6 +77,12 @@ export class PlayerHealth {
     this.onHealed.notifyObservers(this.current);
   }
 
+  /** Sets the health directly, without damage or death events (checkpoint restore, phase 16); clamped to 1…max. */
+  set(value: number): void {
+    this.current = Math.min(this.maxHealth, Math.max(1, value));
+    this.onHealed.notifyObservers(this.current);
+  }
+
   dispose(): void {
     this.onDamaged.clear();
     this.onHealed.clear();

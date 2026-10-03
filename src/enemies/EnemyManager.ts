@@ -194,6 +194,23 @@ export class EnemyManager {
     for (const enemy of this.enemies) enemy.respawn();
   }
 
+  /** Ids of the destroyed robots (checkpoints, phase 16). */
+  deadIds(): string[] {
+    return this.enemies.filter((e) => !e.alive).map((e) => e.id);
+  }
+
+  /**
+   * Back to a checkpoint: robots alive in it return whole to their spawns (also those destroyed since), robots
+   * destroyed in it stay out of play (a wreck that already lies stays where it is).
+   */
+  restore(dead: readonly string[]): void {
+    this.projectiles.clear();
+    for (const enemy of this.enemies) {
+      if (!dead.includes(enemy.id)) enemy.respawn();
+      else if (enemy.alive) enemy.removeFromPlay();
+    }
+  }
+
   /** Robots still standing. */
   get aliveCount(): number {
     return this.enemies.filter((e) => e.alive).length;
