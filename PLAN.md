@@ -203,6 +203,8 @@ Quick gate: výchozí. `screenshots/08-levelmap-floor{N}.png` pro každé patro 
 **Do not**
 3D geometrii (fáze 9). Celá budova: jen vybraná patra. Ruční modelování.
 
+**Done 2026-10-03** (handoff `handoff/phase-8.md`). Patra Floor 2 + 3 + 4, trasa 415,9 m, 28 místností (6 kabinetů s učiteli), 2 meziposchoďová schodiště + 2 krátká uvnitř Floor 2. Odchylky od litery: měřítko je **83 px/m** (změřeno na měřítku v obrázku, ne 85), souřadnice půdorysu se do Babylonu mapují s `worldZ = −z`; místnosti jsou jen obdélníky; tělocvična (−1,4 m) a zádveří (−1,0 m) leží níž a mají vlastní krátká schodiště; sdílené dotazy jsou v `tools/LevelQueries.ts`. Pořadí učitelů z Evidence → Progrese se nemění.
+
 ## Phase 9 — Greybox generátor
 
 **Implement**
