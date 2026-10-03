@@ -52,7 +52,7 @@ interface SpecBase extends Partial<Processing> {
   tiling: Tiling;
   src: string;
   notes: string;
-  /** Source px per metre (plans 85, down faces measured); gives sizeM from the sample size. */
+  /** Source px per metre (plans 83 = level.json plan.pxPerMeter, down faces measured); gives sizeM from the sample size. */
   pxPerM?: number;
   /** Explicit world size of the whole sample in metres (perspective quads). */
   sizeM?: [number, number];

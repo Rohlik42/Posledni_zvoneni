@@ -5,6 +5,9 @@ import { Schema } from "./Schema";
 
 const PALETTE_FILE = "data/palette.json";
 
+/** A colour key into `data/palette.json`, `"group.name"` (e.g. `"neon.water"`). Data files store colours this way (DECISIONS fáze 1). */
+export type PaletteKey = `${string}.${string}`;
+
 export type PaletteData = Readonly<Record<string, Readonly<Record<string, string>>>>;
 
 /** Shared colour palette from `data/palette.json`. Colours are addressed as `"group.name"` (e.g. `"neon.water"`). */

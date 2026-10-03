@@ -12,6 +12,8 @@
  *   `maxZ` the bottom edge (street Josefská side).
  */
 
+import type { PaletteKey } from "../utils/Palette";
+
 export type FloorId = number;
 export type RoomId = string;
 export type StairId = string;
@@ -250,7 +252,8 @@ export interface Light {
   /** Height above the room floor (m). */
   height: number;
   kind: "fluorescent" | "emergency" | "fire";
-  color: string;
+  /** Palette key (`"light.fluorescent"`), never a hex value: colours live only in `data/palette.json`. */
+  color: PaletteKey;
   intensity: number;
   range: number;
   flicker: boolean;
