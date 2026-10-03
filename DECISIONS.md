@@ -35,3 +35,10 @@ Každé rozhodnutí je jedna věta s důvodem. Člověk je může změnit. Agent
 24. **Esc a ztráta pointer locku jen pauzují (nepřepínají), návrat kliknutím do canvasu:** Chrome při zamčeném kurzoru Esc spolkne, takže přepínání by pauzu dvakrát přeplo; LEGACY stejně pokračuje tlačítkem v menu.
 25. **Render mimo smyčku (`step`) se obaluje `engine.beginFrame/endFrame`:** WebGPU jinak použije zničenou swap-chain texturu a hlásí varování, které smoke test (DoD bez varování) zachytí.
 26. **Smoke testy selhávají na `console.warn` i `console.error` (`tests/support/ConsoleGuard.ts`), allowlist je zatím prázdný:** na tomto stroji WebGPU i WebGL2 běží bez varování.
+
+### Fáze 7 – textury (2026-10-03)
+- **Textury jsou paletové PNG ≤ 512 px posterizované přes libimagequant (sharp, bez ditheringu, 10–32 barev):** dává low-poly punk vzhled, deterministický výstup (skripty jsou idempotentní, druhý běh nic nemění) a celé `public/textures/` má 5,9 MB.
+- **Parkety, žluté/zelené linoleum a dlažba dvora jsou z `down.jpg` panoramat, ne z půdorysů:** půdorys má 85 px/m a 7 cm lamely ani zrnitost linolea neukáže; měřítko down plochy 354 px/m je změřené na 5 cm čáře hřiště. Oranžové linoleum (žádné panorama) má zrno ze žlutého linolea a barvu z mediánu půdorysu Floor 3.
+- **Šachovnice chodby: barvy a rozměr z půdorysu Floor 4 (perioda 35,5 px → dlaždice 29,5 cm, kladené 45° k chodbě), geometrie je ideální šachovnice napasovaná na fotku (95,6 % shoda):** stitching půdorysu dělá zubaté hrany a zadání chce pravidelnou šachovnici bez švů.
+- **Čáry tělocvičny jsou samostatný RGBA decal přes celou tělocvičnu (`plan.rectPx` v index.json):** vznikl detekcí modré/žluté v půdorysu a překreslením rovnými 6 cm tahy, aby se dal položit přes opakující se parkety.
+- **Poly Haven: ve hře se používá posterizovaná 512px kopie, originál 1K zůstává jako cache v `public/textures/ph/raw/`:** plán chce cache v `public/textures/ph/`; přidá ~4 MB do buildu, fáze 21 ji může z buildu vyřadit.

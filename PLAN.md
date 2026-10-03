@@ -188,6 +188,8 @@ Quick gate: výchozí (typecheck + `npm test`). Skripty běží idempotentně (d
 **Do not**
 Textury v plném rozlišení (> 1K). Ruční úpravy obrázků mimo skript. Stahování z jiných domén než Poly Haven.
 
+**Done 2026-10-03** (handoff `handoff/phase-7.md`): 14 Matterport textur + decal čar tělocvičny, 5 Poly Haven (CC0), `public/textures/index.json`, 5,9 MB, skripty idempotentní, `tests/data/textures.test.ts`. Šachovnice: perioda 35,5 px → dlaždice 29,5 cm kladená 45°. Odchylky: parkety, žluté a zelené linoleum, dlažba dvora a schody jsou z `down.jpg` panoramat (354 px/m) místo půdorysů (85 px/m je málo). Oranžové linoleum má barvu z půdorysu Floor 3 a zrno z panoramatu. Geometrie šachovnice je ideální mřížka napasovaná na fotku. Čáry hřiště jsou samostatný decal (`plan.rectPx`). Poly Haven 1K cache je v `public/textures/ph/raw/` a do hry jde posterizovaná 512px kopie.
+
 ## Phase 8 — Level layout: level.json podle Matterportu
 
 **Implement**
