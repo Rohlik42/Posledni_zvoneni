@@ -11,6 +11,14 @@ export interface Vec3 {
   z: number;
 }
 
+/**
+ * What a box is for `OverlapResolver`, which carves overlapping visible boxes so no two share a face plane
+ * (z-fighting): earlier roles keep their volume, later ones are cut around them — slabs (floors, ceilings, landings)
+ * stay whole so ceilings and floors never get notches, details (frames, glass, steps, fixtures, railings) stay whole on
+ * the walls, walls are cut around both, fill (rubble) last. Default `detail`.
+ */
+export type PieceRole = "slab" | "detail" | "wall" | "fill";
+
 /** Who owns a piece: a room id, or a stair id for stair parts (counted towards that stair's bottom room). */
 export type PieceOwner = string;
 
@@ -31,6 +39,8 @@ export interface BoxPiece {
   collide: boolean;
   /** Belongs to the walkable surface set handed to the navmesh (phase 10). */
   navigable?: boolean;
+  /** Carving priority of the visible part (see `PieceRole`). */
+  role?: PieceRole;
 }
 
 /**

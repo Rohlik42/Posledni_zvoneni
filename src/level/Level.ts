@@ -1,9 +1,11 @@
 import type { PointLight } from "@babylonjs/core/Lights/pointLight";
+import { VertexBuffer } from "@babylonjs/core/Buffers/buffer";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { TestHooks } from "../core/TestHooks";
 import type { Player, PlayerSpawn, Vec3Like } from "../player/Player";
 import type { MaterialLibrary } from "../rendering/MaterialLibrary";
+import { GeometryAudit, type AuditFinding, type AuditSurface } from "./GeometryAudit";
 import type { Vec3 } from "./GreyboxTypes";
 import { LevelGraph } from "./LevelGraph";
 import { LevelLayout } from "./LevelLayout";
@@ -35,6 +37,10 @@ export interface LevelTestApi {
   readonly navigableMeshes: number;
   /** Largest specular colour component of any level material (must stay 0, FEEDBACK.md). */
   maxSpecular: () => number;
+  /** Z-fighting audit of the built static meshes (`GeometryAudit`); must be empty. */
+  audit: () => AuditFinding[];
+  /** The same findings as a text table (tools/geometry-audit.ts). */
+  auditTable: () => string;
 }
 
 declare module "../core/TestHooks" {
@@ -61,6 +67,33 @@ export class Level {
   /** Meshes for the navmesh (phase 10): every colliding surface — floors, walls, landings, stair slabs, railings. */
   getNavigableMeshes(): Mesh[] {
     return [...this.geometry.navigable];
+  }
+
+  /**
+   * Coplanar overlapping faces in the rendered static meshes (FEEDBACK „problikávání“): reads every visible level mesh
+   * back in world space, so it checks what is drawn, after merging.
+   */
+  audit(): AuditFinding[] {
+    const surfaces: AuditSurface[] = [];
+    for (const [owner, meshes] of this.geometry.owners) {
+      for (const mesh of meshes.visible) {
+        const local = mesh.getVerticesData(VertexBuffer.PositionKind);
+        const indices = mesh.getIndices();
+        if (local === null || indices === null) continue;
+        const matrix = mesh.computeWorldMatrix(true);
+        const positions = new Float64Array(local.length);
+        const v = new Vector3();
+        for (let i = 0; i < local.length; i += 3) {
+          Vector3.TransformCoordinatesFromFloatsToRef(local[i]!, local[i + 1]!, local[i + 2]!, matrix, v);
+          positions[i] = v.x;
+          positions[i + 1] = v.y;
+          positions[i + 2] = v.z;
+        }
+        const material = mesh.material;
+        surfaces.push({ mesh: mesh.name, material: material?.name ?? "", owner, twoSided: material?.backFaceCulling === false, positions, indices });
+      }
+    }
+    return GeometryAudit.run(surfaces, this.layout.greybox.audit);
   }
 
   /** The player's start from `level.json → spawns.player` (feet on the room floor, facing `lookAt`). */
@@ -127,6 +160,8 @@ export class Level {
       get navigableMeshes() {
         return level.geometry.navigable.length;
       },
+      audit: () => level.audit(),
+      auditTable: () => GeometryAudit.table(level.audit()),
       maxSpecular: () => Math.max(0, ...level.materials.all().map((m) => Math.max(m.specularColor.r, m.specularColor.g, m.specularColor.b))),
     });
   }

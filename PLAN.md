@@ -466,6 +466,8 @@ Quick gate: `tests/e2e/level-walk.spec.ts`. Přidej do něj assert `audit()` = 0
 **Do not**
 Opravovat z-fighting posunem kamery nebo vypnutím depth testu. Používat jiné zdroje než Matterport terasu. Rozlišení vyšší než 2048² na stěnu.
 
+**Done 2026-10-03** (handoff `handoff/phase-F1.md`). Audit `src/level/GeometryAudit.ts` (`__game.level.audit()`, `npm run tool tools/geometry-audit.ts`): 571 nálezů před opravou, 0 po ní (datový test i `level-walk.spec.ts`). Skybox `tools/prague-skybox.ts` → `public/textures/sky/prague_*.jpg` (2048², 364 kB), `src/rendering/Skybox.ts` + `data/sky.json`, dev scéna `?scene=skybox`; Mikuláš je vidět ze západních oken chodby 2. patra. Odchylky od litery: příčina z-fightingu (překryv objemů viditelných kvádrů) se neřeší zvlášť v každém builderu, ale jedním krokem generátoru `OverlapResolver` (ořez viditelných kvádrů v pořadí deska → detail → zeď → suť, kolize beze změny); v builderech přibylo jen to, co byla chyba i bez z-fightingu: dotýkající se místnosti staví zeď dovnitř, uliční zeď nesahá před fasádu horních pater, sklo je o 5 mm menší než otvor; okno `w-f3-cj-1` posunuté o 1,3 m (stálo za uliční zdí). Audit hlásí odvrácené dvojice ploch jen u oboustranných materiálů. Reverse depth zapnutý na obou rendererech (zisk přesnosti jen na WebGPU), `maxZ` 150. Nízké preset 1024² nevyrábí (fáze 21 může zmenšit při načtení). Z kritiky směny 2: světla levelu změřená A/B u zdi (`tools/level-wall-light-ab.ts`) neklipují, takže se nepřelaďovala; `MaterialLibrary`, `BoxRoom` i `FlatMaterials` dělají materiály přes `MatteDefaults.material`.
+
 ## Backlog — needs a human
 
 - Zahrát krabicovou místnost po fázi Weapon feel a zapsat zpětnou vazbu do FEEDBACK.md

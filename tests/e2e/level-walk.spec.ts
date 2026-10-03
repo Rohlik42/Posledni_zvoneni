@@ -113,6 +113,16 @@ test.describe.serial("greybox level (dev scene `level`)", () => {
     expect(info.specular).toBe(0);
   });
 
+  test("no z-fighting in the drawn level and the Prague skybox is up (FEEDBACK 2026-10-03, phase F1)", async () => {
+    const result = await page.evaluate(() => {
+      const g = window.__game!;
+      return { findings: g.level!.audit().length, table: g.level!.auditTable(), sky: g.sky?.enabled === true, skyReady: g.sky?.ready() === true };
+    });
+    expect(result.findings, result.table).toBe(0);
+    expect(result.sky).toBe(true);
+    await expect.poll(() => page.evaluate(() => window.__game!.sky!.ready()), { timeout: READY_TIMEOUT_MS }).toBe(true);
+  });
+
   test("teleported into every room the player stands on its floor and does not fall through", async () => {
     const results = await page.evaluate(
       ({ settle, hold }) => {

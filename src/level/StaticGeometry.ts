@@ -9,6 +9,7 @@ import { PhysicsBody } from "@babylonjs/core/Physics/v2/physicsBody";
 import { PhysicsShapeBox, PhysicsShapeContainer } from "@babylonjs/core/Physics/v2/physicsShape";
 import type { Scene } from "@babylonjs/core/scene";
 import type { Physics } from "../core/Physics";
+import type { AuditSurface } from "./GeometryAudit";
 import type { BoxPiece, PieceList, QuadPiece } from "./GreyboxTypes";
 
 const UV_PER_VERTEX = 2;
@@ -28,7 +29,9 @@ export interface OwnerMeshes {
 /**
  * Turns greybox pieces into the static level: visible pieces are merged into one mesh per owner × material (UVs in
  * world metres, frozen world matrix), every colliding piece becomes a box in one static Havok compound per owner, and
- * colliding pieces also go into meshes handed to the navmesh (`navigable`). Box faces are axis-aligned flat quads, so
+ * colliding pieces also go into meshes handed to the navmesh (`navigable`). `LevelBuilder` hands over pieces after
+ * `OverlapResolver`, so the visible ones never overlap (z-fighting) and the colliders are invisible copies of what the
+ * builders made. Box faces are axis-aligned flat quads, so
  * the merge keeps the flat-shaded look.
  */
 export class StaticGeometry {
@@ -60,7 +63,7 @@ export class StaticGeometry {
       const data = [...entry.boxes.map((b) => StaticGeometry.boxData(b)), ...entry.quads.map((q) => StaticGeometry.quadData(q))];
       const merged = data[0]!;
       if (data.length > 1) merged.merge(data.slice(1), true);
-      const mesh = new Mesh(`level:${entry.owner}:${entry.material}${entry.collide ? "" : ":deco"}`, scene);
+      const mesh = new Mesh(`level:${entry.owner}:${entry.material}`, scene);
       merged.applyToMesh(mesh);
       mesh.freezeWorldMatrix();
       const owned = geometry.ownerMeshes(entry.owner);
@@ -78,6 +81,38 @@ export class StaticGeometry {
     }
     geometry.colliders(physics, pieces.boxes.filter((b) => b.collide));
     return geometry;
+  }
+
+  /**
+   * The rendered pieces as audit surfaces, grouped like the merged meshes (owner × material), without the engine
+   * scene (data test of `GeometryAudit`). `twoSided(material)` says whether the material draws back faces.
+   */
+  static auditSurfaces(pieces: PieceList, twoSided: (material: string) => boolean): AuditSurface[] {
+    const groups = new Map<string, { owner: string; material: string; data: VertexData[]; quads: boolean }>();
+    const add = (owner: string, material: string, data: VertexData, quad: boolean) => {
+      const key = `${owner}|${material}`;
+      let entry = groups.get(key);
+      if (entry === undefined) {
+        entry = { owner, material, data: [], quads: false };
+        groups.set(key, entry);
+      }
+      entry.data.push(data);
+      entry.quads ||= quad;
+    };
+    for (const box of pieces.boxes) if (box.visible) add(box.owner, box.material, StaticGeometry.boxData(box), false);
+    for (const quad of pieces.quads) add(quad.owner, quad.material, StaticGeometry.quadData(quad), true);
+    return [...groups.values()].map((entry) => {
+      const merged = entry.data[0]!;
+      if (entry.data.length > 1) merged.merge(entry.data.slice(1), true);
+      return {
+        mesh: `level:${entry.owner}:${entry.material}`,
+        material: entry.material,
+        owner: entry.owner,
+        twoSided: entry.quads || twoSided(entry.material),
+        positions: merged.positions!,
+        indices: merged.indices!,
+      };
+    });
   }
 
   /** Triangles of the rendered meshes of an owner. */

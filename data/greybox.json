@@ -38,9 +38,8 @@
   "windows": {
     "glassMaterial": "glass",
     "glassThickness": 0.04,
-    "viewDistance": 2.5,
-    "viewScale": 2.6,
-    "views": { "prague": "view-prague", "courtyard": "view-courtyard", "street": "view-street" }
+    "//": "Okna jsou jen sklo (zmenšené o glassInset na každé straně, aby žádná plocha nebyla v rovině ostění); ven je vidět skybox s panoramatem Prahy (data/sky.json).",
+    "glassInset": 0.005
   },
   "blockers": {
     "materials": { "rubble": "rubble", "collapsed-ceiling": "rubble" }
@@ -57,6 +56,12 @@
       "emergency": { "size": [0.3, 0.12, 0.08], "emissive": 3.0 },
       "fire": { "size": [0, 0, 0], "emissive": 0 }
     }
+  },
+  "audit": {
+    "//": "Z-fighting (FEEDBACK 2026-10-03): OverlapResolver ořeže viditelné kvádry tak, aby se nepřekrývaly (útržky tenčí než minPiece zahodí); GeometryAudit hlásí trojúhelníky ve stejné rovině (do planeTolerance) s překryvem nad minOverlapArea m².",
+    "minPiece": 0.005,
+    "planeTolerance": 0.002,
+    "minOverlapArea": 0.0001
   },
   "teleport": {
     "//": "Volné místo pro __game.level.teleportToRoom: kandidáti v mřížce, odstup od zdí, schodů a závalů.",

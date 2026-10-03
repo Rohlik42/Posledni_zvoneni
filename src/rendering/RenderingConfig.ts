@@ -7,6 +7,8 @@ export const FOG_MODES = ["exp", "exp2", "linear"] as const;
 
 export interface RenderingData {
   clearColor: string;
+  /** Depth buffer from far (0) to near (1): far more precision at distance on WebGPU (z-fighting, FEEDBACK F1). */
+  reverseDepth: boolean;
   hdr: boolean;
   msaaSamples: number;
   fxaa: { enabled: boolean };
@@ -39,6 +41,7 @@ export class RenderingConfig {
 
   static readonly schema = Schema.object({
     clearColor: Schema.paletteRef(),
+    reverseDepth: Schema.boolean(),
     hdr: Schema.boolean(),
     msaaSamples: Schema.integer({ min: 1, max: 8 }),
     fxaa: Schema.object({ enabled }),

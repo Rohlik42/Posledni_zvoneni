@@ -1,0 +1,55 @@
+{
+  "//": "Parametry tools/prague-skybox.ts: noční panorama Prahy jako cube map z Matterport terasy. Úhly ve stupních, azimut 0 = střed stěny a, roste doprava (a → b → c → d). Barvy jsou klíče data/palette.json.",
+  "source": "reference/matterport/panoramas_4k/terasa_vyhled",
+  "outDir": "public/textures/sky",
+  "outPrefix": "prague",
+  "size": 2048,
+  "jpegQuality": 82,
+  "//faces": "Stěny Babylon CubeTexture (px…nz) ← soubory panoramatu. Svět: +Z = západ (horní okraj půdorysu, okna ke dvoru), +X = sever; b se dívá na Mikuláše (západ), c na Hrad a sv. Tomáše (sever). up.jpg přiléhá spodní hranou ke stěně a; rotate = otočení po směru hodinových ručiček, aby přiléhal k pz.",
+  "faces": {
+    "px": { "file": "c" },
+    "nx": { "file": "a" },
+    "pz": { "file": "b" },
+    "nz": { "file": "d" },
+    "py": { "file": "up", "rotate": 90 },
+    "ny": { "file": "down" }
+  },
+  "skyline": {
+    "//": "Obloha = modravé pixely (b − r ≥ minBlueOverRed, b − g ≥ minBlueOverGreen) souvisle od horního okraje; nebo jasné bílé mraky (luma ≥ brightSkyLuma); silueta začíná prvním během ne-oblohy delším než minRunPx, medianPasses× medián přes 3 sloupce odstraní jednosloupcové šmouhy. Pod horizontem (elevace < horizonDeg) je všechno tma.",
+    "blurSigma": 1.5,
+    "minBlueOverRed": 6,
+    "minBlueOverGreen": 1,
+    "minRunPx": 5,
+    "brightSkyLuma": 0.84,
+    "medianPasses": 2,
+    "horizonDeg": -0.6,
+    "maskSoftenPx": 1
+  },
+  "night": {
+    "zenith": "base.void",
+    "horizon": "light.ambientSky",
+    "gradientDeg": 30,
+    "cloud": "light.moon",
+    "cloudStrength": 0.6,
+    "cloudGamma": 1.6,
+    "silhouette": "base.void",
+    "silhouetteDetail": 0.07,
+    "silhouetteTint": "light.ambientSky",
+    "ground": "base.void",
+    "groundFeatherDeg": 1.2,
+    "glow": "neon.fire",
+    "ember": "neon.ember",
+    "glowFalloffDeg": 11,
+    "glowOnClouds": 1.4,
+    "glowOnSilhouette": 0.3,
+    "smoke": "base.soot",
+    "smokeStrength": 0.55,
+    "//fires": "Zář požárů za střechami: azimut, šířka (σ) a síla.",
+    "fires": [
+      { "azDeg": 28, "widthDeg": 14, "strength": 0.8 },
+      { "azDeg": 118, "widthDeg": 9, "strength": 0.55 },
+      { "azDeg": 205, "widthDeg": 18, "strength": 0.9 },
+      { "azDeg": 300, "widthDeg": 12, "strength": 0.6 }
+    ]
+  }
+}

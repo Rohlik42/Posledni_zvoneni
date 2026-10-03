@@ -37,9 +37,11 @@ test("materials.json: palette keys exist, textures are in public/textures/index.
     }
     if (def.texture !== undefined) assert.ok(textureIds.has(def.texture), `${id}: texture ${def.texture} not in index.json`);
   }
-  // Specular is not configurable at all: MaterialLibrary forces black (FEEDBACK.md, light near walls).
+  // Specular is not configurable at all: MaterialLibrary makes every material through the shared MatteDefaults
+  // (black specular, FEEDBACK.md, light near walls) and never builds a StandardMaterial itself.
   const source = readFileSync("src/rendering/MaterialLibrary.ts", "utf8");
-  assert.match(source, /specularColor = Color3\.Black\(\)/);
+  assert.match(source, /MatteDefaults\.material\(/);
+  assert.doesNotMatch(source, /new StandardMaterial\(/);
 });
 
 test("every material the level and the generator use is defined", () => {
@@ -50,7 +52,6 @@ test("every material the level and the generator use is defined", () => {
     greybox.railings.material,
     greybox.doors.frameMaterial,
     greybox.windows.glassMaterial,
-    ...Object.values(greybox.windows.views),
     ...Object.values(greybox.blockers.materials),
     ...greybox.decals.map((d) => d.material),
   ]);

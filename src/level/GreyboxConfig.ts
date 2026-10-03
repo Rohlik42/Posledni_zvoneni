@@ -18,7 +18,6 @@ export interface DecalData {
   lift: number;
 }
 
-export type WindowView = "prague" | "courtyard" | "street";
 export type BlockerKind = "rubble" | "collapsed-ceiling";
 export type LightKind = "fluorescent" | "emergency" | "fire";
 
@@ -45,15 +44,20 @@ export interface GreyboxData {
   windows: {
     glassMaterial: string;
     glassThickness: number;
-    viewDistance: number;
-    viewScale: number;
-    views: Record<WindowView, string>;
+    /** The visible pane is this much smaller than the opening on every edge (no face coplanar with the reveal). */
+    glassInset: number;
   };
   blockers: { materials: Record<BlockerKind, string> };
   decals: DecalData[];
   /** Multipliers of `level.json → lights` intensity and range (greybox brightness). */
   lights: { intensityScale: number; rangeScale: number; fixtures: Record<LightKind, FixtureData> };
   teleport: { wallMargin: number; obstacleMargin: number; gridStep: number };
+  /**
+   * Z-fighting rules (`OverlapResolver`, `GeometryAudit`): fragments thinner than `minPiece` are dropped when visible
+   * boxes are carved; the audit treats planes closer than `planeTolerance` as one and ignores overlaps under
+   * `minOverlapArea` (m²).
+   */
+  audit: { minPiece: number; planeTolerance: number; minOverlapArea: number };
 }
 
 const LENGTH = Schema.number({ min: 0 });
@@ -94,14 +98,13 @@ export class GreyboxConfig {
     windows: Schema.object({
       glassMaterial: Schema.string(),
       glassThickness: POSITIVE,
-      viewDistance: POSITIVE,
-      viewScale: POSITIVE,
-      views: Schema.object({ prague: Schema.string(), courtyard: Schema.string(), street: Schema.string() }),
+      glassInset: POSITIVE,
     }),
     blockers: Schema.object({ materials: Schema.object({ rubble: Schema.string(), "collapsed-ceiling": Schema.string() }) }),
     decals: Schema.array(Schema.object({ texture: Schema.string(), material: Schema.string(), room: Schema.string(), lift: LENGTH })),
     lights: Schema.object({ intensityScale: POSITIVE, rangeScale: POSITIVE, fixtures: Schema.object({ fluorescent: FIXTURE, emergency: FIXTURE, fire: FIXTURE }) }),
     teleport: Schema.object({ wallMargin: LENGTH, obstacleMargin: LENGTH, gridStep: POSITIVE }),
+    audit: Schema.object({ minPiece: Schema.number({ min: 0.0001 }), planeTolerance: Schema.number({ min: 0.0001 }), minOverlapArea: Schema.number({ min: 0.000001 }) }),
   });
 
   static load(): GreyboxData {

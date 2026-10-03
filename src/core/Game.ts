@@ -9,6 +9,7 @@ import { Scene } from "@babylonjs/core/scene";
 import { MatteDefaults } from "../rendering/MatteDefaults";
 import { PaletteColor } from "../rendering/PaletteColor";
 import { RenderPipeline } from "../rendering/RenderPipeline";
+import { RenderingConfig } from "../rendering/RenderingConfig";
 import { EngineFactory, type RendererKind } from "./EngineFactory";
 import { GameConfig, type GameData } from "./GameConfig";
 import { Input } from "./Input";
@@ -76,6 +77,8 @@ export class Game {
 
   static async create(canvas: HTMLCanvasElement): Promise<Game> {
     const { engine, renderer } = await EngineFactory.create(canvas);
+    // Before the scene exists, so every material, depth renderer and pipeline is built for it (DECISIONS „Fáze F1“).
+    engine.useReverseDepthBuffer = RenderingConfig.load().reverseDepth;
     return new Game(canvas, engine, renderer, new Scene(engine));
   }
 

@@ -1,6 +1,6 @@
-import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
-import { Color3 } from "@babylonjs/core/Maths/math.color";
+import type { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
+import { MatteDefaults } from "./MatteDefaults";
 import { PaletteColor } from "./PaletteColor";
 
 export interface FlatMaterialOptions {
@@ -32,9 +32,8 @@ export class FlatMaterials {
     const key = `${paletteRef}|${emissive}|${alpha}|${diffuseScale}|${options.maxSimultaneousLights ?? ""}`;
     let material = cache.get(key);
     if (material === undefined) {
-      const created = new StandardMaterial(`flat-${key}`, scene);
+      const created = MatteDefaults.material(`flat-${key}`, scene);
       created.diffuseColor = PaletteColor.color3(paletteRef).scale(diffuseScale);
-      created.specularColor = Color3.Black();
       created.emissiveColor = PaletteColor.emissive(paletteRef, emissive);
       created.alpha = alpha;
       if (options.maxSimultaneousLights !== undefined) created.maxSimultaneousLights = options.maxSimultaneousLights;

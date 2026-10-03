@@ -47,6 +47,7 @@ export class WallBuilder {
         visible: true,
         collide: true,
         navigable: true,
+        role: "slab",
       });
     }
     if (this.layout.hasCeiling(room)) {
@@ -58,6 +59,7 @@ export class WallBuilder {
         size: size(ceilingThickness),
         visible: true,
         collide: true,
+        role: "slab",
       });
     }
   }
@@ -70,7 +72,7 @@ export class WallBuilder {
       if (segment.kind !== "wall") return;
       const start = i === 0 ? segment.a0 - this.extension(room, side, segment, -1) : segment.a0;
       const end = i === segments.length - 1 ? segment.a1 + this.extension(room, side, segment, 1) : segment.a1;
-      this.wall(room, side, start, end, segment.thickness, openings);
+      this.wall(room, side, start, end, segment, openings);
     });
     for (const opening of openings) {
       if (opening.window === undefined) continue;
@@ -81,25 +83,33 @@ export class WallBuilder {
   }
 
   /** One wall stretch [a0, a1] with holes for the openings that overlap it. */
-  private wall(room: Room, side: RoomSide, a0: number, a1: number, thickness: number, openings: SideOpening[]): void {
+  private wall(room: Room, side: RoomSide, a0: number, a1: number, segment: SideSegment, openings: SideOpening[]): void {
     const bottom = this.layout.wallBottom(room);
-    const top = this.layout.wallTop(room);
+    // An exterior room (street) walls itself in up to `exteriorRoomWallHeight`, except toward the building: there the
+    // upper floors build their own façade, and a tall street wall would stand in front of their windows.
+    const top = segment.neighbour !== null && this.layout.isExterior(room) ? Math.min(this.layout.wallTop(room), this.layout.wallTop(segment.neighbour)) : this.layout.wallTop(room);
     let cursor = a0;
     for (const opening of openings) {
       const o0 = Math.max(opening.a0, a0);
       const o1 = Math.min(opening.a1, a1);
       if (o1 - o0 < MIN_PIECE) continue;
-      this.piece(room, side, cursor, o0, thickness, bottom, top);
-      this.piece(room, side, o0, o1, thickness, bottom, Math.min(opening.bottom, top));
-      this.piece(room, side, o0, o1, thickness, Math.max(opening.top, bottom), top);
+      this.piece(room, side, cursor, o0, segment, bottom, top);
+      this.piece(room, side, o0, o1, segment, bottom, Math.min(opening.bottom, top));
+      this.piece(room, side, o0, o1, segment, Math.max(opening.top, bottom), top);
       cursor = Math.max(cursor, o1);
     }
-    this.piece(room, side, cursor, a1, thickness, bottom, top);
+    this.piece(room, side, cursor, a1, segment, bottom, top);
   }
 
-  private piece(room: Room, side: RoomSide, a0: number, a1: number, thickness: number, y0: number, y1: number): void {
+  /** +1 when the wall of `segment` grows outward from the side line, −1 when it lies inside the room. */
+  private static direction(side: RoomSide, segment: SideSegment): number {
+    return segment.inward ? -side.sign : side.sign;
+  }
+
+  private piece(room: Room, side: RoomSide, a0: number, a1: number, segment: SideSegment, y0: number, y1: number): void {
+    const { thickness } = segment;
     if (a1 - a0 < MIN_PIECE || y1 - y0 < MIN_PIECE || thickness < MIN_PIECE) return;
-    const across = side.line + (side.sign * thickness) / 2;
+    const across = side.line + (WallBuilder.direction(side, segment) * thickness) / 2;
     const along = (a0 + a1) / 2;
     const y = (y0 + y1) / 2;
     const vertical = y1 - y0;
@@ -110,6 +120,7 @@ export class WallBuilder {
       size: side.axis === "x" ? { x: thickness, y: vertical, z: a1 - a0 } : { x: a1 - a0, y: vertical, z: thickness },
       visible: true,
       collide: true,
+      role: "wall",
     });
   }
 
@@ -120,8 +131,9 @@ export class WallBuilder {
   private extension(room: Room, side: RoomSide, segment: SideSegment, dir: -1 | 1): number {
     let reach = this.data.walls.exteriorThickness;
     const end = dir < 0 ? segment.a0 : segment.a1;
-    const acrossLo = Math.min(side.line, side.line + side.sign * segment.thickness);
-    const acrossHi = Math.max(side.line, side.line + side.sign * segment.thickness);
+    const far = side.line + WallBuilder.direction(side, segment) * segment.thickness;
+    const acrossLo = Math.min(side.line, far);
+    const acrossHi = Math.max(side.line, far);
     for (const rect of this.layout.keepOut(room.floor)) {
       if (rect === room.rect) continue;
       const [lo, hi] = side.axis === "x" ? [rect.x0, rect.x1] : [rect.z0, rect.z1];

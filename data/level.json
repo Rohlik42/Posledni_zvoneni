@@ -102,7 +102,7 @@
     { "id": "w-f3-fyz-2", "room": "f3-kabinet-fyzika", "side": "maxX", "at": 7.5, "width": 1.4, "sill": 0.9, "height": 2.4, "view": "courtyard" },
     { "id": "w-f3-fyz-3", "room": "f3-kabinet-fyzika", "side": "maxX", "at": 11.0, "width": 1.4, "sill": 0.9, "height": 2.4, "view": "courtyard" },
     { "id": "w-f3-ang-1", "room": "f3-kabinet-anglictina", "side": "maxX", "at": 12.7, "width": 1.4, "sill": 0.9, "height": 2.4, "view": "courtyard" },
-    { "id": "w-f3-cj-1", "room": "f3-kabinet-cestina", "side": "maxZ", "at": 14.2, "width": 1.4, "sill": 0.9, "height": 2.4, "view": "street" },
+    { "id": "w-f3-cj-1", "room": "f3-kabinet-cestina", "side": "maxZ", "at": 15.5, "width": 1.4, "sill": 0.9, "height": 2.4, "view": "street" },
     { "id": "w-f3-at-1", "room": "f3-atelier", "side": "maxZ", "at": 51.0, "width": 1.4, "sill": 0.9, "height": 2.4, "view": "street" },
     { "id": "w-f3-at-2", "room": "f3-atelier", "side": "maxZ", "at": 54.5, "width": 1.4, "sill": 0.9, "height": 2.4, "view": "street" },
 

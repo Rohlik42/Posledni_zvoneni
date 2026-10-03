@@ -17,9 +17,6 @@
     "railing": { "tint": "world.metal", "tintStrength": 1, "fallback": { "pattern": "noise", "colors": ["world.metal", "world.steel"], "sizeM": 0.5 } },
     "door-frame": { "texture": "beam-wood", "tint": "world.woodDark", "tintStrength": 0.4, "fallback": { "pattern": "grid", "colors": ["world.wood", "world.woodDark"], "sizeM": 0.5 } },
     "glass": { "tint": "world.glass", "tintStrength": 1, "alpha": 0.18, "emissive": "world.glass", "emissiveIntensity": 0.05, "fallback": { "pattern": "noise", "colors": ["world.glass", "world.glass"], "sizeM": 1.0 } },
-    "gym-lines": { "texture": "floor-gym-lines", "tint": "base.white", "tintStrength": 0, "fallback": { "pattern": "grid", "colors": ["accent.pen", "accent.pencil"], "sizeM": 16.5 } },
-    "view-prague": { "texture": "window-prague", "tint": "light.moon", "tintStrength": 1, "unlit": true, "emissiveIntensity": 0.4, "fallback": { "pattern": "noise", "colors": ["base.night", "neon.fire"], "sizeM": 8 } },
-    "view-courtyard": { "texture": "window-prague", "tint": "light.moon", "tintStrength": 1, "unlit": true, "emissiveIntensity": 0.3, "fallback": { "pattern": "noise", "colors": ["base.night", "base.smoke"], "sizeM": 8 } },
-    "view-street": { "texture": "window-prague", "tint": "neon.fire", "tintStrength": 1, "unlit": true, "emissiveIntensity": 0.35, "fallback": { "pattern": "noise", "colors": ["base.night", "neon.ember"], "sizeM": 8 } }
+    "gym-lines": { "texture": "floor-gym-lines", "tint": "base.white", "tintStrength": 0, "fallback": { "pattern": "grid", "colors": ["accent.pen", "accent.pencil"], "sizeM": 16.5 } }
   }
 }
