@@ -91,7 +91,7 @@
       "bobHeight": 0.035,
       "aimBlend": 9,
       "chargeOrbSize": 0.24,
-      "chargeGlow": 3.5,
+      "chargeGlow": 2.4,
       "chargeColor": "neon.electric",
       "stunTwitchDeg": 18
     },

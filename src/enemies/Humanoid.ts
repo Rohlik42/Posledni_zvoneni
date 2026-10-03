@@ -9,6 +9,7 @@ import type { AiStateId } from "./ai/AiStateIds";
 import { HumanoidAgent, type AgentBody, type AgentContext, type StateChange } from "./ai/HumanoidAgent";
 import type { EnemySpawnData } from "./EncounterConfig";
 import { Enemy } from "./Enemy";
+import { EnemyCollider } from "./EnemyCollider";
 import type { HumanoidData } from "./EnemyConfig";
 import type { EnemyProjectiles } from "./EnemyProjectiles";
 import { HumanoidRobotModel } from "./models/HumanoidRobotModel";
@@ -28,6 +29,8 @@ export interface HumanoidContext {
   scene: Scene;
   projectiles: EnemyProjectiles;
   debris: RobotDebris;
+  /** Whether robots get a Havok body the player bumps into (scenes with physics). */
+  colliders: boolean;
   /** Seeded randomness: drops and aim error. */
   dropRandom: Random;
   aimRandom: Random;
@@ -56,6 +59,8 @@ export class Humanoid extends Enemy implements AgentBody {
   private shots = 0;
   private windups = 0;
   private broken = false;
+  private collider: EnemyCollider | null = null;
+  private currentSpeed = 0;
 
   constructor(
     readonly spawn: EnemySpawnData,
@@ -76,6 +81,7 @@ export class Humanoid extends Enemy implements AgentBody {
     });
     this.stateLog.push({ from: null, to: this.agent.state, timeMs: context.agent.now() });
     this.lastFeet = this.spawnPosition.clone();
+    this.createCollider();
     this.syncModel();
   }
 
@@ -117,7 +123,9 @@ export class Humanoid extends Enemy implements AgentBody {
   }
 
   /** Current walking speed in m/s (from the last step). */
-  speed = 0;
+  get speed(): number {
+    return this.currentSpeed;
+  }
 
   startWindup(): void {
     if (this.windingUp || !this.alive) return;
@@ -159,12 +167,14 @@ export class Humanoid extends Enemy implements AgentBody {
     this.aim = 0;
     this.agent.reset(this.spawnPosition, this.spawn.yaw);
     this.lastFeet = this.spawnPosition.clone();
+    this.createCollider();
     this.syncModel();
   }
 
   override dispose(): void {
     super.dispose();
     this.agent.perception.dispose(this.context.agent.noise);
+    this.collider?.dispose();
     this.model.dispose();
   }
 
@@ -175,7 +185,7 @@ export class Humanoid extends Enemy implements AgentBody {
     const feet = this.agent.feet;
     const moved = Math.hypot(feet.x - this.lastFeet.x, feet.z - this.lastFeet.z);
     this.lastFeet.copyFrom(feet);
-    this.speed = dt > 0 ? moved / dt : 0;
+    this.currentSpeed = dt > 0 ? moved / dt : 0;
     this.animate(dt, moved);
     this.syncModel();
   }
@@ -191,6 +201,8 @@ export class Humanoid extends Enemy implements AgentBody {
     this.model.setFlash(this.flashColor, 0, false);
     this.context.debris.explode(this.model.breakApart(), this.agent.feet.clone(), this.data.death);
     this.broken = true;
+    this.collider?.dispose();
+    this.collider = null;
   }
 
   protected onStatus(kind: StatusKind): void {
@@ -245,5 +257,11 @@ export class Humanoid extends Enemy implements AgentBody {
     const feet = this.agent.feet;
     this.model.root.position.set(feet.x, feet.y, feet.z);
     this.model.root.rotation.y = this.agent.yaw;
+    this.collider?.moveTo(feet);
+  }
+
+  private createCollider(): void {
+    if (!this.context.colliders || this.collider !== null) return;
+    this.collider = new EnemyCollider(this.context.scene, this.id, this.data.body, this.agent.feet);
   }
 }

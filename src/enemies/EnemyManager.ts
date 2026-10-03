@@ -94,6 +94,7 @@ export class EnemyManager {
     private readonly player: Player,
     readonly navmesh: NavMeshService,
     encounter: EncounterData,
+    colliders: boolean,
   ) {
     this.data = EnemyConfig.load();
     const { scene } = game;
@@ -105,6 +106,7 @@ export class EnemyManager {
       scene,
       projectiles: this.projectiles,
       debris: this.debris,
+      colliders,
       dropRandom: new Random(this.data.dropSeed),
       aimRandom: new Random(this.data.dropSeed + AIM_SEED_OFFSET),
       agent: {
@@ -134,8 +136,9 @@ export class EnemyManager {
     this.registerTestHooks();
   }
 
-  static create(game: Game, player: Player, navmesh: NavMeshService, encounter: EncounterData): EnemyManager {
-    return new EnemyManager(game, player, navmesh, encounter);
+  /** `colliders`: give robots a Havok capsule the player bumps into (needs `Physics` in the scene). */
+  static create(game: Game, player: Player, navmesh: NavMeshService, encounter: EncounterData, colliders = true): EnemyManager {
+    return new EnemyManager(game, player, navmesh, encounter, colliders);
   }
 
   get(id: string): Humanoid | undefined {

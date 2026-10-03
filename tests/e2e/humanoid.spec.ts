@@ -326,6 +326,22 @@ test("dropping under a cover threshold sends it to the nearest cover point hidde
   expect(["attack", "chase"]).toContain(after);
 });
 
+test("the player bumps into a robot instead of walking through it", async () => {
+  await reset({ x: 0, y: 0, z: -1 }, { x: 0, y: 1.6, z: 6 }, { x: 0, y: 0, z: 2 }, Math.PI);
+  const z = await page.evaluate(
+    ([id]) => {
+      const g = window.__game!;
+      g.enemies!.applyStatus(id, "stun", 10, 1);
+      g.input!.simulate("forward", 2000);
+      return g.player!.position.z;
+    },
+    [ROBOT] as const,
+  );
+  const player = JSON.parse(readFileSync("data/player.json", "utf8")) as { body: { radius: number } };
+  expect(z).toBeLessThanOrEqual(2 - humanoid.body.radius - player.body.radius + 0.05);
+  expect(z).toBeGreaterThan(0);
+});
+
 test(`the water pistol destroys it with ${hitsToKill} hits; it falls apart into sparking debris that clears away`, async () => {
   await reset({ x: 0, y: 0, z: -2 }, { x: 0, y: 1.3, z: 2 }, { x: 0, y: 0, z: 2 }, Math.PI);
   const kill = await page.evaluate(

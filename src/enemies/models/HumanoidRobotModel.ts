@@ -27,6 +27,13 @@ const AIM_FOREARM_TUCK = 0.12;
 /** The off arm half-raises as a guard while aiming. */
 const GUARD_ARM_RAISE = 0.45;
 const GUARD_ELBOW_BEND = 1.1;
+/** Shares of the stun twitch and the aim pitch that reach the torso and the head. */
+const TWITCH_TORSO_SHARE = 0.3;
+const AIM_HEAD_SHARE = 0.5;
+const HIT_HEAD_SHARE = 0.5;
+/** The orb starts at this glow share and this size share when the charge begins. */
+const ORB_BASE_GLOW = 0.4;
+const ORB_MIN_SCALE = 0.05;
 
 /** Everything the procedural animation needs for one pose. */
 export interface HumanoidPose {
@@ -124,16 +131,16 @@ export class HumanoidRobotModel {
     // Torso and head: hit jolt backwards (negative x leans the top back), stun twitch.
     const lean = a.stunTwitchDeg * DEG_TO_RAD;
     j.torso.rotation.x = -pose.hit * this.hitLean;
-    j.torso.rotation.z = pose.twitch * lean * 0.3;
+    j.torso.rotation.z = pose.twitch * lean * TWITCH_TORSO_SHARE;
     j.head.rotation.y = pose.twitch * lean;
-    j.head.rotation.x = pose.aimPitch * pose.aim * 0.5 - pose.hit * this.hitLean * 0.5;
+    j.head.rotation.x = pose.aimPitch * pose.aim * AIM_HEAD_SHARE - pose.hit * this.hitLean * HIT_HEAD_SHARE;
 
     // Charge orb at the muzzle.
     const charged = pose.charge > 0;
     this.chargeOrb.setEnabled(charged);
     if (charged) {
-      this.chargeOrb.scaling.setAll(Math.max(0.05, pose.charge) * a.chargeOrbSize);
-      this.orbMaterial.emissiveColor = PaletteColor.emissive(a.chargeColor, a.chargeGlow * (0.4 + 0.6 * pose.charge));
+      this.chargeOrb.scaling.setAll(Math.max(ORB_MIN_SCALE, pose.charge) * a.chargeOrbSize);
+      this.orbMaterial.emissiveColor = PaletteColor.emissive(a.chargeColor, a.chargeGlow * (ORB_BASE_GLOW + (1 - ORB_BASE_GLOW) * pose.charge));
     }
   }
 

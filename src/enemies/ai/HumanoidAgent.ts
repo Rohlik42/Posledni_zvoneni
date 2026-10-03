@@ -18,7 +18,6 @@ import { SearchState } from "./states/SearchState";
 import { StunnedState } from "./states/StunnedState";
 
 const TWO_PI = Math.PI * 2;
-const MS_PER_SECOND = 1000;
 /** A moving target is re-pathed only when it moved farther than this from the current destination (m). */
 const REPATH_DISTANCE = 0.6;
 
@@ -285,11 +284,6 @@ export class HumanoidAgent extends Vehicle {
     this.perception.forget();
     this.context.cover.release(this);
     this.changeState("patrol");
-  }
-
-  /** Simulated time in seconds (for logs). */
-  static seconds(ms: number): number {
-    return ms / MS_PER_SECOND;
   }
 
   private moveAlongPath(dt: number): void {

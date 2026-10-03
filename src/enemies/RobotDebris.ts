@@ -20,6 +20,13 @@ const LINGER_HEIGHT = 0.9;
 const LINGER_SPEED = 2.2;
 /** How deep a part sinks into the floor while it fades out (m). */
 const SINK_DEPTH = 0.3;
+/** Sparks cool from the palette colour towards dark red (share of green kept at the end). */
+const SPARK_END_GREEN = 0.4;
+/** Random sideways velocity added to each part (m/s) and the share range of `spin` a part gets. */
+const SIDE_JITTER = 0.5;
+const SPIN_SHARE: readonly [number, number] = [0.3, 1];
+/** Spark directions: upward component range (sparks fly up more than down). */
+const SPARK_UP: readonly [number, number] = [0.2, 1.2];
 
 interface Piece {
   mesh: Mesh;
@@ -57,7 +64,7 @@ export class RobotDebris implements Simulated {
     this.sparks = new DropletEmitter("robot-sparks", scene, {
       capacity: SPARK_CAPACITY,
       color: new Color4(color.r * data.sparkGlow, color.g * data.sparkGlow, color.b * data.sparkGlow, 1),
-      colorEnd: new Color4(color.r, color.g * 0.4, 0, 0),
+      colorEnd: new Color4(color.r, color.g * SPARK_END_GREEN, 0, 0),
       size: data.sparkSize,
       gravity: data.gravity * SPARK_GRAVITY_SHARE,
       stretched: false,
@@ -82,12 +89,13 @@ export class RobotDebris implements Simulated {
       if (outward.lengthSquared() < Number.EPSILON) outward.set(this.random.range(-1, 1), 0, this.random.range(-1, 1));
       outward.normalize();
       const speed = this.random.range(data.speed[0], data.speed[1]);
-      const velocity = outward.scale(speed).addInPlace(new Vector3(this.random.range(-0.5, 0.5), this.random.range(data.up[0], data.up[1]), this.random.range(-0.5, 0.5)));
+      const jitter = new Vector3(this.random.range(-SIDE_JITTER, SIDE_JITTER), this.random.range(data.up[0], data.up[1]), this.random.range(-SIDE_JITTER, SIDE_JITTER));
+      const velocity = outward.scale(speed).addInPlace(jitter);
       const axis = new Vector3(this.random.range(-1, 1), this.random.range(-1, 1), this.random.range(-1, 1)).normalize();
       if (mesh.rotationQuaternion === null) mesh.rotationQuaternion = Quaternion.FromEulerVector(mesh.rotation);
       mesh.refreshBoundingInfo();
       const extent = mesh.getBoundingInfo().boundingBox.extendSize;
-      return { mesh, velocity, axis, spin: this.random.range(0.3, 1) * data.spin, extent: Math.min(extent.x, extent.y, extent.z) * mesh.scaling.y, age: 0 };
+      return { mesh, velocity, axis, spin: this.random.range(SPIN_SHARE[0], SPIN_SHARE[1]) * data.spin, extent: Math.min(extent.x, extent.y, extent.z) * mesh.scaling.y, age: 0 };
     });
     this.wrecks.push({ pieces, floorY: origin.y, origin: origin.clone(), age: 0, lingerDebt: 0, data });
     const burstFrom = origin.add(new Vector3(0, LINGER_HEIGHT, 0));
@@ -145,7 +153,7 @@ export class RobotDebris implements Simulated {
   }
 
   private spark(from: Vector3, data: DeathData, speed: number): void {
-    const direction = new Vector3(this.random.range(-1, 1), this.random.range(0.2, 1.2), this.random.range(-1, 1)).normalize();
+    const direction = new Vector3(this.random.range(-1, 1), this.random.range(SPARK_UP[0], SPARK_UP[1]), this.random.range(-1, 1)).normalize();
     this.sparks.emit({ position: from.clone(), velocity: direction.scale(speed), life: this.random.range(data.sparkLife[0], data.sparkLife[1]) });
   }
 }

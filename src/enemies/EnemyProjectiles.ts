@@ -22,6 +22,16 @@ const BOLT_SEGMENTS = 3;
 const TRAIL_SPREAD = 0.6;
 const TRAIL_GRAVITY = 2;
 const TRAIL_CAPACITY = 400;
+/** Trail spark sprite size range (m) and brightness (HDR multiple of the bolt colour). */
+const TRAIL_SIZE: readonly [number, number] = [0.03, 0.07];
+const TRAIL_GLOW = 2;
+/** Impact sparks: share of the bolt's speed thrown back and life range (s). */
+const IMPACT_BACK_SHARE = 0.5;
+const IMPACT_LIFE: readonly [number, number] = [0.15, 0.4];
+/** The muzzle flash is brighter than the bolt. */
+const FLASH_GLOW_BOOST = 1.5;
+/** Points tested along a bolt's step against the player's capsule. */
+const CAPSULE_SAMPLES = 4;
 /** Spark burst where a bolt ends (wall or player). */
 const IMPACT_SPARKS = 14;
 const IMPACT_SPEED = 3;
@@ -80,9 +90,9 @@ export class EnemyProjectiles implements Simulated {
     const color = PaletteColor.color4(trailColor);
     this.trail = new DropletEmitter("bolt-trail", scene, {
       capacity: TRAIL_CAPACITY,
-      color: new Color4(color.r * 2, color.g * 2, color.b * 2, 1),
+      color: new Color4(color.r * TRAIL_GLOW, color.g * TRAIL_GLOW, color.b * TRAIL_GLOW, 1),
       colorEnd: new Color4(color.r, color.g, color.b, 0),
-      size: [0.03, 0.07],
+      size: TRAIL_SIZE,
       gravity: TRAIL_GRAVITY,
       stretched: false,
     });
@@ -187,10 +197,9 @@ export class EnemyProjectiles implements Simulated {
     const bottom = feet.y + body.radius;
     const top = feet.y + body.height - body.radius;
     const reach = body.radius + radius;
-    const samples = 4;
     const length = Vector3.Distance(from, to);
-    for (let i = 0; i <= samples; i++) {
-      const t = i / samples;
+    for (let i = 0; i <= CAPSULE_SAMPLES; i++) {
+      const t = i / CAPSULE_SAMPLES;
       const p = Vector3.Lerp(from, to, t);
       const y = Math.min(top, Math.max(bottom, p.y));
       const dx = p.x - feet.x;
@@ -216,16 +225,16 @@ export class EnemyProjectiles implements Simulated {
   }
 
   private burst(position: Vector3, velocity: Vector3): void {
-    const back = velocity.normalizeToNew().scale(-IMPACT_SPEED * 0.5);
+    const back = velocity.normalizeToNew().scale(-IMPACT_SPEED * IMPACT_BACK_SHARE);
     for (let i = 0; i < IMPACT_SPARKS; i++) {
       const spread = new Vector3(this.random.range(-1, 1), this.random.range(-0.3, 1), this.random.range(-1, 1)).scale(IMPACT_SPEED);
-      this.trail.emit({ position: position.clone(), velocity: spread.addInPlace(back), life: this.random.range(0.15, 0.4) });
+      this.trail.emit({ position: position.clone(), velocity: spread.addInPlace(back), life: this.random.range(IMPACT_LIFE[0], IMPACT_LIFE[1]) });
     }
   }
 
   private addFlash(position: Vector3, data: ProjectileData): void {
     const mesh = MeshBuilder.CreateSphere("enemy-muzzle-flash", { diameter: 1, segments: BOLT_SEGMENTS }, this.scene);
-    mesh.material = this.glow(data.color, data.glow * 1.5);
+    mesh.material = this.glow(data.color, data.glow * FLASH_GLOW_BOOST);
     mesh.isPickable = false;
     mesh.position.copyFrom(position);
     mesh.scaling.setAll(data.flashSize);
