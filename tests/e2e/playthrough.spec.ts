@@ -368,6 +368,7 @@ test.describe.serial("playthrough of the level on the main page", () => {
         furniture: g.furniture!.instances(),
         furnitureMeshes: g.furniture!.meshes(),
         furnitureTriangles: g.furniture!.triangles(),
+        furnitureColliders: g.furniture!.colliders(),
         litProps: g.lighting!.lightsOn("prop:"),
       };
     });
@@ -407,6 +408,7 @@ test.describe.serial("playthrough of the level on the main page", () => {
     expect(state.furnitureMeshes).toBeGreaterThan(0);
     expect(state.furnitureTriangles).toBeGreaterThan(0);
     expect(state.litProps).toBeGreaterThan(0);
+    expect(state.furnitureColliders).toBe(state.furniture.length);
     const covers = (f: { x0: number; z0: number; x1: number; z1: number }, x: number, z: number, margin: number) =>
       x > f.x0 - margin && x < f.x1 + margin && z > f.z0 - margin && z < f.z1 + margin;
     for (const prop of state.furniture) {
@@ -420,6 +422,25 @@ test.describe.serial("playthrough of the level on the main page", () => {
 
     await page.evaluate(() => window.__game!.progress!.intro.dismiss());
     expect(await page.evaluate(() => window.__game!.progress!.intro.visible)).toBe(false);
+
+    // Furniture collides: walking east from the aisle of učebna 30 into the window-side desk column stops at the desks.
+    const desk = state.furniture.find((p) => p.room === level.spawns.player.room && p.blueprint === "schoolDesk" && p.footprint.x0 > level.spawns.player.x)!;
+    const bump = await page.evaluate(
+      ({ x, z, deskX, floorY, eye }) => {
+        const g = window.__game!;
+        const start = g.player!.position;
+        g.player!.teleport(x, floorY + 0.05, -z);
+        g.step(100);
+        g.player!.lookAt(deskX + 3, floorY + eye, -z);
+        g.input!.simulate("KeyW", 1500);
+        const reached = g.player!.position.x;
+        g.player!.teleport(start.x, start.y + 0.05, start.z);
+        g.step(100);
+        return reached;
+      },
+      { x: level.spawns.player.x, z: (desk.footprint.z0 + desk.footprint.z1) / 2, deskX: desk.footprint.x0, floorY: route[0]!.y, eye: player.body.eyeHeight },
+    );
+    expect(bump).toBeLessThan(desk.footprint.x0);
   });
 
   test("floor 4: Hudebka, Zeměpis (one wrong answer → extinguisher), balloons on the corridor, Matematika → red key + checkpoint", async () => {

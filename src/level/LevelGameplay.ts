@@ -21,6 +21,7 @@ import { LevelStations } from "./LevelStations";
 import { NavMeshService } from "./NavMeshService";
 import { PickupField } from "./PickupField";
 import { ProgressionConfig } from "./ProgressionConfig";
+import { PropColliders } from "./PropColliders";
 import { PropPlacer, type PlacedProps } from "./PropPlacer";
 import { RoomLighting } from "./RoomLighting";
 import { TeacherSystem } from "./TeacherSystem";
@@ -54,8 +55,9 @@ export interface LevelGameplayOptions {
 
 /** The full game's systems on top of the level (`play`, phase 16). */
 export interface GameParts {
-  /** Furniture of `data/props.json` (phase 15), lit by its rooms; no collisions. */
+  /** Furniture of `data/props.json` (phase 15), lit by its rooms, with static colliders (`PropColliders`). */
   props: PlacedProps;
+  colliders: PropColliders;
   quiz: QuizSystem;
   teachers: TeacherSystem;
   stations: WeaponStations;
@@ -77,6 +79,8 @@ export interface FurnitureTestApi {
   meshes: () => number;
   /** Triangles drawn by all props (thin instances counted). */
   triangles: () => number;
+  /** Static collider boxes over the props (one per prop). */
+  colliders: () => number;
 }
 
 declare module "../core/TestHooks" {
@@ -111,7 +115,12 @@ export class LevelGameplay {
   static async create(game: Game, options: LevelGameplayOptions = {}): Promise<LevelGameplay> {
     const physics = await Physics.create(game);
     const level = await LevelBuilder.build(game, physics);
-    const navmesh = await NavMeshService.create(game.scene, level.getNavigableMeshes(), { obstacles: true });
+    const play = options.play === true;
+    // The full game furnishes the rooms (phase 15 props) before the navmesh bakes, so robots walk around the furniture;
+    // the bare level stays empty for geometry tests and `?scene=props`.
+    const props = play ? PropPlacer.place(game.scene, level.layout) : null;
+    const colliders = props === null ? null : PropColliders.build(game.scene, physics, props.props);
+    const navmesh = await NavMeshService.create(game.scene, [...level.getNavigableMeshes(), ...(colliders?.meshes ?? [])], { obstacles: true });
     const spawn = LevelGameplay.spawn(level, options);
     const player = Player.create(game, physics, spawn);
     level.attachPlayer(player);
@@ -130,9 +139,8 @@ export class LevelGameplay {
     hud.setHintSource(() => doors.hint);
     const pickups = PickupField.create(game, player, inventory, lighting);
     pickups.spawnLevel(level.layout);
-    const play = options.play === true;
-    // The full game furnishes the rooms (phase 15 props); the bare level stays empty for geometry tests and `?scene=props`.
-    const props = play ? LevelGameplay.furnish(game, level, lighting) : null;
+    // Props are lit by their room's lamps.
+    for (const [room, meshes] of props?.meshesByRoom ?? []) lighting.attach(meshes, [room]);
     const countDelta = options.countDelta ?? ProgressionConfig.load().countDelta;
     const enemies = LevelGameplay.enemies(game, player, navmesh, level, options.enemies ?? (play ? "all" : null), countDelta);
     if (enemies !== null) {
@@ -140,7 +148,8 @@ export class LevelGameplay {
       pickups.attachDrops(enemies.enemies);
       for (const enemy of enemies.enemies) lighting.track(() => LevelGameplay.robotMeshes(enemy), () => enemy.position);
     }
-    const parts = props !== null ? LevelGameplay.play(game, physics, level, navmesh, player, weapons, inventory, hud, doors, pickups, lighting, enemies, props, options) : null;
+    const furniture = props !== null && colliders !== null ? { props, colliders } : null;
+    const parts = furniture !== null ? LevelGameplay.play(game, physics, level, navmesh, player, weapons, inventory, hud, doors, pickups, lighting, enemies, furniture, options) : null;
     if (parts === null) {
       // The bare level (geometry tests): back to the start at once. The full game goes back to its checkpoint.
       player.health.onDeath.add(() => {
@@ -185,7 +194,7 @@ export class LevelGameplay {
     pickups: PickupField,
     lighting: RoomLighting,
     enemies: EnemyManager | null,
-    props: PlacedProps,
+    furniture: { props: PlacedProps; colliders: PropColliders },
     options: LevelGameplayOptions,
   ): GameParts {
     const data = ProgressionConfig.load();
@@ -208,15 +217,9 @@ export class LevelGameplay {
       { intro: options.intro === true, resume: options.resume === true },
       options.difficultyName ?? null,
     );
-    return { props, quiz, teachers, stations, progress };
+    return { ...furniture, quiz, teachers, stations, progress };
   }
 
-  /** Props of `data/props.json` in their rooms, each room's props lit by that room's lamps. */
-  private static furnish(game: Game, level: Level, lighting: RoomLighting): PlacedProps {
-    const props = PropPlacer.place(game.scene, level.layout);
-    for (const [room, meshes] of props.meshesByRoom) lighting.attach(meshes, [room]);
-    return props;
-  }
 
   private static spawn(level: Level, options: LevelGameplayOptions): PlayerSpawn {
     const spawn = options.room == null ? level.playerSpawn() : level.roomSpawn(options.room);
@@ -259,11 +262,13 @@ export class LevelGameplay {
       lightsOn: (prefix) => level.lights.filter((light) => light.includedOnlyMeshes.some((mesh) => mesh.name.startsWith(prefix))).length,
     });
     const props = this.game?.props;
-    if (props !== undefined) {
+    const colliders = this.game?.colliders;
+    if (props !== undefined && colliders !== undefined) {
       TestHooks.register("furniture", {
         instances: () => props.props.instances.map((i) => ({ room: i.room, blueprint: i.blueprint, footprint: { ...i.footprint } })),
         meshes: () => [...props.meshesByRoom.values()].reduce((sum, list) => sum + list.length, 0),
         triangles: () => props.triangles(),
+        colliders: () => colliders.meshes.length,
       });
     }
   }
