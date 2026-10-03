@@ -21,21 +21,23 @@ Cíl: single-player FPS v prohlížeči (Babylon.js 9 + TypeScript + Vite) podle
 
 ## Rozvrh a ověřování
 
-**Směny.** Lead session předá workflow `shift` tyto argumenty (`serial` = jedna po druhé, `parallel` = souběžně ve worktree). Směna smí začít, až jsou závislosti mergnuté. Co se nestihne, jde do další směny.
+**Směny.** Lead session předá workflow `shift` tyto argumenty. **Pozor:** `serial` a `parallel` startují *současně* (shift.js `Promise.all`) a paralelní worktree se odvětví od `main` na začátku směny. Paralelní fáze proto smí záviset **jen na předchozích směnách**, nikdy na sériových fázích téže směny. Co se nestihne, jde do další směny.
 
 | Směna | serial | parallel | Pozn. |
 | --- | --- | --- | --- |
-| 1 | `1`, `2` | `7`, `8`, `12`, `23` | 7, 8, 12 a 23 jsou čistě nástroje, data nebo CI a nepotřebují engine |
-| 2 | `3`, `4`, `5` | `9`, `11` | po směně 2 → člověk hraje Weapon feel |
-| 3 | `13`, `14` | `10` | |
-| 4 | `16`, `17`, `18` | `15` | |
-| 5 | `19`, `21` | `20` | po směně 5 → člověk hraje Visual pass |
-| 6 | `24` | – | DoD audit |
+| 1 | `1`, `2` | `7`, `8`, `12` | 7, 8 a 12 jsou čistě nástroje a data, nepotřebují engine |
+| 2 | `3`, `4`, `5` | `9` | 9 = geometrie levelu bez navmeshe; po směně 2 → člověk hraje Weapon feel |
+| 3 | `10`, `11` | `13`, `14` | 13/14 stojí na 3–5 (směna 2) |
+| 4 | `16`, `18`, `17` | `15` | 18 (menu) před 17 (výběr obtížnosti v menu); 15 = jen modely rekvizit + PropPlacer, napojí 16 |
+| 5 | `19`, `20` | `23` | po směně 5 → člověk hraje Visual pass |
+| 6 | `21`, `24` | – | 21 měří fps → běží sama, bez paralelní zátěže |
 
-**Pravidla pro paralelní fáze:** nepřidávají npm závislosti (`sharp` a `tsx` už jsou nainstalované; když je závislost opravdu potřeba, zapiš ji do handoffu a přidá ji další serial fáze). Needitují soubory, které vlastní jiná fáze téže směny. Nový kód patří do nových souborů a do sdílených registrů (`dev/main.ts`, `TestHooks.ts`) jen přidávají řádky.
+**Pravidla pro paralelní fáze:** nepřidávají npm závislosti (`sharp` a `tsx` už jsou nainstalované; potřebnou závislost zapiš do handoffu a přidá ji další serial fáze). V worktree se nikdy neinstaluje. Needitují soubory, které vlastní jiná fáze téže směny. Sdílené registry jsou navržené bez konfliktů: dev scény se hledají přes `import.meta.glob("./scenes/*Scene.ts")` a test API registruje každý modul sám (`TestHooks.register("weapons", api)`), viz fáze 1. `DECISIONS.md`, `ASSETS.md` a `PERF.md` mají v `.gitattributes` `merge=union`, jen se do nich připisuje na konec.
+
+**Časově citlivé testy:** testy běží, zatímco stroj zatěžují i jiné worktree. Pohyb a AI proto testuj s volnými mezemi a přes deterministický krok (`__game.step(ms)` posune simulaci s pevným dt). Fps se měří jen ve fázích 21 a 24.
 
 **Dvě úrovně testů.**
-- **Quick gate** (pro každou fázi, běží 3× u implementace, review a merge, proto musí být levná): `npm run typecheck` + `npm test` (datové testy + smoke, ~10 s) + **jen e2e spec té fáze**, uvedený v její sekci jako „Quick gate: `tests/e2e/x.spec.ts`“. Lead ho předá jako `phases[id].tests`, například `["npm run typecheck", "npm test", "npx playwright test tests/e2e/x.spec.ts"]`.
+- **Quick gate** (pro každou fázi, běží 3× u implementace, review a merge, proto musí být levná): výchozí `["npm run typecheck", "npm test"]` (datové testy + smoke, ~10 s). Když sekce fáze uvádí „Quick gate: `tests/e2e/a.spec.ts`, `b.spec.ts`“, lead předá `phases[id].tests = ["npm run typecheck", "npm run test:data && npx playwright test tests/smoke tests/e2e/a.spec.ts tests/e2e/b.spec.ts"]`. Je to jeden běh Playwrightu, takže i jeden dev server.
 - **Shift gate** (jednou za směnu na mergnutém main): `npm run test:full` (build + všechny testy včetně playthrough).
 - Měření fps a PERF.md jen ve fázích 21 a 24. Žádná videa. Snímky jen ty uvedené ve fázi (1–3 na fázi) a každý si prohlédni.
 
@@ -88,7 +90,9 @@ Vodní balónky (zbraň 3) leží na chodbě mezi učiteli 1 a 2. Vodní pistolk
 2. `src/utils/DataLoader.ts`: typované načítání `data/*.json` (import přes Vite `?url` nebo `import json`), validace povinných polí s čitelnou chybou. `data/palette.json`: low-poly punk paleta, tmavé podklady a výrazné akcenty. Vyjdi z LEGACY §4 a doplň neon pro roboty, vodu a elektřinu.
 3. `src/rendering/RenderPipeline.ts`: `DefaultRenderingPipeline` (ACES tone mapping, bloom, grain, chromatická aberace, vignette), `SSAO2RenderingPipeline`, exponenciální mlha (`scene.fogMode = FOGMODE_EXP2`). Všechny hodnoty jsou v `data/rendering.json`. Pipeline jde zapínat po částech (podklad pro fázi 21).
 4. `dev/main.ts`: registr dev scén (`?scene=<id>`, bez parametru seznam odkazů) a `dev/scenes/EmptyScene.ts`. Každá další fáze přidává svou scénu sem.
-5. `src/core/Input.ts`: mapování kláves a myši (WASD, Shift sprint, mezerník, E interakce, kolečko a 1–6 zbraně, prostřední tlačítko dveře podle LEGACY §3, Esc pauza), pointer lock s fallbackem z LEGACY.
+5. Registry bez merge konfliktů (paralelní fáze do nich přidávají): `dev/main.ts` najde scény přes `import.meta.glob("./scenes/*Scene.ts", { eager: true })` (každá exportuje `id` a `create`) a `TestHooks.register(name, api)` vystaví `window.__game[name]`. Moduly se registrují samy, takže se sdílený soubor needituje. Přidej `__game.step(ms)`, který posune simulaci s pevným krokem (pro deterministické testy).
+6. Smoke test selže i na `console.warn` (DoD §15 „bez chyb a varování“). Neovlivnitelná varování knihoven patří na krátký allowlist v testu s komentářem proč.
+7. `src/core/Input.ts`: mapování kláves a myši (WASD, Shift sprint, mezerník, E interakce, kolečko a 1–6 zbraně, prostřední tlačítko dveře podle LEGACY §3, Esc pauza), pointer lock s fallbackem z LEGACY.
 
 **Verification**
 Quick gate: výchozí. `npm run build` bez varování. Přidej smoke test, který otevře `/dev/?scene=empty` a ověří `__game.ready`. Snímek `screenshots/01-pipeline.png` scény s pár barevnými krabicemi a bodovým světlem v mlze: grain a vignette jsou vidět, bloom kolem světla. Prohlédni ho.
@@ -135,7 +139,8 @@ Projektily přes fyziku u hitscanu. Zvukové soubory. Další zbraně (fáze 13)
 2. `src/enemies/Enemy.ts` (base, `IDamageable`, odolnosti podle typu damage, drop munice podle šance z `data/enemies.json`) a `src/enemies/Humanoid.ts`.
 3. `src/enemies/ai/`: Yuka `StateMachine` se stavy Patrol → Alert (slyší/vidí) → Chase → Attack → Search → Patrol. `Vision` s FOV a překážkami přes raycast do scény. Sluch reaguje na výstřely hráče v okruhu. Humanoid se kryje u nejbližšího „cover point“ (meta-data v levelu).
 4. `src/level/NavMeshService.ts`: `CreateNavigationPluginAsync` → `createNavMesh` z mesh podlah a statické geometrie. `computePathSmooth` pro pronásledování. Debug vykreslení navmeshe přepínatelné v dev scéně.
-5. Projektily robota (elektrický výboj) s varováním (nápřah 0,4 s, viditelný záblesk), damage hráči.
+5. `Enemy.applyStatus(kind: "slow" | "stun", seconds, strength)` + AI stav Stunned. Fáze 13 jen volá, fáze 14 implementuje pro nové typy.
+6. Projektily robota (elektrický výboj) s varováním (nápřah 0,4 s, viditelný záblesk), damage hráči.
 
 **Verification**
 Quick gate: `tests/e2e/humanoid.spec.ts` na `dev/?scene=boxroom-enemy`. Robot hráče najde (stav Chase do 5 s po výstřelu), dojde k němu po navmeshi kolem sloupu, zaútočí, vodní pistolka ho zabije počtem zásahů podle JSON. Snímek `04-humanoid.png`: robot musí být čitelný v tmavé scéně.
@@ -169,11 +174,11 @@ Nové zbraně ani nepřátelé. Přehnaný shake (> 0,3 m posunu kamery).
    - `wall-plaster` (bílá omítka z panoramat chodeb), `wall-wainscot-wood` (dřevěný obklad: tělocvična / vstupní hala), `door-wood` (masivní dveře jako textura celého křídla), `locker-blue`, `stair-tread`, `beam-wood` (podkroví), `courtyard-paving`, `window-prague` (výhled ze `terasa_vyhled` pro okna).
    Postup: výřez → srovnání jasu a perspektivy (z `down.jpg` a půdorysů je ortografický) → bezešvé okraje (offset + blend nebo mirror) → zmenšení na 512 px → posterizace podle stylu (volitelně pixelace jako Quake). Výstupní parametry jsou v `tools/matterport-textures.json`.
 2. `tools/fetch-textures.ts`: Poly Haven API (`api.polyhaven.com`) s CC0 materiály, které Matterport nemá: beton, suť, spálenina, kov, rez. 1K, idempotentní, cache v `public/textures/ph/`. Bez sítě se tiše přeskočí.
-3. `src/rendering/MaterialLibrary.ts` + `data/materials.json`: pojmenované materiály (texture, tint z palety, uvScale, emissive). Bez souboru textury použije procedurální fallback (canvas šum nebo mřížka).
+3. `public/textures/index.json`: seznam vyrobených textur (id, soubor, rozměr v metrech na dlaždici, zdroj). Materiály z toho postaví fáze 9 (`MaterialLibrary`), tahle fáze engine nepotřebuje.
 4. `ASSETS.md`: řádek pro každou texturu (zdroj: Matterport panoráma/půdorys + soubor, nebo Poly Haven URL + CC0).
-5. `tools/texture-sheet.ts`: složí všechny výstupní textury do jednoho náhledu `screenshots/07-textures.png` (sharp, bez enginu, aby fáze nezávisela na fázi 1). Datový test `tests/data/materials.test.ts`: každý materiál v `data/materials.json` má buď existující texturu, nebo fallback.
+5. `tools/texture-sheet.ts`: složí všechny výstupní textury do jednoho náhledu `screenshots/07-textures.png` (sharp, bez enginu, aby fáze nezávisela na fázi 1). Datový test `tests/data/textures.test.ts`: každý záznam v `public/textures/index.json` existuje a má ≤ 1024 px.
 
-Paralelní fáze směny 1: needituje `src/core/`, `src/main.ts` ani `dev/main.ts`. `MaterialLibrary` je samostatná třída, kterou fáze 9 napojí.
+Paralelní fáze směny 1: jen `tools/`, `public/textures/`, `ASSETS.md`, `tests/data/`. Žádný `src/`.
 
 **Verification**
 Quick gate: výchozí (typecheck + `npm test`). Skripty běží idempotentně (druhé spuštění nic nemění). Náhled `screenshots/07-textures.png` prohlédni: šachovnice chodby je pravidelná, bez švů a s barvou blízkou fotce, parkety jsou čitelné. Velikost `public/textures/` < 25 MB.
@@ -185,7 +190,7 @@ Textury v plném rozlišení (> 1K). Ruční úpravy obrázků mimo skript. Stah
 
 **Implement**
 1. Vyber 3 hratelná patra (DECISIONS #2): pravděpodobně Floor 2 (vstup, tělocvična, šatny) + dvě patra s učebnami (Floor 3/4, nebo 4/5 kvůli laboratoři). Výběr a důvod zapiš do DECISIONS.md. Ostatní patra a slepé konce jsou zavalené (suť, propadlý strop).
-2. Schéma `data/level.json` (typy v `src/level/LevelTypes.ts`): `floors[]` (výška, výška stropu) a `rooms[]` (id, jméno, patro, polygon/obdélník v metrech, materiál podlahy a stěn, typ: učebna / kabinet / chodba / schodiště / tělocvična / šatna / hala). Dál `doors[]` (pozice, šířka, mezi kterými místnostmi, `lock: none|red|yellow|blue|exit`), `windows[]`, `stairs[]` (z patra na patro, ramena), `blockers[]` (zával), `coverPoints[]`, `spawns{}`, `pickups[]`, `teachers[]` (odkaz na teachers.json + pozice židle), `lights[]` a `fires[]`.
+2. Schéma `data/level.json` (typy v `src/level/LevelTypes.ts`): `floors[]` (výška, výška stropu) a `rooms[]` (id, jméno, patro, polygon/obdélník v metrech, materiál podlahy a stěn, typ: učebna / kabinet / chodba / schodiště / tělocvična / šatna / hala). Dál `doors[]` (pozice, šířka, mezi kterými místnostmi, `lock: none|red|yellow|blue|exit`), `windows[]`, `stairs[]` (z patra na patro, ramena), `blockers[]` (zával), `coverPoints[]`, `spawns{}`, `pickups[]`, `teachers[]` (slot učitele podle Evidence → Progrese + pozice židle), `keys[]` (barva → slot učitele, který klíč dává; teachers.json zatím neexistuje), `lights[]` a `fires[]`.
 3. Souřadnice odečti z půdorysů: 1 m = 85 px a počátek je v levém horním rohu obrázku (stejný pro všechna patra). Rozsah: ~12 místností, 3 chodby, 2 schodiště, 6+ kabinetů pro učitele z Evidence → Progrese. Trasa 300–500 m od startu po hlavní vchod. Zkracuj, ale drž skutečné proporce, šachovnicovou chodbu, polohu schodišť a tělocvičny.
 4. `tools/level-overlay.ts` (sharp, bez enginu): pro každé patro vykreslí přes půdorys obdélníky místností, dveře (barva zámku), trasu a spawny z level.json do `screenshots/08-levelmap-floor{N}.png`. Slouží k ověření, že data sedí na fotku.
 5. `tools/level-route.ts`: spočítá délku hlavní trasy (body v level.json) a vypíše ji.
@@ -193,7 +198,7 @@ Textury v plném rozlišení (> 1K). Ruční úpravy obrázků mimo skript. Stah
 Paralelní fáze směny 1: jen `data/level.json`, `src/level/LevelTypes.ts`, `tools/` a `tests/data/`. Žádný kód enginu.
 
 **Verification**
-Quick gate: výchozí. `screenshots/08-levelmap-floor{N}.png` pro každé patro prohlédni: obdélníky sedí na místnosti v půdorysu (±0,5 m). Datový test `tests/data/level.test.ts`: dveře spojují existující místnosti, každý zámek má klíč, schodiště spojují existující patra, trasa je 300–500 m.
+Quick gate: výchozí. `screenshots/08-levelmap-floor{N}.png` pro každé patro prohlédni: obdélníky sedí na místnosti v půdorysu (±1 m). Číselně (v testu) ověř 3–4 orientační body proti hodnotám změřeným v pixelech a zapsaným v `tools/level-landmarks.json`: obě schodiště, rohy tělocvičny č.1, hlavní vchod. Datový test `tests/data/level.test.ts`: dveře spojují existující místnosti, každý zámek má záznam v `keys[]`, schodiště spojují existující patra, trasa je 300–500 m.
 
 **Do not**
 3D geometrii (fáze 9). Celá budova: jen vybraná patra. Ruční modelování.
@@ -201,15 +206,16 @@ Quick gate: výchozí. `screenshots/08-levelmap-floor{N}.png` pro každé patro 
 ## Phase 9 — Greybox generátor
 
 **Implement**
-1. `src/level/LevelBuilder.ts` (+ `WallBuilder`, `StairBuilder`, `OpeningBuilder`, každý ve vlastním souboru): z level.json postaví podlahy, stropy a stěny s otvory pro dveře a okna (CSG2 nebo skládání segmentů; segmenty jsou rychlejší), schodiště, zábradlí a závaly. Materiály z MaterialLibrary (fáze 7).
+0. `src/rendering/MaterialLibrary.ts` + `data/materials.json`: pojmenované materiály z `public/textures/index.json` (fáze 7) s tintem z palety, uvScale a emissive. Bez souboru použije procedurální fallback (canvas šum nebo mřížka).
+1. `src/level/LevelBuilder.ts` (+ `WallBuilder`, `StairBuilder`, `OpeningBuilder`, každý ve vlastním souboru): z level.json postaví podlahy, stropy a stěny s otvory pro dveře a okna (CSG2 nebo skládání segmentů; segmenty jsou rychlejší), schodiště, zábradlí a závaly.
 2. Statická geometrie se slučuje podle materiálu (`Mesh.MergeMeshes`), statická těla Havok, `freezeWorldMatrix`.
-3. NavMesh přes celý level (`NavMeshService`), cache výsledku v paměti. Generování ≤ 3 s.
+3. **Bez navmeshe:** `NavMeshService` vzniká souběžně ve fázi 4. Navmesh levelu napojí fáze 10. `LevelBuilder` jen vrátí seznam mesh vhodných pro navmesh (`getNavigableMeshes()`).
 4. Okna: sklo a za ním výhled (`window-prague` na billboardu nebo procedurální noční obloha s požáry).
-5. Hra (`/`) nově startuje v levelu na startovní pozici. Boxroom zůstává v dev scénách.
+5. Level je k vidění v dev scéně `?scene=level` (s hráčem z fáze 2). `/` přepne na level až fáze 10, protože `Game.ts` souběžně edituje sériová stopa.
 6. `__game.level`: `rooms`, `teleportToRoom(id)`, `pathLength(fromId, toId)`.
 
 **Verification**
-Quick gate: `tests/e2e/level-walk.spec.ts`. Pro každou dvojici sousedních místností existuje navmesh cesta. Hráč teleportovaný do každé místnosti stojí na podlaze a nepropadne. Hráč dojde po schodech o patro výš. Počet trojúhelníků na místnost ≤ 20k (assert v testu). Snímky chodby se šachovnicí a schodiště (`screenshots/09-*.png`) porovnej s panoramaty v `reference/`.
+Quick gate: `tests/e2e/level-walk.spec.ts` (jedna načtená stránka pro všechny kontroly, level se nestaví znovu). Hráč teleportovaný do každé místnosti stojí na podlaze a nepropadne. Hráč dojde po schodech o patro výš. Počet trojúhelníků na místnost ≤ 20k (assert v testu). Snímky chodby se šachovnicí a schodiště (`screenshots/09-*.png`) porovnej s panoramaty v `reference/`.
 
 **Do not**
 Detaily, suť a oheň (fáze 19). Ruční pozice v kódu.
@@ -217,14 +223,15 @@ Detaily, suť a oheň (fáze 19). Ruční pozice v kódu.
 ## Phase 10 — Dveře, klíče, inventář, HUD, pickupy
 
 **Implement**
+0. Navmesh levelu přes `NavMeshService` (fáze 4) z `LevelBuilder.getNavigableMeshes()` (fáze 9), generování ≤ 3 s. `/` nově startuje v levelu na startovní pozici.
 1. `src/level/Door.ts`: otevírání (E nebo prostřední tlačítko, LEGACY §3), zamčené barvou, zavřené blokují pohyb, střely i výhled AI. Navmesh se upraví přes obstacles nebo off-mesh. Hlášky „Potřebuješ červený klíč“ z `data/texts.json`.
 2. `src/level/KeyPickup.ts` (modely klíčů z primitiv, rotace, světlo v barvě klíče), `src/player/Inventory.ts` (klíče, munice, power-upy).
-3. Power-upy (DESIGN §6) v `data/pickups.json`: lékárnička, gumáky (odolnost vůči `electric`), energetický drink (rychlost 30 s). Doplňování hasičáku z nástěnných hasičáků.
+3. Power-upy (DESIGN §6) v `data/pickups.json`: lékárnička, gumáky (odolnost vůči `electric`; tahle fáze to vlastní i pro budoucí typy robotů: snížení je v `PlayerHealth`), energetický drink (rychlost 30 s). Doplňování hasičáku vlastní fáze 13.
 4. `src/ui/Hud.ts` (Babylon GUI): zdraví, munice, aktivní zbraň (sloty 1–6), klíče, ikony power-upů s časovačem, toasty (styl LEGACY §4), zaměřovač a hitmarker z fáze 5.
 5. `__game.inventory`, `__game.give(item)`, `__game.doors` (stav, `tryOpen(id)`).
 
 **Verification**
-Quick gate: `tests/e2e/doors-keys.spec.ts`. Bez klíče se zamčené dveře neotevřou a zobrazí hlášku. Po sebrání klíče se otevřou. Zavřené dveře zastaví výstřel i robota. Power-upy fungují (rychlost +x % po dobu 30 s). Snímek HUD `screenshots/10-hud.png` prohlédni: čitelnost na tmavé scéně, české texty s diakritikou.
+Quick gate: `tests/e2e/doors-keys.spec.ts`, `tests/e2e/level-walk.spec.ts`. Pro každou dvojici sousedních místností existuje navmesh cesta (přidej do level-walk). Bez klíče se zamčené dveře neotevřou a zobrazí hlášku. Po sebrání klíče se otevřou. Zavřené dveře zastaví výstřel i robota. Power-upy fungují (rychlost +x % po dobu 30 s). Snímek HUD `screenshots/10-hud.png` prohlédni: čitelnost na tmavé scéně, české texty s diakritikou.
 
 **Do not**
 Kvíz (fáze 11). Ukládání (fáze 16).
@@ -234,11 +241,11 @@ Kvíz (fáze 11). Ukládání (fáze 16).
 **Implement**
 1. `data/teachers.json`: 8 učitelů z LEGACY §1 **beze změny jmen a předmětů** + nový fyzikář (vymysli fiktivní příjmení a přezdívku ve stylu ostatních; nesmí to být skutečná osoba). Každý má předmět, místnost (id z level.json), odměnu podle Evidence → Progrese, hlášku po osvobození (vtipná, k předmětu a k robotům) a hlášku při špatné odpovědi.
 2. `src/level/models/TeacherModel.ts`: low-poly figura z primitiv sedící svázaná na židli, barevná varianta podle předmětu (LEGACY §4), pouta s blikající robotí pastí, procedurální dech a pohyb hlavy, po osvobození vstane. Jmenovka nad hlavou podle LEGACY §1 (příjmení + předmět).
-3. `src/quiz/QuizSystem.ts`: interakce E → pauza hry, uvolní pointer lock → otázka. Správně = pouta se rozpojí, odměna, hláška. Špatně = exploze pasti (částice, zvuk, shake), damage `quiz.wrongAnswerDamage` × obtížnost a otázka znovu. Výchozí chování: **další náhodná otázka z téhož předmětu**; zapiš do DECISIONS. Hráč může odejít.
+3. `src/quiz/QuizSystem.ts`: interakce E → pauza hry, uvolní pointer lock → otázka. Správně = pouta se rozpojí, odměna, hláška. Špatně = exploze pasti (částice, zvuk, shake), damage `wrongAnswerDamage` z quiz.json (DESIGN §3) × obtížnost a otázka znovu. Výchozí chování: **další náhodná otázka z téhož předmětu**; zapiš do DECISIONS. Hráč může odejít.
 4. `src/quiz/QuizUI.ts`: fullscreen GUI overlay, otázka, 4 tlačítka A–D, klávesy 1–4, styl LEGACY §4.
 5. `data/quiz.json` už existuje z fáze 12 (směna 1); pokud ne, vytvoř dočasný se 2 otázkami na předmět. Formát podle DECISIONS #16.
 6. `__game.quiz`: `active`, `current { subject, correct }`, `answer(i)`.
-7. Vlastní dev scéna `dev/?scene=teacher` (boxroom + jeden učitel). Fáze běží paralelně s greyboxem (9), takže do levelu učitele osadí až fáze 16. `room` v teachers.json ověří datový test proti level.json.
+7. Dev scéna `dev/?scene=teacher` (boxroom + jeden učitel). Do levelu učitele osadí fáze 16. Odměna jde přes `Inventory.give(itemId)` (fáze 10). Zbraně 2–6 vznikají souběžně ve fázi 13, takže zbraňová odměna je zatím jen item id a test ověřuje inventář, ne zbraň v ruce.
 
 **Verification**
 Quick gate: `tests/e2e/quiz.spec.ts`. Interakce s učitelem otevře kvíz, hra je pozastavená, špatná odpověď ubere damage podle JSON a ukáže další otázku, správná odpověď dá odměnu a učitel vstane. Snímky `11-teacher.png` a `11-quiz.png` prohlédni (diakritika, čitelnost, učitel vypadá jako karikatura, ne jako robot).
@@ -249,7 +256,7 @@ Skutečné osoby. Otázky v kódu.
 ## Phase 12 — Quiz content
 
 **Implement**
-1. `data/quiz.json`: 5–10 otázek na každý z 9 předmětů (Matematika, Čeština, Angličtina, Zeměpis, Tělocvik, Dějepis, Hudebka, Výtvarka, Fyzika; teachers.json ještě nemusí existovat, předměty jsou z LEGACY §1 a Decisions #1). Úroveň osmiletého gymnázia, lehce vtipné a tematicky navázané na děj (roboti, AGI Neuralith Dynamics, voda a elektřina; fyzikář se ptá na vodivost vody). Vždy 4 možnosti a jedna správná. Správná odpověď je rovnoměrně rozložená mezi A–D.
+1. `data/quiz.json`: 5–10 otázek na každý z 9 předmětů (Matematika, Čeština, Angličtina, Zeměpis, Tělocvik, Dějepis, Hudebka, Výtvarka, Fyzika; teachers.json ještě nemusí existovat, předměty jsou z LEGACY §1 a Decisions #1). Úroveň osmiletého gymnázia, lehce vtipné a tematicky navázané na děj (roboti, AGI Neuralith Dynamics, voda a elektřina; fyzikář se ptá na vodivost vody). Formát `{ "wrongAnswerDamage": 20, "subjects": [{ "subject", "questions": [{ "q", "options": [4], "correct": 0–3 }] }] }` (DECISIONS #16). Vždy 4 možnosti a jedna správná. Správná odpověď je rovnoměrně rozložená mezi A–D.
 2. Fakta musí být **pravdivá**: u každé otázky si ověř správnou odpověď, žádné sporné nebo zavádějící formulace. Matematika a fyzika s jednoznačným výsledkem.
 3. `tests/data/quiz.test.ts` (`node:test` přes tsx, běží v `npm test`): schéma, 4 neprázdné možnosti, `correct` v 0–3, bez duplicit otázek i možností, každý z 9 předmětů má ≥ 5 otázek, rozložení správných odpovědí není víc než 40 % na jednom písmenu.
 
@@ -265,14 +272,14 @@ Otázky odkazující na skutečné osoby ze školy. Anglické otázky mimo před
 
 **Implement**
 Podle DESIGN §4 a `data/weapons.json`. Každá zbraň má vlastní viewmodel z primitiv (≤ 1k tri), sway, zvuk, efekt dopadu a registraci v galerii:
-1. Hasicí přístroj: kužel (sada raycastů nebo trigger kužel), krátký dosah, zpomaluje roboty, omezená náplň, doplnění z hasičáků na chodbách.
-2. Vodní balónky: hod po oblouku (Havok těleso), AoE šplouchnutí, sbírané.
-3. Paralyzér: hitscan krátký dosah, stun robota (AI stav Stunned), nabíjení.
+1. Hasicí přístroj: kužel (sada raycastů nebo trigger kužel), krátký dosah, zpomaluje roboty přes `Enemy.applyStatus("slow")`, omezená náplň, doplnění z nástěnných hasičáků (`ExtinguisherRefill` jako samostatná třída; rozmístění v levelu udělá fáze 16).
+2. Vodní balónky: hod po oblouku (Havok těleso), AoE šplouchnutí, sbírané. Munice zůstává ve `WeaponInventory`, `Inventory` z fáze 10 se needituje.
+3. Paralyzér: hitscan krátký dosah, stun robota přes `Enemy.applyStatus("stun")` (fáze 4), nabíjení.
 4. Školní railgun: nabíjecí výstřel (držet), průraz více robotů, vzácná munice, výrazný paprsek a bloom.
 5. Hadice: stacionární hydrant v tělocvičně. Hráč u něj stojí a ovládá silný nekonečný proud, při pohybu ho pustí.
 
 **Verification**
-Quick gate: `tests/e2e/weapons-all.spec.ts`. Každá zbraň dává damage nebo efekt podle JSON (zpomalení, stun, AoE poloměr). Jeden snímek se všemi viewmodely vedle sebe (`13-weapons.png`). Rozpočtový test (fáze 3) zelený.
+Quick gate: `tests/e2e/weapons-all.spec.ts` ve vlastní dev scéně `?scene=weapons` (arénu edituje souběžně fáze 14). Každá zbraň dává damage nebo efekt podle JSON (zpomalení, stun, AoE poloměr). Jeden snímek se všemi viewmodely vedle sebe (`13-weapons.png`). Rozpočtový test (fáze 3) zelený.
 
 **Do not**
 Měnit pistolku z fáze 3 kromě refaktoru base třídy.
@@ -282,7 +289,7 @@ Měnit pistolku z fáze 3 kromě refaktoru base třídy.
 **Implement**
 1. Čtyřnohý robot (`QuadrupedRobotModel`, `Quadruped.ts`): sprint, výpad, obíhání hráče (Yuka steering), melee damage.
 2. Dron (`DroneModel`, `Drone.ts`): létá ve výšce, hledá hráče (wander + seek), slabý a otravný, vlastní zvuk (bzučení podle LEGACY §5 receptů). Navigace přes volný prostor (vlastní 3D steering s raycasty, ne navmesh).
-3. Drop tabulky a odolnosti (voda, elektřina) v `data/enemies.json`. Gumáky snižují damage `electric`.
+3. Drop tabulky a odolnosti (voda, elektřina) v `data/enemies.json`. `applyStatus` (slow/stun) pro nové typy. Gumáky řeší fáze 10 v `PlayerHealth`.
 4. Spawny v level.json podle místností, s počty závislými na obtížnosti (faktor doplní fáze 17).
 
 **Verification**
@@ -296,10 +303,10 @@ Boston Dynamics podobu. Bossy.
 **Implement**
 1. `dev/scenes/GalleryScene.ts` plněná z `ModelRegistry` (fáze 3): všechny modely na podstavcích s popiskem a počtem trojúhelníků, pod herním osvětlením: 6 zbraní, 3 roboty, učitele (9 variant), klíče, power-upy, dveře, rekvizity (lavice, židle, tabule, skříňky, hasičák, hydrant).
 2. Revize stylu podle DESIGN §1 a §13 proti jednomu snímku galerie: konzistentní hranaté siluety, paleta, flat shading. Sjednoť odchylky.
-3. Detailní rekvizity pro učebny a kabinety: lavice, židle, katedra, tabule, skříně, globus, piano v hudebně, laboratorní stoly, žebřiny. Instancované (`thinInstances`). Rozmístění je v **samostatném** `data/props.json` (podle id místností) a `src/level/PropPlacer.ts`, protože level.json ve stejné směně edituje fáze 16.
+3. Detailní rekvizity pro učebny a kabinety: lavice, židle, katedra, tabule, skříně, globus, piano v hudebně, laboratorní stoly, žebřiny. Instancované (`thinInstances`). Rozmístění je v **samostatném** `data/props.json` (podle id místností) a `src/level/PropPlacer.ts`. Do stavby levelu ho napojí fáze 16 (ta ve stejné směně edituje level). Tady je vidět v dev scéně `?scene=props`.
 
 **Verification**
-Quick gate: výchozí (rozpočtový test je ve smoke). `screenshots/15-gallery.png` prohlédni a porovnej se stylem §1/§13.
+Quick gate: výchozí (rozpočtový test je ve smoke), plus datový test, že rekvizity jedné místnosti nepřesáhnou 20k − trojúhelníky geometrie místnosti. `screenshots/15-gallery.png` prohlédni a porovnej se stylem §1/§13.
 
 **Do not**
 Nový styl. Textury fotek na postavách (jen paleta).
@@ -307,7 +314,7 @@ Nový styl. Textury fotek na postavách (jen paleta).
 ## Phase 16 — Progrese, osazení levelu, checkpointy, průchod levelem
 
 **Implement**
-1. Osaď level podle Evidence → Progrese: učitelé v kabinetech, klíče, zamčené dveře, balónky na chodbě, hydrant v tělocvičně, nepřátelé, pickupy, hasičáky. Pokud mapa vynutí jiné pořadí, uprav tabulku v PLAN.md a DECISIONS.
+1. Osaď level podle Evidence → Progrese: učitelé v kabinetech, klíče, zamčené dveře, balónky na chodbě, hydrant v tělocvičně, nepřátelé, pickupy, nástěnné hasičáky (`ExtinguisherRefill`), rekvizity (`PropPlacer` z fáze 15). Zbraňové odměny učitelů napoj na skutečné zbraně z fáze 13. Pokud mapa vynutí jiné pořadí, uprav tabulku v PLAN.md a DECISIONS.
 2. Start: úvodní text (příběh z DESIGN §2, tón LEGACY §3). Konec: hlavní vchod s modrým zámkem (`lock: exit`) → obrazovka konce levelu (čas, zabití, správné a špatné odpovědi, obtížnost).
 3. `src/core/Checkpoint.ts`: uloží stav do localStorage na startu a po každém klíči (pozice, inventář, osvobození učitelé, otevřené dveře, mrtví nepřátelé). Obnovení po smrti a z menu.
 4. `tests/e2e/playthrough.spec.ts`: skriptovaný hráč přes `__game` projde celou trasu (teleport mezi waypointy + skutečná chůze na krátkých úsecích, zabití nepřátel přes aimAt+fire, odpovědi v kvízu správně i jednou špatně, otevření všech dveří) až k východu a ověří obrazovku konce. Zapiš délku trasy.
@@ -334,7 +341,7 @@ Měnit jména, motta ani portréty.
 ## Phase 18 — Menu a herní tok
 
 **Implement**
-1. Hlavní menu: Nová hra (→ obtížnost), Pokračovat (checkpoint), Kvalita, Ovládání, Zdroje (výpis ASSETS.md a poděkování), styl LEGACY §4 (Barlow Condensed a Inter lokálně, ne z CDN; pokud font není, použij systémový).
+1. Hlavní menu: Nová hra (→ obtížnost), Pokračovat (checkpoint), Kvalita, Ovládání, Zdroje (výpis ASSETS.md, poděkování a odkaz na starou verzi `legacy/`), styl LEGACY §4 (Barlow Condensed a Inter lokálně, ne z CDN; pokud font není, použij systémový).
 2. Pauza (Esc), smrt + restart z checkpointu, obrazovka konce levelu (fáze 16), úvodní příběh.
 3. Nastavení: citlivost myši, hlasitost, invert Y. Ukládá se do localStorage.
 
@@ -351,10 +358,13 @@ Externí CDN pro fonty a skripty.
 2. Generátor detailů `src/level/DetailGenerator.ts`: suť, trámy, propadlé stropy u závalů, rozbitý nábytek, kabely, spáleniny, vyražená okna, vše z primitiv a deterministicky (seed v level.json).
 3. Oheň: částice + blikající bodové světlo + prostorový zvuk. Kouř, jiskry z poškozených robotů a lamp.
 4. Procedurální detailní textury v shaderu nebo canvasu: spáleniny, skvrny, graffiti Neuralith Dynamics, nápisy na dveřích (čísla učeben z reference).
-5. DoD §15: žádný viditelný prvek není netexturovaná primitiva bez světla.
+5. Stíny: `ShadowGenerator` pro nejvýš 2 bodová světla poblíž hráče (přepínaná podle vzdálenosti). Na jejich vypínání podle presetu navazuje fáze 21.
+6. Prostředí: procedurální noční obloha s kouřem a zářím požárů jako environment (pro PBR odlesky) místo stažené HDR. Je to v duchu §13 fallback; zapiš do DECISIONS.
+7. Padající předměty (DESIGN §8): pár dynamických Havok těles (židle, suť, kusy stropu), která reagují na zásah, výbuch pasti a hadici.
+8. DoD §15: žádný viditelný prvek není netexturovaná primitiva bez světla.
 
 **Verification**
-Quick gate: výchozí + `tests/e2e/level-walk.spec.ts`. Snímky 3 klíčových míst (chodba, kabinet s učitelem, tělocvična) `screenshots/19-*.png` prohlédni a porovnej s `reference/matterport/panoramas`. Musí být poznat škola, a přitom tma a zkáza.
+Quick gate: `tests/e2e/level-walk.spec.ts`. Snímky 3 klíčových míst (chodba, kabinet s učitelem, tělocvična) `screenshots/19-*.png` prohlédni a porovnej s `reference/matterport/panoramas`. Musí být poznat škola, a přitom tma a zkáza.
 
 **Do not**
 Rozbít čitelnost hratelnosti (nepřátelé, klíče a dveře musí být vidět).
@@ -367,7 +377,7 @@ Rozbít čitelnost hratelnosti (nepřátelé, klíče a dveře musí být vidět
 3. Hudba: krátká chiptune smyčka (procedurální sekvencer na Web Audio, nebo `tone` jako dependency, rozhodni a zapiš). Tišší v kvízu.
 4. Hlasitosti v `data/audio.json`, ovládání v nastavení.
 
-Paralelní s fází 19: zvuky ohně připravíš jako API (`AudioService.playFire(position)`) a fáze 19 je napojí, nebo je napoj až ve fázi 21.
+Běží sériově po fázi 19: napoj zvuky na existující oheň, roboty a zbraně přes `AudioService` (posluchače událostí), ne přepisováním jejich logiky.
 
 **Verification**
 Quick gate: `tests/e2e/audio.spec.ts`. Ověří, že se audio engine odemkne po kliknutí a hraje (`AudioContext.state === "running"`) a že klíčové zvuky existují (`__game.audio.list()`). Žádné chyby v konzoli.
@@ -384,7 +394,7 @@ Zvukové soubory z internetu.
 4. Výkon a načítání: profiluj (`SceneInstrumentation`, draw calls) a oprav největší problémy. Merge a instancování statiky, `freezeActiveMeshes`, culling po místnostech, sdílené materiály, pooling částic a projektilů, code-splitting dev scén a inspectoru. Načtení do hratelného stavu ≤ 5 s lokálně. Jen pokud presety cílů nedosáhnou, jinak nic nepřepisuj.
 
 **Verification**
-Quick gate: `tests/e2e/perf.spec.ts`: 1920×1080, stejná kamera v nejnáročnější scéně. Vysoké ≥ 60 fps (nebo vsync strop) na tomto stroji. Nízké s CDP `Emulation.setCPUThrottlingRate(4)` ≥ 30 fps. Autodetekce vybere preset a hlásí ho. Výsledky (fps, doba načtení) do `PERF.md` s datem.
+Quick gate: `tests/e2e/perf.spec.ts` (jediný test v 1920×1080, ostatní e2e běží v 1280×720): stejná kamera v nejnáročnější scéně. Vysoké ≥ 60 fps (nebo vsync strop) na tomto stroji. Nízké s CDP `Emulation.setCPUThrottlingRate(4)` ≥ 30 fps. Autodetekce vybere preset a hlásí ho. Výsledky (fps, doba načtení) do `PERF.md` s datem.
 
 **Do not**
 Měnit herní logiku podle presetu (jen vizuál).
@@ -394,9 +404,7 @@ Měnit herní logiku podle presetu (jen vizuál).
 **Implement**
 1. `.github/workflows/pages.yml`: na push do `main` spustí `npm ci && npm run build`, zkopíruje `legacy/` do `dist/legacy/` (stará hra dál funguje na `/legacy/`) a nasadí přes `actions/deploy-pages`. Dev scény se do produkce nenasazují, nebo jen pod `/dev/` (rozhodni a zapiš).
 2. Vite `base: "./"` musí fungovat i pod `/<repo>/`. Havok WASM a recast musí jít načíst z podcesty.
-3. Odkaz na starou verzi v menu → Zdroje.
-
-Paralelní fáze směny 1: jen `.github/workflows/` a případně `vite.config.ts` (`base`). Kopírování `legacy/` je krok ve workflow, ne ve Vite.
+Paralelní fáze směny 5: jen `.github/workflows/` a případně `vite.config.ts` (`base`). Kopírování `legacy/` je krok ve workflow, ne ve Vite.
 
 **Verification**
 Quick gate: výchozí. Lokálně `npm run build && npx vite preview`, plus jednorázová ruční kontrola pod podcestou (`--base /Posledni_zvoneni/`, s `legacy/` zkopírovanou do `dist/`): hra nastartuje a `/legacy/` se načte. Nový test nepřidávej. **Nepushuj.** Do Backlogu přidej položku pro člověka „pushnout a v Settings → Pages přepnout zdroj na GitHub Actions“.
@@ -407,10 +415,10 @@ Push. Úpravy Settings repozitáře.
 ## Phase 24 — DoD audit
 
 **Implement**
-Projdi DESIGN §15 bod po bodu (s úpravami z DECISIONS) a ke každému napiš do `PLAN.md` → `## DoD audit` důkaz (test, snímek, číslo z PERF.md) nebo opravu. Doplň `ASSETS.md` a `DECISIONS.md`. Zkontroluj, že kód splňuje pravidla z CLAUDE.md (žádná herní data v kódu: grep na čísla v `src/`, jedna třída na soubor) a oprav nálezy. Spusť `npm run build` a `npm run test:full`.
+Projdi DESIGN §15 bod po bodu (s úpravami z DECISIONS) a ke každému napiš do `PLAN.md` → `## DoD audit` důkaz (test, snímek, číslo z PERF.md) nebo opravu. Doplň `ASSETS.md` a `DECISIONS.md`. Zkontroluj, že kód splňuje pravidla z CLAUDE.md (žádná herní data v kódu: grep na čísla v `src/`, jedna třída na soubor) a oprav nálezy. Plnou sadu spustí shift gate; sám spusť jen testy, kterých se tvoje opravy týkají.
 
 **Verification**
-Všechny body DoD mají důkaz. Plná sada testů zelená. Snímky finálního stavu (`screenshots/24-*.png`) prohlédni.
+Quick gate: `tests/e2e/perf.spec.ts`, `tests/e2e/playthrough.spec.ts`. Všechny body DoD mají důkaz. Snímky finálního stavu (`screenshots/24-*.png`) prohlédni.
 
 **Do not**
 Prohlásit hotovo, dokud některý bod DoD nemá důkaz.

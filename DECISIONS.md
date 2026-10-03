@@ -22,6 +22,8 @@ Každé rozhodnutí je jedna věta s důvodem. Člověk je může změnit. Agent
 13. **Tauri** (§10 krok 8) není součástí noční smyčky. Chybí Rust toolchain a globální instalace jsou zakázané, takže je to položka „Backlog — needs a human“.
 14. **Testovací API:** hra vystavuje `window.__game` (stav, teleport, odpověď v kvízu, výstřel…) jen pro Playwright. Skriptovaný průchod levelem (§16) bez něj nejde spolehlivě napsat.
 15. **Obtížnost a zdraví hráče:** DoD (§15) chce, aby obtížnost ovlivňovala i zdraví hráče, kdežto stará hra měla vždy 150. Platí DoD: základ 150 × násobič per obtížnost; jména, motta a portréty zůstávají z LEGACY.md.
-16. **Formát quiz.json:** pole předmětů `[{ subject, questions: [{ q, options: [4], correct: 0–3 }] }]`, protože §6 popisuje jen jeden předmět.
+16. **Formát quiz.json:** `{ wrongAnswerDamage, subjects: [{ subject, questions: [{ q, options: [4], correct: 0–3 }] }] }`, protože §6 popisuje jen jeden předmět a §3 chce `wrongAnswerDamage` přímo v quiz.json.
 17. **Síť pro agenty:** povolené je jen npm a `api.polyhaven.com` / `dl.polyhaven.org`. Matterport je stažený v `reference/`, za běhu se k němu nepřistupuje.
 18. **Babylon 9.29, TypeScript 7, Vite 8, Playwright 1.63** (aktuální verze 2026-10-03). `chunkSizeWarningLimit` je zvednutý na 4 MB, protože Babylon je velký sám o sobě a DoD chce build bez varování.
+19. **Paralelní běh bez konfliktů:** dev scény se registrují přes `import.meta.glob`, test API přes `TestHooks.register` a `DECISIONS.md`/`ASSETS.md`/`PERF.md` mají `merge=union`. Nightshift spouští paralelní fáze souběžně ve worktree a sdílené soubory by se jinak hádaly při každém merge.
+20. **Rozvrh směn:** paralelní fáze závisí jen na předchozích směnách, protože serial a parallel stopa startují současně z téhož `main` (ověřeno v `workflows/shift.js`).

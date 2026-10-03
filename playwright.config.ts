@@ -23,7 +23,8 @@ export default defineConfig({
   },
   projects: [
     { name: "smoke", testDir: "tests/smoke", use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 720 } } },
-    { name: "e2e", testDir: "tests/e2e", use: { ...devices["Desktop Chrome"], viewport: { width: 1920, height: 1080 } } },
+    // 720p keeps e2e cheap; perf.spec.ts sets 1920×1080 itself.
+    { name: "e2e", testDir: "tests/e2e", use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 720 } } },
   ],
   webServer: {
     command: `npx vite --port ${PORT} --strictPort`,
