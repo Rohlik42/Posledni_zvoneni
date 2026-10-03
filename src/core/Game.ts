@@ -100,8 +100,9 @@ export class Game {
     await setup.create(this);
     if (this.scene.activeCamera === null) throw new Error(`Scene "${setup.id}" did not create a camera (use game.useCamera)`);
     await this.scene.whenReadyAsync();
+    const firstFrame = new Promise<void>((resolve) => this.scene.onAfterRenderObservable.addOnce(() => resolve()));
     this.engine.runRenderLoop(() => this.frame());
-    this.scene.render();
+    await firstFrame;
     TestHooks.setCore({ ready: true });
   }
 
@@ -159,7 +160,10 @@ export class Game {
     const clamped = Math.min(Math.max(ms, 0), this.config.maxStepRequestMs);
     const steps = Math.round(clamped / this.fixedStepMs);
     for (let i = 0; i < steps; i++) this.simulate();
+    // Outside the render loop a frame must be opened explicitly (WebGPU acquires the swap-chain texture there).
+    this.engine.beginFrame();
     this.scene.render();
+    this.engine.endFrame();
     return steps;
   }
 

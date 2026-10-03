@@ -5,6 +5,9 @@ import { SSAO2RenderingPipeline } from "@babylonjs/core/PostProcesses/RenderPipe
 import "@babylonjs/core/PostProcesses/RenderPipeline/postProcessRenderPipelineManagerSceneComponent";
 import "@babylonjs/core/Rendering/prePassRendererSceneComponent";
 import "@babylonjs/core/Rendering/geometryBufferRendererSceneComponent";
+// SSAO2 renders to multiple targets (prepass / geometry buffer); both engines need the MRT extension.
+import "@babylonjs/core/Engines/Extensions/engine.multiRender";
+import "@babylonjs/core/Engines/WebGPU/Extensions/engine.multiRender";
 import { Scene } from "@babylonjs/core/scene";
 import { TestHooks } from "../core/TestHooks";
 import { PaletteColor } from "./PaletteColor";
