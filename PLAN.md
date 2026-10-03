@@ -268,6 +268,8 @@ Quick gate: výchozí. Test zelený. Vypiš 3 náhodné otázky na předmět do 
 **Do not**
 Otázky odkazující na skutečné osoby ze školy. Anglické otázky mimo předmět Angličtina.
 
+**Done 2026-10-03** (směna 1, handoff `handoff/phase-12.md`). `data/quiz.json`: 72 otázek (7–9 na předmět), správné odpovědi A/B/C/D 18/18/18/18 a vyvážené i uvnitř každého předmětu. `tests/data/quiz.test.ts` navíc hlídá horní mez 10 otázek na předmět, žádné neznámé předměty a jen klíče `wrongAnswerDamage` + `subjects`. Odchylky od litery: žádné. Fáze vytváří adresář `data/`, který na main chyběl.
+
 ## Phase 13 — Zbývající zbraně
 
 **Implement**
