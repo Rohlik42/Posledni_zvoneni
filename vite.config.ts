@@ -2,7 +2,7 @@ import { resolve } from "node:path";
 import { defineConfig } from "vite";
 
 // Havok and recast ship WASM that must not be pre-bundled.
-const WASM_PACKAGES = ["@babylonjs/havok", "@recast-navigation/core", "@recast-navigation/generators"];
+const WASM_PACKAGES = ["@babylonjs/havok", "@recast-navigation/core", "@recast-navigation/generators", "@recast-navigation/wasm"];
 // Babylon is large by nature; split it so the warning threshold reflects game code.
 const CHUNK_WARNING_LIMIT_KB = 4096;
 

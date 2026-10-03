@@ -31,8 +31,14 @@ export interface Blueprint {
   category: ModelCategory;
   defaultVariant: string;
   variants: Record<string, Record<string, string>>;
+  /** Pivot of each movable group in model space. */
   groups?: Record<string, Vec3Tuple>;
+  /** Group → the group it hangs from (limb chains: shoulder → elbow); groups without an entry hang from the root. */
+  groupParents?: Record<string, string>;
+  /** Named points in model space. */
   anchors?: Record<string, Vec3Tuple>;
+  /** Anchor → the group it moves with (a muzzle on a forearm); anchors without an entry hang from the root. */
+  anchorParents?: Record<string, string>;
   parts: BlueprintPart[];
 }
 
@@ -61,7 +67,9 @@ export class ModelBlueprints {
           defaultVariant: Schema.string(),
           variants: Schema.record(Schema.record(Schema.paletteRef())),
           groups: Schema.record(Schema.vec3()),
+          groupParents: Schema.record(Schema.string()),
           anchors: Schema.record(Schema.vec3()),
+          anchorParents: Schema.record(Schema.string()),
           parts: Schema.array(
             Schema.object(
               {
@@ -81,7 +89,7 @@ export class ModelBlueprints {
             1,
           ),
         },
-        ["groups", "anchors"],
+        ["groups", "groupParents", "anchors", "anchorParents"],
       ),
     ),
   });
@@ -103,7 +111,10 @@ export class ModelBlueprints {
     return blueprint;
   }
 
-  /** Cross-field checks: every part's colour slot exists in each variant and every part group has a pivot. */
+  /**
+   * Cross-field checks: every part's colour slot exists in each variant, every part group has a pivot, group and anchor
+   * parents are groups and group parents form no cycle.
+   */
   private static validate(data: ModelsData): void {
     for (const [name, blueprint] of Object.entries(data.blueprints)) {
       if (name.startsWith("//")) continue;
@@ -117,6 +128,23 @@ export class ModelBlueprints {
         }
         if (part.group !== undefined && blueprint.groups?.[part.group] === undefined) {
           throw new Error(`${where}: part ${part.name} uses group "${part.group}" without a pivot in groups`);
+        }
+      }
+      const groups = blueprint.groups ?? {};
+      const parents = blueprint.groupParents ?? {};
+      for (const [group, parent] of Object.entries(parents)) {
+        if (group.startsWith("//")) continue;
+        if (groups[group] === undefined || groups[parent] === undefined) throw new Error(`${where}.groupParents: ${group} → ${parent} must name groups`);
+        const seen = new Set<string>([group]);
+        for (let up: string | undefined = parent; up !== undefined; up = parents[up]) {
+          if (seen.has(up)) throw new Error(`${where}.groupParents: cycle through "${up}"`);
+          seen.add(up);
+        }
+      }
+      for (const [anchor, parent] of Object.entries(blueprint.anchorParents ?? {})) {
+        if (anchor.startsWith("//")) continue;
+        if (blueprint.anchors?.[anchor] === undefined || groups[parent] === undefined) {
+          throw new Error(`${where}.anchorParents: ${anchor} → ${parent} must name an anchor and a group`);
         }
       }
     }

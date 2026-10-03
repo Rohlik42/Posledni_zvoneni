@@ -3,6 +3,7 @@ import type { Scene } from "@babylonjs/core/scene";
 import { SynthSounds } from "../audio/SynthSounds";
 import type { Game } from "../core/Game";
 import type { InputAction } from "../core/InputBindings";
+import { NoiseEvents } from "../core/NoiseEvents";
 import { TestHooks } from "../core/TestHooks";
 import type { Player, Vec3Like } from "../player/Player";
 import { ModelRegistry } from "../utils/ModelRegistry";
@@ -75,12 +76,14 @@ export class WeaponInventory {
   private last: ShotEvent | null = null;
   private readonly removeSystem: () => void;
   private readonly frameObserver: Observer<Scene>;
+  private readonly noise: NoiseEvents;
 
   private constructor(
     private readonly game: Game,
     private readonly player: Player,
   ) {
     this.data = WeaponConfig.load();
+    this.noise = NoiseEvents.for(game);
     this.context = {
       game,
       scene: game.scene,
@@ -126,6 +129,8 @@ export class WeaponInventory {
     weapon.onShot.add((shot) => {
       this.shotTotal++;
       this.last = shot;
+      // Robots hear the shot (AI hearing, phase 4).
+      this.noise.emit(shot.origin, "gunshot");
     });
     this.owned.set(id, weapon);
     if (this.current === null) this.beginSwitch(weapon);

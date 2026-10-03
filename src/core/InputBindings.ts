@@ -25,6 +25,7 @@ export const INPUT_ACTIONS = [
   "weaponPrev",
   "pause",
   "mute",
+  "debugNavmesh",
 ] as const;
 
 export type InputAction = (typeof INPUT_ACTIONS)[number];

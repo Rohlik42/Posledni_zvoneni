@@ -68,6 +68,99 @@
         { "name": "ringInner", "shape": "cylinder", "size": [0.28, 0.012, 0.28], "tessellation": 10, "position": [0, 1.35, -0.044], "rotationDeg": [90, 0, 0], "color": "ring", "group": "board" },
         { "name": "bull", "shape": "cylinder", "size": [0.1, 0.012, 0.1], "tessellation": 8, "position": [0, 1.35, -0.052], "rotationDeg": [90, 0, 0], "color": "bull", "emissive": 0.5, "group": "board" }
       ]
+    },
+    "humanoidRobot": {
+      "//": "Humanoidní robot (src/enemies/models/HumanoidRobotModel.ts): hranatý bojový stroj z kvádrů a válců, ~1,95 m. Počátek = mezi chodidly na zemi, robot hledí k +z, +x je jeho pravá strana. Klouby jsou vnořené skupiny (groupParents): boky → trup → hlava a ramena → předloktí, boky → stehna → holeně. Pivot skupiny = bod otáčení kloubu. Pravé předloktí nese elektrický kanón, 'muzzle' je jeho ústí (pohybuje se s předloktím, anchorParents). 'eye' svítí (oko), 'core' je jádro na hrudi, 'glow' jsou průduchy a ústí kanónu; emissive drží robota čitelného ve tmě.",
+      "category": "robot",
+      "defaultVariant": "patrol",
+      "variants": {
+        "patrol": { "body": "world.steel", "plate": "accent.red", "frame": "base.ash", "joint": "world.metal", "dark": "base.void", "eye": "neon.robotEye", "core": "neon.robotCore", "glow": "neon.robot" },
+        "heavy": { "body": "accent.rust", "plate": "neon.warning", "frame": "base.soot", "joint": "world.metal", "dark": "base.void", "eye": "neon.robotEye", "core": "neon.fire", "glow": "neon.ember" }
+      },
+      "groups": {
+        "hips": [0, 0.98, 0],
+        "torso": [0, 1.06, 0],
+        "head": [0, 1.6, 0],
+        "armL": [-0.37, 1.47, 0],
+        "foreL": [-0.4, 1.16, 0],
+        "armR": [0.37, 1.47, 0],
+        "foreR": [0.4, 1.16, 0],
+        "legL": [-0.14, 0.94, 0],
+        "shinL": [-0.14, 0.51, 0],
+        "legR": [0.14, 0.94, 0],
+        "shinR": [0.14, 0.51, 0]
+      },
+      "groupParents": {
+        "torso": "hips",
+        "head": "torso",
+        "armL": "torso",
+        "foreL": "armL",
+        "armR": "torso",
+        "foreR": "armR",
+        "legL": "hips",
+        "shinL": "legL",
+        "legR": "hips",
+        "shinR": "legR"
+      },
+      "anchors": { "muzzle": [0.4, 0.58, 0], "eye": [0, 1.77, 0.18], "core": [0, 1.38, 0.2] },
+      "anchorParents": { "muzzle": "foreR", "eye": "head", "core": "torso" },
+      "parts": [
+        { "name": "pelvis", "shape": "box", "size": [0.38, 0.16, 0.24], "position": [0, 0.96, 0], "color": "frame", "group": "hips" },
+        { "name": "hipGuard", "shape": "box", "size": [0.22, 0.12, 0.05], "position": [0, 0.94, 0.13], "color": "plate", "group": "hips" },
+
+        { "name": "abdomen", "shape": "box", "size": [0.26, 0.18, 0.2], "position": [0, 1.13, 0], "color": "joint", "group": "torso" },
+        { "name": "chest", "shape": "box", "size": [0.58, 0.36, 0.32], "position": [0, 1.39, 0], "color": "body", "group": "torso" },
+        { "name": "chestPlate", "shape": "box", "size": [0.42, 0.22, 0.04], "position": [0, 1.41, 0.17], "color": "plate", "group": "torso" },
+        { "name": "core", "shape": "box", "size": [0.13, 0.13, 0.03], "position": [0, 1.39, 0.195], "color": "core", "emissive": 2.4, "group": "torso" },
+        { "name": "collar", "shape": "box", "size": [0.36, 0.06, 0.26], "position": [0, 1.58, -0.01], "color": "frame", "group": "torso" },
+        { "name": "backpack", "shape": "box", "size": [0.4, 0.34, 0.16], "position": [0, 1.39, -0.23], "color": "frame", "group": "torso" },
+        { "name": "ventTop", "shape": "box", "size": [0.3, 0.03, 0.02], "position": [0, 1.47, -0.315], "color": "glow", "emissive": 1.6, "group": "torso" },
+        { "name": "ventBottom", "shape": "box", "size": [0.3, 0.03, 0.02], "position": [0, 1.39, -0.315], "color": "glow", "emissive": 1.6, "group": "torso" },
+        { "name": "exhaustL", "shape": "cylinder", "size": [0.06, 0.16, 0.07], "tessellation": 6, "position": [-0.14, 1.62, -0.26], "color": "joint", "group": "torso" },
+        { "name": "exhaustR", "shape": "cylinder", "size": [0.06, 0.16, 0.07], "tessellation": 6, "position": [0.14, 1.62, -0.26], "color": "joint", "group": "torso" },
+        { "name": "shoulderPadL", "shape": "box", "size": [0.22, 0.1, 0.3], "position": [-0.37, 1.58, 0], "rotationDeg": [0, 0, 14], "color": "plate", "group": "torso" },
+        { "name": "shoulderPadR", "shape": "box", "size": [0.22, 0.1, 0.3], "position": [0.37, 1.58, 0], "rotationDeg": [0, 0, -14], "color": "plate", "group": "torso" },
+        { "name": "neck", "shape": "cylinder", "size": [0.1, 0.1, 0.12], "tessellation": 6, "position": [0, 1.62, 0], "color": "joint", "group": "torso" },
+
+        { "name": "head", "shape": "box", "size": [0.3, 0.24, 0.3], "position": [0, 1.77, 0], "color": "body", "group": "head" },
+        { "name": "jaw", "shape": "box", "size": [0.24, 0.08, 0.22], "position": [0, 1.63, 0.04], "color": "frame", "group": "head" },
+        { "name": "visor", "shape": "box", "size": [0.27, 0.08, 0.03], "position": [0, 1.78, 0.155], "color": "dark", "group": "head" },
+        { "name": "eye", "shape": "box", "size": [0.14, 0.035, 0.02], "position": [0, 1.78, 0.172], "color": "eye", "emissive": 3.2, "group": "head" },
+        { "name": "crest", "shape": "box", "size": [0.05, 0.05, 0.26], "position": [0, 1.915, -0.01], "color": "plate", "group": "head" },
+        { "name": "earL", "shape": "box", "size": [0.04, 0.12, 0.14], "position": [-0.17, 1.76, -0.01], "color": "frame", "group": "head" },
+        { "name": "earR", "shape": "box", "size": [0.04, 0.12, 0.14], "position": [0.17, 1.76, -0.01], "color": "frame", "group": "head" },
+        { "name": "antenna", "shape": "cylinder", "size": [0.016, 0.2, 0.016], "tessellation": 4, "position": [0.12, 1.96, -0.07], "color": "frame", "group": "head" },
+        { "name": "antennaTip", "shape": "box", "size": [0.04, 0.04, 0.04], "position": [0.12, 2.07, -0.07], "color": "eye", "emissive": 2.2, "group": "head" },
+
+        { "name": "shoulderL", "shape": "cylinder", "size": [0.15, 0.13, 0.15], "position": [-0.37, 1.47, 0], "rotationDeg": [0, 0, 90], "color": "joint", "group": "armL" },
+        { "name": "upperArmL", "shape": "box", "size": [0.13, 0.3, 0.14], "position": [-0.39, 1.31, 0], "color": "frame", "group": "armL" },
+        { "name": "elbowL", "shape": "cylinder", "size": [0.11, 0.13, 0.11], "position": [-0.4, 1.16, 0], "rotationDeg": [0, 0, 90], "color": "joint", "group": "armL" },
+        { "name": "forearmL", "shape": "box", "size": [0.14, 0.28, 0.15], "position": [-0.4, 1.0, 0], "color": "body", "group": "foreL" },
+        { "name": "forearmStripeL", "shape": "box", "size": [0.02, 0.2, 0.152], "position": [-0.475, 1.0, 0], "color": "plate", "group": "foreL" },
+        { "name": "handL", "shape": "box", "size": [0.11, 0.12, 0.12], "position": [-0.4, 0.8, 0.01], "color": "joint", "group": "foreL" },
+        { "name": "clawL", "shape": "box", "size": [0.09, 0.08, 0.03], "position": [-0.4, 0.72, 0.06], "color": "frame", "group": "foreL" },
+
+        { "name": "shoulderR", "shape": "cylinder", "size": [0.15, 0.13, 0.15], "position": [0.37, 1.47, 0], "rotationDeg": [0, 0, 90], "color": "joint", "group": "armR" },
+        { "name": "upperArmR", "shape": "box", "size": [0.13, 0.3, 0.14], "position": [0.39, 1.31, 0], "color": "frame", "group": "armR" },
+        { "name": "elbowR", "shape": "cylinder", "size": [0.11, 0.13, 0.11], "position": [0.4, 1.16, 0], "rotationDeg": [0, 0, 90], "color": "joint", "group": "armR" },
+        { "name": "forearmR", "shape": "box", "size": [0.15, 0.26, 0.16], "position": [0.4, 1.01, 0], "color": "body", "group": "foreR" },
+        { "name": "cannon", "shape": "cylinder", "size": [0.1, 0.26, 0.13], "position": [0.4, 0.78, 0], "color": "frame", "group": "foreR" },
+        { "name": "cannonCoil1", "shape": "cylinder", "size": [0.135, 0.03, 0.135], "position": [0.4, 0.84, 0], "color": "glow", "emissive": 1.2, "group": "foreR" },
+        { "name": "cannonCoil2", "shape": "cylinder", "size": [0.125, 0.03, 0.125], "position": [0.4, 0.75, 0], "color": "glow", "emissive": 1.2, "group": "foreR" },
+        { "name": "cannonTip", "shape": "cylinder", "size": [0.075, 0.04, 0.075], "position": [0.4, 0.63, 0], "color": "eye", "emissive": 1.4, "group": "foreR" },
+
+        { "name": "thighL", "shape": "box", "size": [0.17, 0.36, 0.19], "position": [-0.14, 0.74, 0], "color": "frame", "group": "legL" },
+        { "name": "kneeL", "shape": "cylinder", "size": [0.13, 0.15, 0.13], "position": [-0.14, 0.51, 0], "rotationDeg": [0, 0, 90], "color": "joint", "group": "legL" },
+        { "name": "shinL", "shape": "box", "size": [0.16, 0.34, 0.18], "position": [-0.14, 0.31, 0], "color": "body", "group": "shinL" },
+        { "name": "shinPlateL", "shape": "box", "size": [0.12, 0.22, 0.03], "position": [-0.14, 0.35, 0.1], "color": "plate", "group": "shinL" },
+        { "name": "footL", "shape": "box", "size": [0.18, 0.1, 0.32], "position": [-0.14, 0.05, 0.05], "color": "frame", "group": "shinL" },
+
+        { "name": "thighR", "shape": "box", "size": [0.17, 0.36, 0.19], "position": [0.14, 0.74, 0], "color": "frame", "group": "legR" },
+        { "name": "kneeR", "shape": "cylinder", "size": [0.13, 0.15, 0.13], "position": [0.14, 0.51, 0], "rotationDeg": [0, 0, 90], "color": "joint", "group": "legR" },
+        { "name": "shinR", "shape": "box", "size": [0.16, 0.34, 0.18], "position": [0.14, 0.31, 0], "color": "body", "group": "shinR" },
+        { "name": "shinPlateR", "shape": "box", "size": [0.12, 0.22, 0.03], "position": [0.14, 0.35, 0.1], "color": "plate", "group": "shinR" },
+        { "name": "footR", "shape": "box", "size": [0.18, 0.1, 0.32], "position": [0.14, 0.05, 0.05], "color": "frame", "group": "shinR" }
+      ]
     }
   }
 }

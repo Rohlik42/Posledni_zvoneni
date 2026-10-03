@@ -1,5 +1,5 @@
 {
-  "//": "Mapování ovládání (src/core/Input.ts). Klíče v 'keys' jsou KeyboardEvent.code, hodnoty jsou akce. Tlačítka myši: 0 levé, 1 prostřední (kolečko), 2 pravé. Ovládání podle LEGACY §3: stisk kolečka = dveře, Esc = pauza.",
+  "//": "Mapování ovládání (src/core/Input.ts). Klíče v 'keys' jsou KeyboardEvent.code, hodnoty jsou akce. Tlačítka myši: 0 levé, 1 prostřední (kolečko), 2 pravé. Ovládání podle LEGACY §3: stisk kolečka = dveře, Esc = pauza. debugNavmesh (N) přepíná ladicí zobrazení navmeshe v dev scénách s roboty.",
   "keys": {
     "KeyW": "forward",
     "KeyS": "back",
@@ -17,7 +17,8 @@
     "Digit5": "weapon5",
     "Digit6": "weapon6",
     "Escape": "pause",
-    "KeyM": "mute"
+    "KeyM": "mute",
+    "KeyN": "debugNavmesh"
   },
   "mouseButtons": {
     "0": "fire",
