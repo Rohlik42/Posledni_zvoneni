@@ -1,0 +1,23 @@
+{
+  "description": "Orientation points measured directly in floorplan pixels (reference/matterport/floorplans/*.jpg, 4968×3043). tests/data/level.test.ts converts them with level.json plan.pxPerMeter and compares with the level data.",
+  "measuredOn": "2026-10-03, phase 8: zoomed crops with a 1 m grid plus a background/content edge scan along rows and columns",
+  "scaleBar": {
+    "floorplan": "reference/matterport/floorplans/floor2_vstupni_podlazi.jpg",
+    "barRowPx": 3005,
+    "barStartPx": 40,
+    "barEndPx": 292,
+    "barEndMeaning": "10 ft (3.048 m); the 3 m tick sits just before it",
+    "fiveFootTickPx": 166,
+    "pxPerMeter": 82.7
+  },
+  "toleranceM": 0.5,
+  "landmarks": [
+    { "id": "stair-west-nw", "floor": 2, "px": [202, 1176], "ref": { "stair": "stair-west-23", "corner": "min" }, "note": "outer corner of the main (west) staircase; edge scan: x 201 px, z 1175 px" },
+    { "id": "stair-west-se", "floor": 2, "px": [587, 1833], "ref": { "stair": "stair-west-23", "corner": "max" }, "note": "last step post toward the hall / bottom wall; edge scan bottom 1838 px" },
+    { "id": "stair-mid-nw", "floor": 3, "px": [2318, 1252], "ref": { "stair": "stair-mid-34", "corner": "min" }, "note": "inner corner of the middle staircase next to the wing corridor; edge scan top 1255 px" },
+    { "id": "stair-mid-se", "floor": 3, "px": [2932, 1619], "ref": { "stair": "stair-mid-34", "corner": "max" }, "note": "inner wall at the foot of the right flight, corridor edge" },
+    { "id": "gym1-nw", "floor": 2, "px": [3500, 1888], "ref": { "room": "f2-gym", "corner": "min" }, "note": "Tělocvična č.1 inner corner; edge scan top 1894 px" },
+    { "id": "gym1-se", "floor": 2, "px": [4870, 2502], "ref": { "room": "f2-gym", "corner": "max" }, "note": "Tělocvična č.1 inner corner (wall line, scan debris continues to 2558 px)" },
+    { "id": "main-entrance", "floor": 2, "px": [864, 2585], "ref": { "door": "d-f2-exit" }, "note": "threshold of the main entrance from Josefská (Matterport 28 → 23)" }
+  ]
+}
