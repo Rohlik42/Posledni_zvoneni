@@ -71,7 +71,16 @@
     "trousers": "#344c66",
     "shoes": "#26313c",
     "glasses": "#536975",
-    "book": "#ed5564"
+    "book": "#ed5564",
+    "hairGrey": "#a8a29a",
+    "hairBlond": "#c9a45c",
+    "hairDark": "#2b211d",
+    "hairRed": "#a2482a",
+    "lens": "#d7ecea",
+    "mouth": "#38282b",
+    "nametagBg": "#0e1922c7",
+    "nametagName": "#ffffff",
+    "nametagSubject": "#c6e3df"
   },
   "light": {
     "lamp": "#ffd9a0",
@@ -107,6 +116,8 @@
     "textDim": "#9db5bf",
     "difficultyFrame": "#644332",
     "difficultyName": "#c66d54",
-    "difficultySelected": "#ffe2a0"
+    "difficultySelected": "#ffe2a0",
+    "overlayTop": "#102532ed",
+    "overlayBottom": "#10253265"
   }
 }

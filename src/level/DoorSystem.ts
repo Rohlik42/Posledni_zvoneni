@@ -75,6 +75,7 @@ export class DoorSystem {
   private readonly cone: number;
   private targetDoor: Door | null = null;
   private readonly log: string[] = [];
+  private interactTaken: (() => boolean) | null = null;
 
   private constructor(
     private readonly game: Game,
@@ -142,6 +143,11 @@ export class DoorSystem {
       });
   }
 
+  /** While `taken()` is true, E (`interact`) is left to another system (teachers, phase 11); the middle button still opens doors. */
+  yieldInteract(taken: () => boolean): void {
+    this.interactTaken = taken;
+  }
+
   get(id: string): Door | undefined {
     return this.doors.find((door) => door.id === id);
   }
@@ -199,7 +205,9 @@ export class DoorSystem {
     for (const door of this.doors) door.update(dt);
     this.targetDoor = this.player.health.isDead ? null : this.findTarget();
     const { input } = this.game;
-    if (this.targetDoor !== null && (input.wasPressed("door") || input.wasPressed("interact"))) {
+    // E belongs to something else in front of the player (a captive teacher, phase 11); the middle button still works.
+    const interact = input.wasPressed("interact") && !(this.interactTaken?.() ?? false);
+    if (this.targetDoor !== null && (input.wasPressed("door") || interact)) {
       if (this.targetDoor.isOpen) this.tryClose(this.targetDoor);
       else this.tryOpen(this.targetDoor);
     }

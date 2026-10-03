@@ -38,5 +38,27 @@
     "keys": "KLÍČE",
     "seconds": "{seconds} s",
     "powerUps": { "energyDrink": "ENERGEŤÁK", "rubberBoots": "GUMÁKY" }
+  },
+  "teachers": {
+    "//": "Fáze 11: nápověda u zajatého / osvobozeného učitele (E) a jméno s přezdívkou.",
+    "controls": "E",
+    "hintFree": "{controls} — osvobodit: {name} ({subject})",
+    "hintTalk": "{controls} — promluvit: {name}",
+    "nameWithNickname": "{surname} „{nickname}“",
+    "left": "{name} čeká v kabinetu. Vrať se, až budeš připravený."
+  },
+  "quiz": {
+    "//": "Fáze 11: texty kvízového overlaye (src/quiz/QuizUI.ts). letters = popisky odpovědí A–D (klávesy 1–4).",
+    "kicker": "ZAJATÝ UČITEL · ROBOTÍ PAST",
+    "prompt": "Odpověz správně a past se odjistí. Špatná odpověď = výbuch.",
+    "letters": ["A", "B", "C", "D"],
+    "controls": "1–4 nebo klik — odpovědět · Esc — odejít",
+    "wrong": "ŠPATNĚ! Past vybuchla: −{damage} zdraví.",
+    "nextQuestion": "Další otázka:",
+    "correct": "SPRÁVNĚ! Pouta povolila.",
+    "rewards": "Odměna:",
+    "rewardDropped": "Co se ti teď nevejde, leží u učitele na zemi.",
+    "continue": "POKRAČOVAT (Enter)",
+    "leave": "ODEJÍT (Esc)"
   }
 }
