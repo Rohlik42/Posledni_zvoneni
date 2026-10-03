@@ -97,10 +97,8 @@ export class Perception {
   update(dt: number): void {
     this.time += dt;
     this.visionTimer -= dt;
-    if (this.visionTimer > 0) {
-      if (this.sees) this.sense(this.target.eye, "seen");
-      return;
-    }
+    // Between checks the last sighting stands (no peeking at where the player went after the last ray).
+    if (this.visionTimer > 0) return;
     this.visionTimer += this.data.visionInterval;
     if (this.visionTimer < 0) this.visionTimer = this.data.visionInterval;
     this.sees = this.target.alive && (this.canSee(this.target.eye) || this.canSee(this.target.eye.subtract(new Vector3(0, CHEST_BELOW_EYES, 0))));
