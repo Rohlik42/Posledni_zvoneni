@@ -20,6 +20,8 @@ export interface NavigationData {
     tileSize: number;
     maxObstacles: number;
   };
+  /** Tiled navmesh with obstacles for scenes with doors (phase 10); tileSize in voxels. */
+  tileCache: { tileSize: number; maxObstacles: number; expectedLayersPerTile: number; agentRadius: number; reachTolerance: number };
   queryExtent: Vec3Tuple;
   path: { maxSmoothPathPoints: number; stepSize: number; slop: number; maxPathPolys: number };
   debug: { color: string; alpha: number; lift: number };
@@ -51,6 +53,13 @@ export class NavigationConfig {
       detailSampleMaxError: positive,
       tileSize: count,
       maxObstacles: count,
+    }),
+    tileCache: Schema.object({
+      tileSize: Schema.integer({ min: 8, max: 256 }),
+      maxObstacles: Schema.integer({ min: 1 }),
+      expectedLayersPerTile: Schema.integer({ min: 1, max: 32 }),
+      agentRadius: Schema.number({ min: 0.05 }),
+      reachTolerance: positive,
     }),
     queryExtent: Schema.vec3(),
     path: Schema.object({
