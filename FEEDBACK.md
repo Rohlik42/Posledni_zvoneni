@@ -14,3 +14,5 @@ Zapracováno 2026-10-03 (fáze 5: světlo u zdi)
 - **Chůze školou OK.**
 - **Výhled z oken (Praha) je moc malá textura a nenavazuje.** Nahradit jedním souvislým panoramatem kolem celé budovy → Phase F1.
 - **Problikávání (z-fighting):** na spoustě míst jsou dvě plochy na stejném místě a blikají. Je potřeba systematicky najít a opravit → Phase F1.
+
+Zapracováno 2026-10-03
