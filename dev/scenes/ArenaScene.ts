@@ -10,12 +10,16 @@ import { WeaponInventory } from "../../src/weapons/WeaponInventory";
 import { ArenaWaves } from "../ArenaWaves";
 import { BoxRoom } from "../BoxRoom";
 
+/** `?scene=arena&encounter=arenaMixed` swaps the wave for another encounter of data/encounters.json (all robot types). */
+const ENCOUNTER_PARAM = "encounter";
+
 export const id = "arena";
-export const title = "Aréna: vlna 4 humanoidů v krabicové místnosti s vodní pistolkou a HUD (ladění feelu zbraní, po vyčištění další vlna)";
+export const title =
+  "Aréna: vlna 4 humanoidů v krabicové místnosti s vodní pistolkou a HUD (ladění feelu zbraní, po vyčištění další vlna); &encounter=arenaMixed = humanoidi, čtyřnohý robot a dron";
 
 export async function create(game: Game): Promise<void> {
   const feel = FeelConfig.load();
-  const encounter = EncounterConfig.get(feel.arena.encounter);
+  const encounter = EncounterConfig.get(new URLSearchParams(location.search).get(ENCOUNTER_PARAM) ?? feel.arena.encounter);
   const physics = await Physics.create(game);
   const room = BoxRoom.build(game, physics);
   // Same navmesh as boxroom-enemy: everything the player collides with, minus the ceilings.

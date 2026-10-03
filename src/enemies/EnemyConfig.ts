@@ -78,6 +78,13 @@ export interface SensesData {
   alertTime: number;
 }
 
+export interface SearchData {
+  duration: number;
+  radius: number;
+  pauseTime: number;
+  seed: number;
+}
+
 export interface RangedAttackData {
   range: number;
   windup: number;
@@ -121,19 +128,119 @@ export interface HumanoidData extends EnemyBaseData {
   attack: RangedAttackData;
   projectile: ProjectileData;
   cover: { healthThresholds: number[]; searchRadius: number; holdTime: number };
-  search: { duration: number; radius: number; pauseTime: number; seed: number };
+  search: SearchData;
   patrol: { waitTime: number };
   animation: HumanoidAnimationData;
+}
+
+export interface CircleData {
+  engageDistance: number;
+  radius: number;
+  angularSpeedDeg: number;
+  speed: number;
+  time: Range;
+  loseSightTime: number;
+  stuckTime: number;
+  seed: number;
+}
+
+export interface LungeData {
+  range: number;
+  windup: number;
+  speed: number;
+  acceleration: number;
+  maxTime: number;
+  overshoot: number;
+  reach: number;
+  damage: number;
+  damageType: DamageType;
+  recover: number;
+}
+
+export interface QuadrupedAnimationData {
+  strideLength: number;
+  legSwingDeg: number;
+  kneeBendDeg: number;
+  bobHeight: number;
+  crouchDepth: number;
+  lungePitchDeg: number;
+  jawOpenDeg: number;
+  tailSwingDeg: number;
+  blend: number;
+  stunTwitchDeg: number;
+  eyeGlow: number;
+}
+
+export interface QuadrupedData extends EnemyBaseData {
+  movement: MovementData;
+  senses: SensesData;
+  circle: CircleData;
+  lunge: LungeData;
+  patrol: { waitTime: number };
+  search: SearchData;
+  animation: QuadrupedAnimationData;
+  sounds: { lunge: string; bite: string };
+}
+
+export interface FlightData {
+  hoverHeight: number;
+  minHeight: number;
+  ceilingClearance: number;
+  cruiseSpeed: number;
+  chaseSpeed: number;
+  acceleration: number;
+  altitudeGain: number;
+  altitudeDamping: number;
+  avoidDistance: number;
+  avoidForce: number;
+  wanderRadius: number;
+  wanderDistance: number;
+  wanderJitter: number;
+  homeRadius: number;
+  seed: number;
+  bobHeight: number;
+  bobRate: number;
+  tiltPerMps: number;
+  maxTiltDeg: number;
+  rotorSpeed: number;
+  turnRate: number;
+}
+
+export interface DroneAttackData extends RangedAttackData {
+  preferredDistance: number;
+}
+
+export interface DroneAnimationData {
+  chargeOrbSize: number;
+  chargeGlow: number;
+  chargeColor: string;
+  stunWobbleDeg: number;
+  blend: number;
+}
+
+export interface DroneData extends EnemyBaseData {
+  flight: FlightData;
+  senses: SensesData;
+  attack: DroneAttackData;
+  projectile: ProjectileData;
+  search: SearchData;
+  stun: { fallSpeed: number; height: number };
+  buzz: { interval: number; maxDistance: number; volume: number };
+  animation: DroneAnimationData;
+  sounds: { buzz: string; zap: string };
 }
 
 export interface EnemiesData {
   dropSeed: number;
   humanoid: HumanoidData;
+  quadruped: QuadrupedData;
+  drone: DroneData;
 }
 
 const positive = Schema.number({ min: 0 });
 const fraction = Schema.number({ min: 0, max: 1 });
 const range = Schema.array(positive, 2, 2);
+const damageType = Schema.enumOf(DAMAGE_TYPES);
 
 const base: Record<string, SchemaNode> = {
   model: Schema.string(),
@@ -170,6 +277,52 @@ const base: Record<string, SchemaNode> = {
   }),
 };
 
+const movement = Schema.object({
+  walkSpeed: Schema.number({ min: 0.1 }),
+  runSpeed: Schema.number({ min: 0.1 }),
+  acceleration: Schema.number({ min: 0.1 }),
+  turnRate: Schema.number({ min: 0.1 }),
+  waypointDistance: Schema.number({ min: 0.05 }),
+  arriveDistance: Schema.number({ min: 0.05 }),
+  repathInterval: Schema.number({ min: 0.05 }),
+});
+
+const senses = Schema.object({
+  fovDeg: Schema.number({ min: 1, max: 360 }),
+  visionRange: Schema.number({ min: 0.5 }),
+  visionInterval: Schema.number({ min: 0.01 }),
+  hearingRange: positive,
+  memorySpan: Schema.number({ min: 0.1 }),
+  alertTime: positive,
+});
+
+const rangedAttack: Record<string, SchemaNode> = {
+  range: Schema.number({ min: 0.5 }),
+  windup: positive,
+  cooldown: positive,
+  firstShotDelay: positive,
+  loseSightTime: positive,
+  aimErrorDeg: positive,
+  damage: positive,
+  damageType,
+};
+
+const projectile = Schema.object({
+  speed: Schema.number({ min: 0.5 }),
+  radius: Schema.number({ min: 0.01 }),
+  life: Schema.number({ min: 0.1 }),
+  size: Schema.number({ min: 0.01 }),
+  color: Schema.paletteRef(),
+  glow: positive,
+  trailPerSecond: positive,
+  trailLife: positive,
+  flashSize: positive,
+  flashTime: positive,
+});
+
+const search = Schema.object({ duration: positive, radius: positive, pauseTime: positive, seed: Schema.integer({ min: 0 }) });
+const patrol = Schema.object({ waitTime: positive });
+
 /** Typed loader for `data/enemies.json` (stats, senses, attacks and looks of the robots). */
 export class EnemyConfig {
   static readonly file = "data/enemies.json";
@@ -178,48 +331,13 @@ export class EnemyConfig {
     dropSeed: Schema.integer({ min: 0 }),
     humanoid: Schema.object({
       ...base,
-      movement: Schema.object({
-        walkSpeed: Schema.number({ min: 0.1 }),
-        runSpeed: Schema.number({ min: 0.1 }),
-        acceleration: Schema.number({ min: 0.1 }),
-        turnRate: Schema.number({ min: 0.1 }),
-        waypointDistance: Schema.number({ min: 0.05 }),
-        arriveDistance: Schema.number({ min: 0.05 }),
-        repathInterval: Schema.number({ min: 0.05 }),
-      }),
-      senses: Schema.object({
-        fovDeg: Schema.number({ min: 1, max: 360 }),
-        visionRange: Schema.number({ min: 0.5 }),
-        visionInterval: Schema.number({ min: 0.01 }),
-        hearingRange: positive,
-        memorySpan: Schema.number({ min: 0.1 }),
-        alertTime: positive,
-      }),
-      attack: Schema.object({
-        range: Schema.number({ min: 0.5 }),
-        windup: positive,
-        cooldown: positive,
-        firstShotDelay: positive,
-        loseSightTime: positive,
-        aimErrorDeg: positive,
-        damage: positive,
-        damageType: Schema.enumOf(DAMAGE_TYPES),
-      }),
-      projectile: Schema.object({
-        speed: Schema.number({ min: 0.5 }),
-        radius: Schema.number({ min: 0.01 }),
-        life: Schema.number({ min: 0.1 }),
-        size: Schema.number({ min: 0.01 }),
-        color: Schema.paletteRef(),
-        glow: positive,
-        trailPerSecond: positive,
-        trailLife: positive,
-        flashSize: positive,
-        flashTime: positive,
-      }),
+      movement,
+      senses,
+      attack: Schema.object(rangedAttack),
+      projectile,
       cover: Schema.object({ healthThresholds: Schema.array(fraction), searchRadius: positive, holdTime: positive }),
-      search: Schema.object({ duration: positive, radius: positive, pauseTime: positive, seed: Schema.integer({ min: 0 }) }),
-      patrol: Schema.object({ waitTime: positive }),
+      search,
+      patrol,
       animation: Schema.object({
         strideLength: Schema.number({ min: 0.05 }),
         legSwingDeg: positive,
@@ -232,6 +350,89 @@ export class EnemyConfig {
         chargeColor: Schema.paletteRef(),
         stunTwitchDeg: positive,
       }),
+    }),
+    quadruped: Schema.object({
+      ...base,
+      movement,
+      senses,
+      circle: Schema.object({
+        engageDistance: Schema.number({ min: 0.5 }),
+        radius: Schema.number({ min: 0.5 }),
+        angularSpeedDeg: Schema.number({ min: 1, max: 720 }),
+        speed: Schema.number({ min: 0.1 }),
+        time: range,
+        loseSightTime: positive,
+        stuckTime: Schema.number({ min: 0.05 }),
+        seed: Schema.integer({ min: 0 }),
+      }),
+      lunge: Schema.object({
+        range: Schema.number({ min: 0.5 }),
+        windup: positive,
+        speed: Schema.number({ min: 0.5 }),
+        acceleration: Schema.number({ min: 0.5 }),
+        maxTime: Schema.number({ min: 0.05 }),
+        overshoot: positive,
+        reach: positive,
+        damage: positive,
+        damageType,
+        recover: positive,
+      }),
+      patrol,
+      search,
+      animation: Schema.object({
+        strideLength: Schema.number({ min: 0.05 }),
+        legSwingDeg: positive,
+        kneeBendDeg: positive,
+        bobHeight: positive,
+        crouchDepth: positive,
+        lungePitchDeg: positive,
+        jawOpenDeg: positive,
+        tailSwingDeg: positive,
+        blend: Schema.number({ min: 0.1 }),
+        stunTwitchDeg: positive,
+        eyeGlow: positive,
+      }),
+      sounds: Schema.object({ lunge: Schema.string(), bite: Schema.string() }),
+    }),
+    drone: Schema.object({
+      ...base,
+      flight: Schema.object({
+        hoverHeight: Schema.number({ min: 0.3 }),
+        minHeight: Schema.number({ min: 0.1 }),
+        ceilingClearance: positive,
+        cruiseSpeed: Schema.number({ min: 0.1 }),
+        chaseSpeed: Schema.number({ min: 0.1 }),
+        acceleration: Schema.number({ min: 0.1 }),
+        altitudeGain: positive,
+        altitudeDamping: positive,
+        avoidDistance: Schema.number({ min: 0.1 }),
+        avoidForce: positive,
+        wanderRadius: positive,
+        wanderDistance: positive,
+        wanderJitter: positive,
+        homeRadius: Schema.number({ min: 0.5 }),
+        seed: Schema.integer({ min: 0 }),
+        bobHeight: positive,
+        bobRate: positive,
+        tiltPerMps: positive,
+        maxTiltDeg: Schema.number({ min: 0, max: 60 }),
+        rotorSpeed: positive,
+        turnRate: Schema.number({ min: 0.1 }),
+      }),
+      senses,
+      attack: Schema.object({ ...rangedAttack, preferredDistance: Schema.number({ min: 0.5 }) }),
+      projectile,
+      search,
+      stun: Schema.object({ fallSpeed: Schema.number({ min: 0.05 }), height: Schema.number({ min: 0.1 }) }),
+      buzz: Schema.object({ interval: Schema.number({ min: 0.05 }), maxDistance: Schema.number({ min: 0.5 }), volume: fraction }),
+      animation: Schema.object({
+        chargeOrbSize: positive,
+        chargeGlow: positive,
+        chargeColor: Schema.paletteRef(),
+        stunWobbleDeg: positive,
+        blend: Schema.number({ min: 0.1 }),
+      }),
+      sounds: Schema.object({ buzz: Schema.string(), zap: Schema.string() }),
     }),
   });
 
@@ -246,14 +447,30 @@ export class EnemyConfig {
     return EnemyConfig.cached;
   }
 
-  /** Cross-field checks: ranges are [min, max], the eye sits inside the body, the run is not slower than the walk. */
+  /**
+   * Cross-field checks: ranges are [min, max], the eye sits inside the body, the run is not slower than the walk, a
+   * lunge starts inside the circling distance and a drone flies between its minimum and hover height.
+   */
   private static validate(data: EnemiesData): void {
-    const h = data.humanoid;
-    const where = `${EnemyConfig.file}: humanoid`;
-    for (const [name, [min, max]] of Object.entries({ speed: h.death.speed, up: h.death.up, sparkSpeed: h.death.sparkSpeed, sparkLife: h.death.sparkLife, sparkSize: h.death.sparkSize })) {
-      if (min > max) throw new Error(`${where}.death.${name} must be [min, max]`);
+    for (const type of ["humanoid", "quadruped", "drone"] as const) {
+      const enemy = data[type];
+      const where = `${EnemyConfig.file}: ${type}`;
+      const d = enemy.death;
+      for (const [name, [min, max]] of Object.entries({ speed: d.speed, up: d.up, sparkSpeed: d.sparkSpeed, sparkLife: d.sparkLife, sparkSize: d.sparkSize })) {
+        if (min > max) throw new Error(`${where}.death.${name} must be [min, max]`);
+      }
+      if (enemy.body.eyeHeight > enemy.body.height || enemy.body.aimHeight > enemy.body.height) throw new Error(`${where}.body: eyeHeight and aimHeight must be within height`);
     }
-    if (h.body.eyeHeight > h.body.height || h.body.aimHeight > h.body.height) throw new Error(`${where}.body: eyeHeight and aimHeight must be within height`);
-    if (h.movement.runSpeed < h.movement.walkSpeed) throw new Error(`${where}.movement.runSpeed must be >= walkSpeed`);
+    for (const type of ["humanoid", "quadruped"] as const) {
+      const { movement: m } = data[type];
+      if (m.runSpeed < m.walkSpeed) throw new Error(`${EnemyConfig.file}: ${type}.movement.runSpeed must be >= walkSpeed`);
+    }
+    const q = data.quadruped;
+    if (q.circle.time[0] > q.circle.time[1]) throw new Error(`${EnemyConfig.file}: quadruped.circle.time must be [min, max]`);
+    if (q.lunge.range > q.circle.engageDistance) throw new Error(`${EnemyConfig.file}: quadruped.lunge.range must not exceed circle.engageDistance`);
+    const f = data.drone.flight;
+    if (f.minHeight > f.hoverHeight || data.drone.stun.height > f.hoverHeight) throw new Error(`${EnemyConfig.file}: drone minHeight and stun.height must be below flight.hoverHeight`);
+    if (f.chaseSpeed < f.cruiseSpeed) throw new Error(`${EnemyConfig.file}: drone.flight.chaseSpeed must be >= cruiseSpeed`);
+    if (data.drone.attack.preferredDistance > data.drone.attack.range) throw new Error(`${EnemyConfig.file}: drone.attack.preferredDistance must be within range`);
   }
 }

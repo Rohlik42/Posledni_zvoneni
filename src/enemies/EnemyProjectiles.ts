@@ -49,6 +49,8 @@ interface Bolt {
   damageType: DamageType;
   data: ProjectileData;
   trailDebt: number;
+  /** Told when this bolt hurts the player (per-robot hit counts). */
+  onPlayerHit: ((damage: number) => void) | undefined;
 }
 
 interface Flash {
@@ -110,8 +112,8 @@ export class EnemyProjectiles implements Simulated {
     return this.playerHits;
   }
 
-  /** Fires a bolt from `origin` towards `target`, with a muzzle flash. */
-  fire(origin: Vector3, target: Vector3, data: ProjectileData, damage: number, damageType: DamageType): void {
+  /** Fires a bolt from `origin` towards `target`, with a muzzle flash; `onPlayerHit` hears when it hurts the player. */
+  fire(origin: Vector3, target: Vector3, data: ProjectileData, damage: number, damageType: DamageType, onPlayerHit?: (damage: number) => void): void {
     const direction = target.subtract(origin);
     if (direction.lengthSquared() < Number.EPSILON) direction.set(0, 0, 1);
     direction.normalize();
@@ -119,7 +121,7 @@ export class EnemyProjectiles implements Simulated {
     mesh.material = this.glow(data.color, data.glow);
     mesh.isPickable = false;
     mesh.position.copyFrom(origin);
-    this.bolts.push({ mesh, position: origin.clone(), velocity: direction.scale(data.speed), age: 0, damage, damageType, data, trailDebt: 0 });
+    this.bolts.push({ mesh, position: origin.clone(), velocity: direction.scale(data.speed), age: 0, damage, damageType, data, trailDebt: 0, onPlayerHit });
     this.addFlash(origin, data);
     this.fired++;
   }
@@ -176,6 +178,7 @@ export class EnemyProjectiles implements Simulated {
     if (playerHit !== null && playerHit <= wallDistance) {
       this.player.health.damage(bolt.damage, bolt.damageType);
       this.playerHits++;
+      bolt.onPlayerHit?.(bolt.damage);
       return { hit: "player", position: from.add(travel.scale(playerHit / length)), damage: bolt.damage };
     }
     if (pick?.hit === true && pick.pickedPoint !== null) return { hit: "wall", position: pick.pickedPoint, damage: 0 };

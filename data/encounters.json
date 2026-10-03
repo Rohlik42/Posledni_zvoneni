@@ -63,5 +63,54 @@
       { "id": "jumpBox15-north", "position": [1.2, 0, 9.15] },
       { "id": "alcove", "position": [6, 0, 12.6] }
     ]
+  },
+  "arenaMixed": {
+    "//": "Aréna se všemi třemi typy (fáze 14): /dev/?scene=arena&encounter=arenaMixed. Dva humanoidi, čtyřnohý robot a dron v severní polovině boxroomu; dron létá nad svým spawnem (patrol nepoužívá, toulá se do flight.homeRadius).",
+    "navExclude": ["ceiling", "alcoveCeiling"],
+    "enemies": [
+      {
+        "id": "mixHumanoid1",
+        "type": "humanoid",
+        "position": [-6.5, 0, 7.5],
+        "yaw": 3.14,
+        "patrol": [[-6.5, 0, 7.5], [-6.5, 0, 1.5]]
+      },
+      {
+        "id": "mixHumanoid2",
+        "type": "humanoid",
+        "position": [6.2, 0, 5.5],
+        "yaw": 3.14,
+        "patrol": [[6.2, 0, 5.5], [6.2, 0, 0]]
+      },
+      {
+        "id": "mixQuadruped",
+        "type": "quadruped",
+        "position": [3, 0, 7.6],
+        "yaw": 3.14,
+        "patrol": [[3, 0, 7.6], [-1.5, 0, 4.5]]
+      },
+      {"id": "mixDrone", "type": "drone", "position": [-1, 0, 3], "yaw": 3.14, "patrol": []}
+    ],
+    "coverPoints": [
+      {"id": "pillarNorthWest-north", "position": [-4, 0, 4.85]},
+      {"id": "pillarNorthWest-south", "position": [-4, 0, 3.15]},
+      {"id": "pillarNorthWest-east", "position": [-3.15, 0, 4]},
+      {"id": "pillarNorthWest-west", "position": [-4.85, 0, 4]},
+      {"id": "pillarNorthEast-north", "position": [4, 0, 4.85]},
+      {"id": "pillarNorthEast-south", "position": [4, 0, 3.15]},
+      {"id": "pillarNorthEast-east", "position": [4.85, 0, 4]},
+      {"id": "pillarNorthEast-west", "position": [3.15, 0, 4]},
+      {"id": "pillarSouthWest-north", "position": [-4, 0, -2.15]},
+      {"id": "pillarSouthWest-south", "position": [-4, 0, -3.85]},
+      {"id": "pillarSouthWest-east", "position": [-3.15, 0, -3]},
+      {"id": "pillarSouthWest-west", "position": [-4.85, 0, -3]},
+      {"id": "pillarSouthEast-north", "position": [4, 0, -2.15]},
+      {"id": "pillarSouthEast-south", "position": [4, 0, -3.85]},
+      {"id": "pillarSouthEast-east", "position": [4.85, 0, -3]},
+      {"id": "pillarSouthEast-west", "position": [3.15, 0, -3]},
+      {"id": "crateTall-north", "position": [-6, 0, -6.45]},
+      {"id": "jumpBox15-north", "position": [1.2, 0, 9.15]},
+      {"id": "alcove", "position": [6, 0, 12.6]}
+    ]
   }
 }

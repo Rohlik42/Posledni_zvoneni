@@ -4,6 +4,37 @@
   "masterVolume": 0.32,
   "noiseSeed": 7,
   "sounds": {
+    "droneBuzz": {
+      "//": "Bzučení dronu (fáze 14, LEGACY §5 tone): nízká pila 118 → 124 Hz s oktávou (čtverec) a úzkým šumem vrtulí; přehrává se dokola po buzz.interval, takže pomalý náběh a doznění dělají pulzující bzukot.",
+      "layers": [
+        {"kind": "tone", "wave": "sawtooth", "start": 0, "duration": 0.5, "volume": 0.11, "attack": 0.12, "from": 118, "to": 124},
+        {"kind": "tone", "wave": "square", "start": 0, "duration": 0.5, "volume": 0.035, "attack": 0.12, "from": 236, "to": 248},
+        {"kind": "noise", "start": 0, "duration": 0.5, "volume": 0.05, "attack": 0.12, "from": 900, "to": 980, "q": 6}
+      ]
+    },
+    "droneZap": {
+      "//": "Výstřel dronu (fáze 14): krátké elektrické cvrknutí (čtverec 1,6 → 0,4 kHz) a prskání (šum 5 → 2,5 kHz).",
+      "layers": [
+        {"kind": "tone", "wave": "square", "start": 0, "duration": 0.12, "volume": 0.09, "attack": 0.003, "from": 1600, "to": 400},
+        {"kind": "noise", "start": 0, "duration": 0.1, "volume": 0.14, "attack": 0.003, "from": 5000, "to": 2500, "q": 2}
+      ]
+    },
+    "quadrupedLunge": {
+      "//": "Výpad čtyřnohého robota (fáze 14): vzestupné kvílení serva (pila 260 → 900 Hz) a švih (whoosh LEGACY §5: šum 2,8 → 0,38 kHz).",
+      "layers": [
+        {"kind": "tone", "wave": "sawtooth", "start": 0, "duration": 0.28, "volume": 0.08, "attack": 0.02, "from": 260, "to": 900},
+        {"kind": "noise", "start": 0.08, "duration": 0.2, "volume": 0.26, "attack": 0.025, "from": 2800, "to": 380, "q": 0.6}
+      ]
+    },
+    "quadrupedBite": {
+      "//": "Kousnutí čtyřnohého robota (fáze 14): kovové cvak-cvak čelistí (jako LEGACY §5 scissors) a křupnutí (crunch: šum 2,4 kHz).",
+      "layers": [
+        {"kind": "tone", "wave": "triangle", "start": 0, "duration": 0.05, "volume": 0.24, "attack": 0.002, "from": 2200, "to": 800},
+        {"kind": "tone", "wave": "triangle", "start": 0.06, "duration": 0.045, "volume": 0.2, "attack": 0.002, "from": 1400, "to": 550},
+        {"kind": "noise", "start": 0, "duration": 0.14, "volume": 0.5, "attack": 0.003, "from": 2400, "to": 1600, "q": 0.7},
+        {"kind": "tone", "wave": "triangle", "start": 0, "duration": 0.1, "volume": 0.16, "attack": 0.003, "from": 220, "to": 80}
+      ]
+    },
     "pistolShot": {
       "//": "Vodní pistolka: krátké syknutí proudu (šum 3,6 → 1,1 kHz) a plastové „pff“ (trojúhelník 420 → 160 Hz).",
       "layers": [

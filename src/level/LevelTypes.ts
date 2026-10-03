@@ -190,6 +190,11 @@ export interface EnemySpawn {
   z: number;
   /** Optional patrol loop in plan meters (same room or corridor). */
   patrol?: PlanPoint[];
+  /**
+   * Difficulty gate (phase 14): the robot is placed only when the difficulty's enemy count delta (legacy `extra`,
+   * phase 17 `enemyCountDelta`: −1 … 4) is at least this; without it the robot is always there.
+   */
+  minCountDelta?: number;
 }
 
 export interface PlayerSpawn {

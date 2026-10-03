@@ -1,17 +1,17 @@
 import { State } from "yuka";
-import type { HumanoidAgent } from "../HumanoidAgent";
+import type { GroundAgent } from "../GroundAgent";
 
 /** Walks the patrol route in a loop, pausing `patrol.waitTime` at each point; anything noticed → Alert. */
-export class PatrolState extends State<HumanoidAgent> {
+export class PatrolState extends State<GroundAgent> {
   private waited = 0;
 
-  override enter(agent: HumanoidAgent): void {
+  override enter(agent: GroundAgent): void {
     agent.face(null);
     this.waited = 0;
     this.goToWaypoint(agent);
   }
 
-  override execute(agent: HumanoidAgent): void {
+  override execute(agent: GroundAgent): void {
     if (agent.noticed) {
       agent.changeState("alert");
       return;
@@ -27,7 +27,7 @@ export class PatrolState extends State<HumanoidAgent> {
     }
   }
 
-  private goToWaypoint(agent: HumanoidAgent): void {
+  private goToWaypoint(agent: GroundAgent): void {
     const waypoint = agent.patrolRoute[agent.patrolIndex % Math.max(1, agent.patrolRoute.length)];
     if (waypoint !== undefined) agent.moveTo(waypoint, "walk", true);
   }

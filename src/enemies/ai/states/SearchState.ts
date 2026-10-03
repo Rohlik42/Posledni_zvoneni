@@ -1,19 +1,19 @@
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { State } from "yuka";
 import { Random } from "../../../utils/Random";
-import type { HumanoidAgent } from "../HumanoidAgent";
+import type { GroundAgent } from "../GroundAgent";
 
 /**
  * The player got away: walk to the last known position, then visit random navmesh points within `search.radius`
  * (seeded), pausing `search.pauseTime` at each, for `search.duration` seconds; then back to Patrol. Seeing the player
  * → Attack or Chase; hearing or being hit → Alert.
  */
-export class SearchState extends State<HumanoidAgent> {
+export class SearchState extends State<GroundAgent> {
   private center = Vector3.Zero();
   private paused = 0;
   private random: Random | null = null;
 
-  override enter(agent: HumanoidAgent): void {
+  override enter(agent: GroundAgent): void {
     this.random ??= new Random(agent.data.search.seed);
     this.center = (agent.perception.lastKnownPosition ?? agent.feet).clone();
     this.paused = 0;
@@ -21,10 +21,10 @@ export class SearchState extends State<HumanoidAgent> {
     agent.moveTo(this.center, "walk", true);
   }
 
-  override execute(agent: HumanoidAgent): void {
-    const { search, attack } = agent.data;
+  override execute(agent: GroundAgent): void {
+    const { search } = agent.data;
     if (agent.perception.seesPlayer) {
-      agent.changeState(agent.distanceToTarget() <= attack.range ? "attack" : "chase");
+      agent.changeState(agent.engageState());
       return;
     }
     if (agent.heard || agent.hurt) {

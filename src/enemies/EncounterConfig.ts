@@ -3,7 +3,7 @@ import type { Vec3Tuple } from "../rendering/ModelBlueprints";
 import { DataLoader } from "../utils/DataLoader";
 import { Schema } from "../utils/Schema";
 
-export const ENEMY_TYPES = ["humanoid"] as const;
+export const ENEMY_TYPES = ["humanoid", "quadruped", "drone"] as const;
 export type EnemyType = (typeof ENEMY_TYPES)[number];
 
 export interface EnemySpawnData {

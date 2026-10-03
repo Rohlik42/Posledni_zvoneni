@@ -239,7 +239,7 @@
     "enemies": [
       { "id": "e01", "type": "humanoid", "floor": 4, "room": "f4-corridor", "x": 18.0, "z": 20.8, "patrol": [{ "x": 14.0, "z": 20.8 }, { "x": 24.0, "z": 20.8 }] },
       { "id": "e02", "type": "drone", "floor": 4, "room": "f4-corridor", "x": 36.0, "z": 20.8 },
-      { "id": "e03", "type": "humanoid", "floor": 4, "room": "f4-corridor", "x": 44.0, "z": 20.8, "patrol": [{ "x": 40.0, "z": 20.8 }, { "x": 52.0, "z": 20.8 }] },
+      { "id": "e03", "type": "humanoid", "floor": 4, "room": "f4-corridor", "x": 44.0, "z": 20.8, "minCountDelta": 0, "patrol": [{ "x": 40.0, "z": 20.8 }, { "x": 52.0, "z": 20.8 }] },
       { "id": "e04", "type": "humanoid", "floor": 4, "room": "f4-kabinet-matematika", "x": 46.5, "z": 29.0 },
       { "id": "e05", "type": "quadruped", "floor": 4, "room": "f4-hudebna", "x": 4.0, "z": 29.0 },
       { "id": "e06", "type": "humanoid", "floor": 3, "room": "f3-corridor", "x": 40.0, "z": 20.85, "patrol": [{ "x": 36.0, "z": 20.85 }, { "x": 50.0, "z": 20.85 }] },
@@ -247,18 +247,22 @@
       { "id": "e08", "type": "drone", "floor": 3, "room": "f3-wing", "x": 26.15, "z": 9.0 },
       { "id": "e09", "type": "humanoid", "floor": 3, "room": "f3-kabinet-anglictina", "x": 34.0, "z": 13.4 },
       { "id": "e10", "type": "humanoid", "floor": 3, "room": "f3-atelier", "x": 54.0, "z": 28.5 },
-      { "id": "e11", "type": "drone", "floor": 3, "room": "f3-predsin", "x": 15.5, "z": 23.9 },
+      { "id": "e11", "type": "drone", "floor": 3, "room": "f3-predsin", "x": 15.5, "z": 23.9, "minCountDelta": 0 },
       { "id": "e12", "type": "humanoid", "floor": 3, "room": "f3-kabinet-fyzika", "x": 5.0, "z": 3.0 },
       { "id": "e13", "type": "quadruped", "floor": 3, "room": "f3-kabinet-fyzika", "x": 7.5, "z": 10.0 },
       { "id": "e14", "type": "humanoid", "floor": 2, "room": "f2-corridor", "x": 24.0, "z": 20.8, "patrol": [{ "x": 14.0, "z": 20.8 }, { "x": 34.0, "z": 20.8 }] },
       { "id": "e15", "type": "quadruped", "floor": 2, "room": "f2-corridor", "x": 38.0, "z": 20.8 },
       { "id": "e16", "type": "humanoid", "floor": 2, "room": "f2-kabinet-dejepis", "x": 5.0, "z": 7.0 },
       { "id": "e17", "type": "humanoid", "floor": 2, "room": "f2-gym", "x": 53.0, "z": 25.0 },
-      { "id": "e18", "type": "humanoid", "floor": 2, "room": "f2-gym", "x": 56.0, "z": 28.5 },
+      { "id": "e18", "type": "humanoid", "floor": 2, "room": "f2-gym", "x": 56.0, "z": 28.5, "minCountDelta": 0 },
       { "id": "e19", "type": "quadruped", "floor": 2, "room": "f2-gym", "x": 49.0, "z": 28.5 },
       { "id": "e20", "type": "drone", "floor": 2, "room": "f2-gym", "x": 47.0, "z": 25.0 },
       { "id": "e21", "type": "humanoid", "floor": 2, "room": "f2-entrance-hall", "x": 10.4, "z": 29.5 },
-      { "id": "e22", "type": "drone", "floor": 2, "room": "f2-satna", "x": 33.7, "z": 29.0 }
+      { "id": "e22", "type": "drone", "floor": 2, "room": "f2-satna", "x": 33.7, "z": 29.0 },
+      { "id": "e23", "type": "quadruped", "floor": 4, "room": "f4-corridor", "x": 31.0, "z": 20.8, "minCountDelta": 2 },
+      { "id": "e24", "type": "drone", "floor": 3, "room": "f3-corridor", "x": 30.0, "z": 20.85, "minCountDelta": 2 },
+      { "id": "e25", "type": "humanoid", "floor": 2, "room": "f2-corridor", "x": 30.0, "z": 20.8, "minCountDelta": 4, "patrol": [{ "x": 26.0, "z": 20.8 }, { "x": 36.0, "z": 20.8 }] },
+      { "id": "e26", "type": "quadruped", "floor": 2, "room": "f2-gym", "x": 52.0, "z": 28.0, "minCountDelta": 4 }
     ]
   },
   "pickups": [
