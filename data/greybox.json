@@ -1,0 +1,67 @@
+{
+  "//": "Parametry generátoru greyboxu (src/level/LevelBuilder.ts a spol.): tloušťky, schody, zábradlí, okna, svítidla. Dispozice samotná je v data/level.json, materiály v data/materials.json. Délky v metrech.",
+  "walls": {
+    "//": "Sousední místnosti dělí mezeru (depth dveří) napůl; místnosti, které se dotýkají, staví zeď interiorThickness na hranici; strana bez souseda do maxNeighbourGap je obvodová zeď exteriorThickness.",
+    "interiorThickness": 0.16,
+    "exteriorThickness": 0.6,
+    "maxNeighbourGap": 1.5,
+    "touchEpsilon": 0.03,
+    "exteriorRoomWallHeight": 9
+  },
+  "slabs": {
+    "floorThickness": 0.3,
+    "ceilingThickness": 0.25,
+    "ceilingMaterial": "ceiling"
+  },
+  "stairs": {
+    "material": "stair-tread",
+    "targetRise": 0.17,
+    "soffit": 0.22,
+    "landingThickness": 0.3,
+    "colliderThickness": 0.3,
+    "boundsEpsilon": 0.12
+  },
+  "railings": {
+    "material": "railing",
+    "height": 1.0,
+    "colliderHeight": 2.4,
+    "colliderThickness": 0.1,
+    "railSize": 0.06,
+    "postSize": 0.035,
+    "postSpacing": 0.14
+  },
+  "doors": {
+    "frameMaterial": "door-frame",
+    "frameWidth": 0.1,
+    "frameProtrude": 0.03
+  },
+  "windows": {
+    "glassMaterial": "glass",
+    "glassThickness": 0.04,
+    "viewDistance": 2.5,
+    "viewScale": 2.6,
+    "views": { "prague": "view-prague", "courtyard": "view-courtyard", "street": "view-street" }
+  },
+  "blockers": {
+    "materials": { "rubble": "rubble", "collapsed-ceiling": "rubble" }
+  },
+  "decals": [
+    { "texture": "floor-gym-lines", "material": "gym-lines", "room": "f2-gym", "lift": 0.012 }
+  ],
+  "lights": {
+    "//": "Bodová světla z level.json → lights (barva = klíč palety, bez spekuláru). intensityScale/rangeScale násobí hodnoty z level.json (jas greyboxu, fáze 19 doladí). Svítidlo je samosvítící kvádr pod stropem; nulová velikost = bez svítidla (oheň dodá fáze 19).",
+    "intensityScale": 2.2,
+    "rangeScale": 1.3,
+    "fixtures": {
+      "fluorescent": { "size": [1.2, 0.06, 0.2], "emissive": 2.2 },
+      "emergency": { "size": [0.3, 0.12, 0.08], "emissive": 3.0 },
+      "fire": { "size": [0, 0, 0], "emissive": 0 }
+    }
+  },
+  "teleport": {
+    "//": "Volné místo pro __game.level.teleportToRoom: kandidáti v mřížce, odstup od zdí, schodů a závalů.",
+    "wallMargin": 0.55,
+    "obstacleMargin": 0.45,
+    "gridStep": 0.25
+  }
+}

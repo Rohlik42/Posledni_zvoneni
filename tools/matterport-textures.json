@@ -35,7 +35,7 @@
       ],
       "cellPx": 128,
       "reps": 2,
-      "pxPerM": 85,
+      "pxPerM": 83,
       "colours": 12,
       "contrast": 1.15,
       "notes": "Corridor checker (Floor 4, corridor 57 between the chair rows): median-folded over ~150 lattice periods, colours = Otsu class medians, geometry = ideal 45° checker fitted to the folded photo; tiles run at 45° to the corridor axis (= plan x).",
@@ -53,7 +53,7 @@
       "flattenSigma": 40,
       "flattenStrength": 0.85,
       "contrast": 1.1,
-      "notes": "Gym 1 strip parquet from the straight-down panorama face, rotated 10.7° so the strips run along v (angle of the parallel court line). Ortho face, 354 px/m measured from the 5 cm court line (17.7 px); the plan (85 px/m) is too coarse for 7 cm strips.",
+      "notes": "Gym 1 strip parquet from the straight-down panorama face, rotated 10.7° so the strips run along v (angle of the parallel court line). Ortho face, 354 px/m measured from the 5 cm court line (17.7 px); the plan (83 px/m) is too coarse for 7 cm strips.",
       "quad": [
         [
           18,
@@ -94,7 +94,7 @@
         1370,
         625
       ],
-      "pxPerM": 85,
+      "pxPerM": 83,
       "outPx": [
         1024,
         468
@@ -158,7 +158,7 @@
       "colours": 16,
       "flattenSigma": 30,
       "flattenStrength": 0.9,
-      "notes": "Orange linoleum of the Floor 3 classrooms: colour = median of the plan (room 39), grain from the speckled linoleum down face (the plan at 85 px/m only shows stitching seams).",
+      "notes": "Orange linoleum of the Floor 3 classrooms: colour = median of the plan (room 39), grain from the speckled linoleum down face (the plan at 83 px/m only shows stitching seams).",
       "recolourFrom": {
         "src": "reference/matterport/floorplans/floor3_prvni_patro.jpg",
         "rect": [

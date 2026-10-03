@@ -78,6 +78,8 @@
     "fire": "#ff8a3a",
     "moon": "#7f9cc7",
     "emergency": "#ff3040",
+    "fluorescent": "#d6e6ff",
+    "exitSign": "#3dff7a",
     "ambientSky": "#2a3242",
     "ambientGround": "#0e0c0b"
   },

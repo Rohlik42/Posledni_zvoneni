@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { LevelQueries } from "../../tools/LevelQueries";
+import { Palette } from "../../src/utils/Palette";
 import type { KeyColor, LockColor, Room, RoutePoint } from "../../src/level/LevelTypes";
 
 const q = LevelQueries.load();
@@ -278,5 +279,12 @@ test("landmarks measured in floorplan pixels match level.json", () => {
     }
     const error = Math.hypot(actual.x - x, actual.z - z);
     assert.ok(error <= landmarks.toleranceM, `${lm.id}: ${error.toFixed(2)} m off (plan ${x.toFixed(2)}, ${z.toFixed(2)})`);
+  }
+});
+
+test("light colours are keys of data/palette.json (DECISIONS fáze 1: colours in data are palette keys)", () => {
+  for (const light of level.lights) {
+    assert.ok(!light.color.startsWith("#"), `light ${light.id}: hex colour ${light.color}, use a palette key`);
+    assert.ok(Palette.has(light.color), `light ${light.id}: unknown palette key ${light.color}`);
   }
 });
