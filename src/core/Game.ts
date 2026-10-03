@@ -49,6 +49,7 @@ export class Game {
     this.config = GameConfig.load();
     this.fixedStepMs = MS_PER_SECOND / this.config.simulationHz;
     this.input = new Input(canvas);
+    this.input.setStepper((ms) => this.step(ms));
     this.input.onAction.add(({ action, pressed }) => {
       if (action === "pause" && pressed) this.setPaused(true);
     });
@@ -89,6 +90,14 @@ export class Game {
   /** Total simulated time in milliseconds (advances only in fixed steps). */
   get simulatedTimeMs(): number {
     return this.simulatedMs;
+  }
+
+  /**
+   * How far real time has run into the next fixed step, 0–1. Render code interpolates between the previous and the
+   * current simulated state with it, so motion stays smooth on displays faster than the simulation rate.
+   */
+  get stepAlpha(): number {
+    return Math.min(1, this.accumulatorMs / this.fixedStepMs);
   }
 
   /** Loads `setup` into the scene, waits until it is ready and starts the render loop. */
