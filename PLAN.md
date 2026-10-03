@@ -302,6 +302,8 @@ Quick gate: `tests/e2e/weapons-all.spec.ts` ve vlastní dev scéně `?scene=weap
 **Do not**
 Měnit pistolku z fáze 3 kromě refaktoru base třídy.
 
+**Done 2026-10-03** (handoff `handoff/phase-13.md`). Dev scéna `?scene=weapons` (boxroom, 5 humanoidů, nástěnný hasičák, hydrant, kbelík balónků; data `data/weapon-range.json`). Quick gate `tests/e2e/weapons-all.spec.ts` (10 testů) zelený; snímek `screenshots/13-weapons.png` (6 viewmodelů při střelbě, 3×2). Viewmodely 200–384 tri. Odchylky od litery: kužel hasičáku i AoE balónku počítá `AreaQuery` (obálka cíle + paprsek viditelnosti) místo vějíře paprsků (`rays` zmizel); hadice místo `pushForce` krátce zpomalí; hasičák se doplní sám při příchodu ke skříňce (hydrant chce E); sbírané balónky řeší vlastní `AmmoPickup` (+ `weapons.json → ammoPickup`); výstřel balónku se hlásí až při prasknutí; base `Weapon` navíc `wantsToFire`, `refill`, `idle`, `extraState`, `params.soundInterval`; `ShotEvent.hits` pro víc cílů; `DamageTargets.attached`. HUD ukazuje u hadice „Infinity“ (Hud.ts vlastní fáze 10, viz handoff).
+
 ## Phase 14 — Zbývající nepřátelé
 
 **Implement**
