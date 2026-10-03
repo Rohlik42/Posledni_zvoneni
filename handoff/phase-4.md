@@ -10,6 +10,12 @@ Quick gate green (own Playwright server on PW_PORT=5392):
 `npx playwright test tests/smoke tests/e2e/humanoid.spec.ts` 14/14 (6.8 s: 6 smoke incl. model budget + 8 humanoid).
 Full suite and `npm run build` NOT run (shift gate).
 
+**Main merged in after done:** main moved to ebba8a4 (phase 9 greybox) during this phase; merged into the branch
+cleanly (no conflicts; only shared file touched by both is `vite.config.ts`, phase 9 added `cacheDir`). Quick gate
+rerun on the merged branch: typecheck exit 0, `test:data` 57/57, smoke + humanoid 14/14 (7.3 s). Visual recheck on
+:5302: `/` unchanged (empty fogged scene, 60 fps, no problems); `boxroom-enemy` wind-up shot identical to
+`screenshots/04-humanoid.png`. Server killed.
+
 ## How to play it
 `npm run dev` → http://localhost:5173/dev/?scene=boxroom-enemy — box room, water pistol, one humanoid patrolling the
 north-west. Shoot (it hears you), hide behind pillars, watch it chase, wind up (glowing orb on the cannon) and fire
