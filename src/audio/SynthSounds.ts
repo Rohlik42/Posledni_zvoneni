@@ -1,4 +1,5 @@
 import type { Game } from "../core/Game";
+import { Settings } from "../core/Settings";
 import { TestHooks } from "../core/TestHooks";
 import { SoundConfig, type SoundsData } from "./SoundConfig";
 import { SoundSynthesizer } from "./SoundSynthesizer";
@@ -18,6 +19,8 @@ export interface AudioTestApi {
   peak: (name: string) => number;
   readonly unlocked: boolean;
   readonly muted: boolean;
+  /** Master gain now (0 while muted or before the first gesture): `masterVolume × settings volume` (phase 18). */
+  readonly gain: number;
 }
 
 declare module "../core/TestHooks" {
@@ -41,6 +44,8 @@ export class SynthSounds {
   private context: AudioContext | null = null;
   private master: GainNode | null = null;
   private isMuted = false;
+  /** Volume from the menu settings (phase 18), 0–1. */
+  private volume = 1;
 
   private constructor(game: Game) {
     this.data = SoundConfig.load();
@@ -57,6 +62,9 @@ export class SynthSounds {
     game.input.onAction.add(({ action, pressed }) => {
       if (action === "mute" && pressed) this.setMuted(!this.isMuted);
     });
+    const settings = Settings.shared();
+    this.volume = settings.values.volume;
+    settings.onChanged.add((values) => this.setVolume(values.volume));
     this.registerTestHooks();
   }
 
@@ -87,7 +95,21 @@ export class SynthSounds {
 
   setMuted(muted: boolean): void {
     this.isMuted = muted;
-    if (this.master !== null) this.master.gain.value = muted ? 0 : this.data.masterVolume;
+    this.applyGain();
+  }
+
+  /** Master volume 0–1 on top of `masterVolume` (the menu's „Hlasitost“). */
+  setVolume(volume: number): void {
+    this.volume = volume;
+    this.applyGain();
+  }
+
+  private get targetGain(): number {
+    return this.isMuted ? 0 : this.data.masterVolume * this.volume;
+  }
+
+  private applyGain(): void {
+    if (this.master !== null) this.master.gain.value = this.targetGain;
   }
 
   dispose(): void {
@@ -99,7 +121,7 @@ export class SynthSounds {
     if (!event.isTrusted) return;
     if (this.context === null) {
       this.context = new AudioContext();
-      this.master = new GainNode(this.context, { gain: this.isMuted ? 0 : this.data.masterVolume });
+      this.master = new GainNode(this.context, { gain: this.targetGain });
       this.master.connect(this.context.destination);
     } else if (this.context.state === "suspended") {
       void this.context.resume();
@@ -124,6 +146,9 @@ export class SynthSounds {
       },
       get muted() {
         return sounds.isMuted;
+      },
+      get gain() {
+        return sounds.master?.gain.value ?? 0;
       },
     });
   }
