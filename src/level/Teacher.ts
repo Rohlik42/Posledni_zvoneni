@@ -65,7 +65,6 @@ export class Teacher {
     this.nametag = this.createNametag(scene);
     this.collider = physics === null ? null : this.createCollider(scene, physics);
     this.meshes = [...this.model.meshes];
-    this.model.root.computeWorldMatrix(true);
     this.placeNametag();
   }
 
@@ -89,7 +88,7 @@ export class Teacher {
 
   /** Middle of the chest in the world: what the player looks at to talk. */
   get chestPosition(): Vector3 {
-    return this.model.chest.getAbsolutePosition().clone();
+    return this.model.chestPosition();
   }
 
   /** World position of the trap on the chest band (explosion origin). */
@@ -142,7 +141,7 @@ export class Teacher {
 
   /** Keeps the name tag `aboveHead` metres over the top of the head (which rises when the teacher stands up). */
   private placeNametag(): void {
-    const top = this.model.headTop.getAbsolutePosition();
+    const top = this.model.headTopPosition();
     this.nametag.position.set(top.x, top.y + this.tagData.aboveHead, top.z);
   }
 

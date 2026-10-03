@@ -104,6 +104,16 @@ export class TeacherModel {
     return this.bound && this.ledOn;
   }
 
+  /** Top of the head in the world, current also between rendered frames (the pose changes in fixed steps). */
+  headTopPosition(): Vector3 {
+    return TeacherModel.worldPosition(this.headTop);
+  }
+
+  /** Middle of the chest in the world, current also between rendered frames. */
+  chestPosition(): Vector3 {
+    return TeacherModel.worldPosition(this.chest);
+  }
+
   /** Blends between the seated and the standing pose (smoothstep is up to the caller). */
   setStanding(amount: number): void {
     const t = Math.min(1, Math.max(0, amount));
@@ -148,6 +158,14 @@ export class TeacherModel {
 
   dispose(): void {
     this.built.dispose();
+  }
+
+  /** World position of `node` after recomputing the matrices from the root down (Babylon caches them per frame). */
+  private static worldPosition(node: TransformNode): Vector3 {
+    const chain: TransformNode[] = [];
+    for (let n: TransformNode | null = node; n !== null; n = n.parent as TransformNode | null) chain.unshift(n);
+    for (const n of chain) n.computeWorldMatrix(true);
+    return node.getAbsolutePosition().clone();
   }
 
   private static lerp(a: number, b: number, t: number): number {

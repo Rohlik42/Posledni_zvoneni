@@ -208,7 +208,7 @@ export class TeacherSystem {
       standing: teacher.standing,
       position: plain(teacher.placement.position),
       chest: plain(teacher.chestPosition),
-      headHeight: teacher.model.headTop.getAbsolutePosition().y - teacher.placement.position.y,
+      headHeight: teacher.model.headTopPosition().y - teacher.placement.position.y,
       shackled: teacher.model.isBound,
       trapLedOn: teacher.model.trapLedOn,
       nametag: { visible: teacher.nametag.isEnabled() && teacher.nametag.isVisible, height: teacher.nametag.position.y - teacher.placement.position.y },
