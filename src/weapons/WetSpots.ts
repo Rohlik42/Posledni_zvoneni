@@ -12,8 +12,6 @@ import type { StreamData } from "./WeaponConfig";
 
 /** Pulls the decal towards the camera in the depth test so it never flickers against the surface it lies on. */
 const DECAL_Z_OFFSET = -2;
-/** Wet spots glow faintly so they stay visible in the dark rooms. */
-const WET_EMISSIVE = 0.35;
 const FULL_TURN = Math.PI * 2;
 
 interface WetSpot {
@@ -40,7 +38,7 @@ export class WetSpots {
     material.diffuseTexture = ParticleTextures.blob(scene);
     material.useAlphaFromDiffuseTexture = true;
     material.diffuseColor = PaletteColor.color3(data.colorDeep);
-    material.emissiveColor = PaletteColor.emissive(data.colorDeep, WET_EMISSIVE);
+    material.emissiveColor = PaletteColor.emissive(data.colorDeep, data.wetGlow);
     material.specularColor = Color3.Black();
     material.alpha = data.wetAlpha;
     material.zOffset = DECAL_Z_OFFSET;

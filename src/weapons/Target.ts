@@ -10,7 +10,7 @@ import { TargetModel } from "./models/TargetModel";
 import type { TargetPlacement, TargetsData } from "./TargetConfig";
 
 const DEG_TO_RAD = Math.PI / 180;
-const CENTER_ANCHOR = "board";
+const BOARD_PART = "board";
 
 /**
  * A practice target (IDamageable) for testing weapons: takes damage scaled by `resistances`, flashes when hit, tips
@@ -63,7 +63,7 @@ export class Target implements IDamageable, Simulated {
   get center(): Vector3 {
     this.model.root.computeWorldMatrix(true);
     this.model.board.computeWorldMatrix(true);
-    const board = this.model.meshes.find((m) => m.name.endsWith(`-${CENTER_ANCHOR}`));
+    const board = this.model.meshes.find((m) => m.name.endsWith(`-${BOARD_PART}`));
     return (board ?? this.model.board).getAbsolutePosition().clone();
   }
 

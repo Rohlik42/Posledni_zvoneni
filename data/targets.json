@@ -7,7 +7,7 @@
   "resetDelay": 4,
   "flashTime": 0.12,
   "flashColor": "neon.water",
-  "flashIntensity": 0.8,
+  "flashIntensity": 0.3,
   "boxroom": [
     { "name": "targetCenter", "position": [0, 0, 1.5], "yaw": 0 },
     { "name": "targetWest", "position": [-6.5, 0, 3], "yaw": 0.35 },

@@ -8,6 +8,8 @@ export interface FlatMaterialOptions {
   emissive?: number;
   alpha?: number;
   maxSimultaneousLights?: number;
+  /** Multiplies the diffuse colour (how strongly lights act on it); emissive is unaffected. */
+  diffuseScale?: number;
 }
 
 /**
@@ -26,11 +28,12 @@ export class FlatMaterials {
     }
     const emissive = options.emissive ?? 0;
     const alpha = options.alpha ?? 1;
-    const key = `${paletteRef}|${emissive}|${alpha}|${options.maxSimultaneousLights ?? ""}`;
+    const diffuseScale = options.diffuseScale ?? 1;
+    const key = `${paletteRef}|${emissive}|${alpha}|${diffuseScale}|${options.maxSimultaneousLights ?? ""}`;
     let material = cache.get(key);
     if (material === undefined) {
       const created = new StandardMaterial(`flat-${key}`, scene);
-      created.diffuseColor = PaletteColor.color3(paletteRef);
+      created.diffuseColor = PaletteColor.color3(paletteRef).scale(diffuseScale);
       created.specularColor = Color3.Black();
       created.emissiveColor = PaletteColor.emissive(paletteRef, emissive);
       created.alpha = alpha;

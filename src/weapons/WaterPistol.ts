@@ -52,7 +52,7 @@ export class WaterPistol extends Weapon {
   }
 
   protected createModel(): WaterPistolModel {
-    return new WaterPistolModel(this.context.scene, { variant: this.data.viewmodel.variant });
+    return new WaterPistolModel(this.context.scene, { variant: this.data.viewmodel.variant, lightScale: this.data.viewmodel.lightScale });
   }
 
   protected shoot(aim: { origin: Vector3; direction: Vector3 }): void {

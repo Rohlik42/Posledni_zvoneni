@@ -58,7 +58,6 @@
         "range": { "frame": "world.metal", "board": "world.paper", "ring": "accent.red", "bull": "neon.warning", "base": "base.ash" }
       },
       "groups": { "board": [0, 0.9, 0] },
-      "anchors": { "center": [0, 1.35, -0.05] },
       "parts": [
         { "name": "base", "shape": "box", "size": [0.7, 0.08, 0.5], "position": [0, 0.04, 0], "color": "base" },
         { "name": "post", "shape": "box", "size": [0.08, 0.86, 0.08], "position": [0, 0.47, 0], "color": "frame" },

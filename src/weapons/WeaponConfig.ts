@@ -28,6 +28,7 @@ export interface WeaponAmmoData {
 export interface ViewmodelData {
   variant: string;
   scale: number;
+  lightScale: number;
   position: Vec3Tuple;
   rotationDeg: Vec3Tuple;
   swayPerRadPerSec: number;
@@ -57,11 +58,13 @@ export interface StreamData {
   splashSpeed: Range2;
   splashSize: Range2;
   splashLife: Range2;
+  splashFullDistance: number;
   gravity: number;
   streamGravity: number;
   wetSize: Range2;
   wetDepth: number;
   wetAlpha: number;
+  wetGlow: number;
   wetLifetime: number;
   wetFade: number;
   maxWetSpots: number;
@@ -140,6 +143,7 @@ export class WeaponConfig {
           viewmodel: Schema.object({
             variant: Schema.string(),
             scale: Schema.number({ min: 0.01 }),
+            lightScale: Schema.number({ min: 0, max: 2 }),
             position: Schema.vec3(),
             rotationDeg: Schema.vec3(),
             swayPerRadPerSec: positive(),
@@ -167,11 +171,13 @@ export class WeaponConfig {
             splashSpeed: range2(),
             splashSize: range2(),
             splashLife: range2(),
+            splashFullDistance: Schema.number({ min: 0.01 }),
             gravity: positive(),
             streamGravity: positive(),
             wetSize: range2(),
             wetDepth: Schema.number({ min: 0.01 }),
             wetAlpha: Schema.number({ min: 0, max: 1 }),
+            wetGlow: positive(),
             wetLifetime: positive(),
             wetFade: positive(),
             maxWetSpots: Schema.integer({ min: 0 }),

@@ -18,6 +18,8 @@ export interface BlueprintOptions {
   scale?: number;
   /** Name prefix of the created nodes. */
   name?: string;
+  /** Scales how strongly scene lights act on the model (a viewmodel sits right under the lamps). */
+  lightScale?: number;
 }
 
 /** A model assembled from a blueprint: root node, all meshes, movable groups and anchor points. */
@@ -73,6 +75,7 @@ export class BlueprintBuilder {
         emissive: material.baseEmissive + (part.emissive ?? 0),
         alpha: part.alpha,
         maxSimultaneousLights: material.maxSimultaneousLights,
+        diffuseScale: options.lightScale,
       });
       return mesh;
     });

@@ -66,7 +66,7 @@ export class WaterEffects {
   shot(muzzle: Vector3, end: Vector3, hit: HitResult | null): void {
     this.jet(muzzle, end);
     if (hit !== null) {
-      this.spray(hit.point, hit.normal);
+      this.spray(hit.point, hit.normal, hit.distance);
       this.wetSpots.add(hit.mesh, hit.point, hit.normal);
     }
   }
@@ -100,10 +100,12 @@ export class WaterEffects {
     }
   }
 
-  private spray(point: Vector3, normal: Vector3): void {
+  /** Spray off the surface; point-blank hits spray less, so droplets do not burst over the whole view. */
+  private spray(point: Vector3, normal: Vector3, distance: number): void {
     const { data, random } = this;
     const start = point.add(normal.scale(SPLASH_LIFT));
-    for (let i = 0; i < data.splashDroplets; i++) {
+    const count = Math.round(data.splashDroplets * Math.min(1, distance / data.splashFullDistance));
+    for (let i = 0; i < count; i++) {
       const direction = new Vector3(
         normal.x + random.range(-SPLASH_SIDEWAYS, SPLASH_SIDEWAYS),
         normal.y + random.range(-SPLASH_SIDEWAYS, SPLASH_SIDEWAYS),
