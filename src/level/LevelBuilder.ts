@@ -14,6 +14,7 @@ import { LevelConfig } from "./LevelConfig";
 import { LevelLayout } from "./LevelLayout";
 import type { LevelData } from "./LevelTypes";
 import { OpeningBuilder } from "./OpeningBuilder";
+import { OverlapResolver } from "./OverlapResolver";
 import { RailingBuilder } from "./RailingBuilder";
 import { StairBuilder } from "./StairBuilder";
 import { StaticGeometry } from "./StaticGeometry";
@@ -50,7 +51,9 @@ export class LevelBuilder {
     const { scene } = game;
     const layout = new LevelLayout(level, greybox);
     const materials = await MaterialLibrary.load(scene);
-    const pieces = LevelBuilder.collect(layout, (id) => materials.textureEntry(id)?.plan?.rectPx);
+    const collected = LevelBuilder.collect(layout, (id) => materials.textureEntry(id)?.plan?.rectPx);
+    // Visible boxes are carved so none overlap (no coplanar faces = no z-fighting); colliders stay as built.
+    const pieces = OverlapResolver.resolve(collected, greybox.audit.minPiece);
     const resolve = (id: string): Material => {
       if (!id.startsWith(GLOW_PREFIX)) return materials.get(id);
       const [color, intensity] = id.slice(GLOW_PREFIX.length).split(":");
@@ -89,6 +92,7 @@ export class LevelBuilder {
         size: { x: r.x1 - r.x0, y: blocker.height, z: r.z1 - r.z0 },
         visible: true,
         collide: true,
+        role: "fill",
       });
     }
   }

@@ -31,6 +31,7 @@ export class StairBuilder {
         visible: true,
         collide: true,
         navigable: true,
+        role: "slab",
       });
     }
   }

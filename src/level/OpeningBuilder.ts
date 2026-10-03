@@ -1,11 +1,11 @@
 import type { GreyboxData } from "./GreyboxConfig";
-import type { PieceSink, Vec3 } from "./GreyboxTypes";
+import type { PieceSink } from "./GreyboxTypes";
 import { LevelLayout, type RoomSide, type SideOpening } from "./LevelLayout";
 import type { Door, Room } from "./LevelTypes";
 
 /**
  * What fills the holes `WallBuilder` leaves in the walls: wooden frames around door openings (the leaves are
- * phase 10), and windows — a glass pane that stops the player plus a self-lit view billboard behind it.
+ * phase 10), and windows — a glass pane that stops the player; the view outside is the skybox.
  */
 export class OpeningBuilder {
   constructor(
@@ -46,39 +46,25 @@ export class OpeningBuilder {
     piece(0, door.width + 2 * fw, top, top + fw);
   }
 
-  /** Glass in the middle of the wall and the view billboard `viewDistance` beyond its outer face. */
+  /**
+   * Glass in the middle of the wall, inset from the reveal so no face is coplanar with the wall (z-fighting). There is
+   * nothing behind it: the window looks out at the Prague skybox (`Skybox`), not at a per-window picture.
+   */
   window(room: Room, side: RoomSide, opening: SideOpening, wallThickness: number): void {
-    const window = opening.window;
-    if (window === undefined) return;
-    const { glassMaterial, glassThickness, viewDistance, viewScale, views } = this.data.windows;
-    const width = opening.a1 - opening.a0;
-    const height = opening.top - opening.bottom;
+    if (opening.window === undefined) return;
+    const { glassMaterial, glassThickness, glassInset } = this.data.windows;
+    const width = opening.a1 - opening.a0 - 2 * glassInset;
+    const height = opening.top - opening.bottom - 2 * glassInset;
     const at = (opening.a0 + opening.a1) / 2;
     const y = (opening.bottom + opening.top) / 2;
-    const plan = (across: number): Vec3 =>
-      side.axis === "x" ? LevelLayout.toWorld(side.line + side.sign * across, y, at) : LevelLayout.toWorld(at, y, side.line + side.sign * across);
-
+    const across = side.line + (side.sign * wallThickness) / 2;
     this.sink.box({
       owner: room.id,
       material: glassMaterial,
-      center: plan(wallThickness / 2),
+      center: side.axis === "x" ? LevelLayout.toWorld(across, y, at) : LevelLayout.toWorld(at, y, across),
       size: side.axis === "x" ? { x: glassThickness, y: height, z: width } : { x: width, y: height, z: glassThickness },
       visible: true,
       collide: true,
-    });
-
-    // Outward direction in world space and "right" for a viewer inside looking out (left-handed, y up).
-    const out = side.axis === "x" ? { x: side.sign, z: 0 } : { x: 0, z: -side.sign };
-    const right = { x: out.z, z: -out.x };
-    const c = plan(wallThickness + viewDistance);
-    const hw = (width * viewScale) / 2;
-    const hh = (height * viewScale) / 2;
-    const corner = (r: number, u: number): Vec3 => ({ x: c.x + right.x * r, y: c.y + u, z: c.z + right.z * r });
-    this.sink.quad({
-      owner: room.id,
-      material: views[window.view],
-      corners: [corner(-hw, hh), corner(hw, hh), corner(hw, -hh), corner(-hw, -hh)],
-      facing: { x: -out.x, y: 0, z: -out.z },
     });
   }
 }

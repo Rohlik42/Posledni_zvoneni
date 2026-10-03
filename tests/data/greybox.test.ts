@@ -50,7 +50,6 @@ test("every material the level and the generator use is defined", () => {
     greybox.railings.material,
     greybox.doors.frameMaterial,
     greybox.windows.glassMaterial,
-    ...Object.values(greybox.windows.views),
     ...Object.values(greybox.blockers.materials),
     ...greybox.decals.map((d) => d.material),
   ]);

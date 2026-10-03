@@ -18,8 +18,9 @@ export interface RoomSide {
 
 /**
  * What a stretch of a room side is:
- * - `wall`: a wall from the side line outward, `thickness` thick (half the gap to the neighbour, half the interior
- *   thickness when the rooms touch, the exterior thickness when nobody is across);
+ * - `wall`: a wall from the side line outward, `thickness` thick (half the gap to the neighbour, the exterior
+ *   thickness when nobody is across); when the rooms touch, half the interior thickness built **inward** (`inward`),
+ *   so each room sees — and lights — its own half instead of the neighbour's;
  * - `railing`: the room looks into a stair shaft that touches it — a railing on the room's edge instead of a wall;
  * - `none`: this room is the shaft, the neighbour builds the railing.
  */
@@ -28,6 +29,8 @@ export interface SideSegment {
   a1: number;
   kind: "wall" | "railing" | "none";
   thickness: number;
+  /** The wall lies inside the room's rectangle (rooms that touch), not outside it. */
+  inward: boolean;
   neighbour: Room | null;
 }
 
@@ -176,15 +179,16 @@ export class LevelLayout {
       const nearest = across.filter((n) => n.a0 <= mid && n.a1 >= mid).sort((p, q) => p.gap - q.gap)[0];
       let segment: SideSegment;
       if (nearest === undefined) {
-        segment = { a0, a1, kind: "wall", thickness: exteriorThickness, neighbour: null };
+        segment = { a0, a1, kind: "wall", thickness: exteriorThickness, inward: false, neighbour: null };
       } else if ((room.shaft === true || nearest.room.shaft === true) && nearest.gap <= touchEpsilon) {
-        segment = { a0, a1, kind: room.shaft === true ? "none" : "railing", thickness: 0, neighbour: nearest.room };
+        segment = { a0, a1, kind: room.shaft === true ? "none" : "railing", thickness: 0, inward: false, neighbour: nearest.room };
       } else {
-        const thickness = nearest.gap > touchEpsilon ? nearest.gap / 2 : interiorThickness / 2;
-        segment = { a0, a1, kind: "wall", thickness, neighbour: nearest.room };
+        const touching = nearest.gap <= touchEpsilon;
+        const thickness = touching ? interiorThickness / 2 : nearest.gap / 2;
+        segment = { a0, a1, kind: "wall", thickness, inward: touching, neighbour: nearest.room };
       }
       const last = segments[segments.length - 1];
-      if (last !== undefined && last.kind === segment.kind && last.thickness === segment.thickness && last.neighbour === segment.neighbour) {
+      if (last !== undefined && last.kind === segment.kind && last.thickness === segment.thickness && last.inward === segment.inward && last.neighbour === segment.neighbour) {
         last.a1 = a1;
       } else {
         segments.push(segment);
