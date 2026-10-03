@@ -1,0 +1,86 @@
+{
+  "//": "Rekvizity učeben a kabinetů (fáze 15): src/level/PropsConfig.ts načte, PropLayout rozvine, PropPlacer postaví jako thin instances (do levelu je napojí fáze 16, ukázka ?scene=props). Souřadnice jsou plánové jako v level.json (x doprava, z dolů po půdorysu). Kus je buď u zdi ('wall' = strana místnosti, 'at' = souřadnice podél ní; záda na zdi, míří do místnosti), nebo volně ('x', 'z', 'facing' = plánový směr, kam míří přední strana modelu). 'grid' kopíruje kus count[0]× podél x a count[1]× podél z s rozestupem step. Lavice a židle míří k tabuli, žák sedí za lavicí. 'clearance' hlídá tests/data/props.test.ts: průchod dveřmi, židle zajatého učitele, body robotů, krytů a pickupů, odstup od okraje místnosti.",
+  "wallGap": 0.09,
+  "clearance": { "door": 0.6, "teacher": 0.8, "point": 0.4, "wall": 0.08 },
+  "rooms": {
+    "f4-ucebna-30": [
+      { "blueprint": "blackboard", "wall": "minZ", "at": 6.5 },
+      { "blueprint": "teacherDesk", "x": 4.6, "z": 4.1, "facing": "maxZ" },
+      { "blueprint": "globe", "x": 3.7, "z": 5.3, "facing": "maxZ" },
+      { "blueprint": "schoolDesk", "x": 4.6, "z": 6.0, "facing": "minZ", "grid": { "count": [2, 4], "step": [3.6, 1.6] } },
+      { "blueprint": "schoolChair", "x": 4.3, "z": 6.5, "facing": "minZ", "grid": { "count": [2, 4], "step": [0.6, 1.6] } },
+      { "blueprint": "schoolChair", "x": 7.9, "z": 6.5, "facing": "minZ", "grid": { "count": [2, 4], "step": [0.6, 1.6] } },
+      { "blueprint": "cabinet", "wall": "minX", "at": 11.25, "grid": { "count": [1, 2], "step": [0, 1.08] } }
+    ],
+    "f4-hudebna": [
+      { "blueprint": "piano", "wall": "minX", "at": 24.5 },
+      { "blueprint": "schoolChair", "x": 2.65, "z": 24.5, "facing": "minX" },
+      { "blueprint": "blackboard", "wall": "minZ", "at": 5.5 },
+      { "blueprint": "schoolChair", "x": 6.0, "z": 27.6, "facing": "minZ", "grid": { "count": [5, 2], "step": [1.0, 1.8] } },
+      { "blueprint": "cabinet", "wall": "maxX", "at": 25.8, "grid": { "count": [1, 2], "step": [0, 1.08] } }
+    ],
+    "f4-ucebna-33": [
+      { "blueprint": "blackboard", "wall": "maxX", "at": 27.5 },
+      { "blueprint": "teacherDesk", "x": 27.6, "z": 27.5, "facing": "minX" },
+      { "blueprint": "schoolDesk", "variant": "worn", "x": 26.0, "z": 25.4, "facing": "maxX", "grid": { "count": [3, 2], "step": [-1.6, 3.2] } },
+      { "blueprint": "schoolChair", "variant": "worn", "x": 25.5, "z": 25.1, "facing": "maxX", "grid": { "count": [3, 2], "step": [-1.6, 0.6] } },
+      { "blueprint": "schoolChair", "variant": "worn", "x": 25.5, "z": 28.3, "facing": "maxX", "grid": { "count": [3, 2], "step": [-1.6, 0.6] } },
+      { "blueprint": "cabinet", "wall": "minX", "at": 26.5, "grid": { "count": [1, 2], "step": [0, 1.08] } }
+    ],
+    "f4-kabinet-zemepis": [
+      { "blueprint": "globe", "x": 30.2, "z": 23.9, "facing": "maxZ" }
+    ],
+    "f4-kabinet-matematika": [
+      { "blueprint": "blackboard", "wall": "minX", "at": 27.0 },
+      { "blueprint": "cabinet", "wall": "minX", "at": 24.0 },
+      { "blueprint": "cabinet", "wall": "minX", "at": 29.9 },
+      { "blueprint": "teacherDesk", "x": 43.2, "z": 29.6, "facing": "maxX" },
+      { "blueprint": "schoolDesk", "x": 47.9, "z": 24.5, "facing": "minX", "grid": { "count": [1, 2], "step": [0, 1.7] } },
+      { "blueprint": "schoolChair", "x": 48.4, "z": 24.2, "facing": "minX", "grid": { "count": [1, 2], "step": [0, 0.6] } },
+      { "blueprint": "schoolChair", "x": 48.4, "z": 25.9, "facing": "minX", "grid": { "count": [1, 2], "step": [0, 0.6] } }
+    ],
+    "f3-kabinet-fyzika": [
+      { "blueprint": "blackboard", "wall": "minZ", "at": 6.5 },
+      { "blueprint": "teacherDesk", "x": 8.2, "z": 2.4, "facing": "maxZ" },
+      { "blueprint": "labBench", "x": 7.4, "z": 6.6, "facing": "minZ", "grid": { "count": [1, 2], "step": [0, 2.0] } },
+      { "blueprint": "labBench", "x": 4.6, "z": 7.0, "facing": "minZ", "grid": { "count": [1, 2], "step": [0, 4.0] } },
+      { "blueprint": "cabinet", "wall": "maxZ", "at": 4.0, "grid": { "count": [3, 1], "step": [1.08, 0] } }
+    ],
+    "f3-kabinet-cestina": [
+      { "blueprint": "teacherDesk", "x": 14.2, "z": 27.6, "facing": "minZ" },
+      { "blueprint": "cabinet", "wall": "minX", "at": 27.0, "grid": { "count": [1, 3], "step": [0, 1.08] } },
+      { "blueprint": "cabinet", "wall": "maxX", "at": 26.5, "grid": { "count": [1, 2], "step": [0, 1.08] } },
+      { "blueprint": "globe", "x": 15.8, "z": 29.9, "facing": "minX" }
+    ],
+    "f3-kabinet-anglictina": [
+      { "blueprint": "schoolDesk", "x": 30.0, "z": 13.8, "facing": "maxZ", "grid": { "count": [2, 1], "step": [1.4, 0] } },
+      { "blueprint": "schoolChair", "x": 29.7, "z": 13.3, "facing": "maxZ", "grid": { "count": [2, 1], "step": [0.6, 0] } },
+      { "blueprint": "schoolChair", "x": 31.1, "z": 13.3, "facing": "maxZ", "grid": { "count": [2, 1], "step": [0.6, 0] } },
+      { "blueprint": "cabinet", "wall": "minZ", "at": 29.5, "grid": { "count": [3, 1], "step": [1.08, 0] } }
+    ],
+    "f3-atelier": [
+      { "blueprint": "blackboard", "wall": "minX", "at": 25.5 },
+      { "blueprint": "cabinet", "wall": "maxX", "at": 24.0, "grid": { "count": [1, 3], "step": [0, 1.08] } },
+      { "blueprint": "schoolDesk", "variant": "worn", "x": 53.6, "z": 24.4, "facing": "minZ" },
+      { "blueprint": "schoolChair", "variant": "worn", "x": 53.3, "z": 24.9, "facing": "minZ", "grid": { "count": [2, 1], "step": [0.6, 0] } },
+      { "blueprint": "schoolDesk", "variant": "worn", "x": 50.4, "z": 28.4, "facing": "maxZ" },
+      { "blueprint": "schoolChair", "variant": "worn", "x": 50.1, "z": 27.9, "facing": "maxZ", "grid": { "count": [2, 1], "step": [0.6, 0] } }
+    ],
+    "f2-kabinet-dejepis": [
+      { "blueprint": "blackboard", "wall": "minZ", "at": 6.45 },
+      { "blueprint": "teacherDesk", "x": 8.2, "z": 6.6, "facing": "maxZ" },
+      { "blueprint": "globe", "x": 9.2, "z": 8.0, "facing": "minX" },
+      { "blueprint": "schoolDesk", "x": 4.6, "z": 10.4, "facing": "minZ", "grid": { "count": [1, 2], "step": [0, 1.6] } },
+      { "blueprint": "schoolChair", "x": 4.3, "z": 10.9, "facing": "minZ", "grid": { "count": [2, 2], "step": [0.6, 1.6] } },
+      { "blueprint": "cabinet", "wall": "minX", "at": 6.5, "grid": { "count": [1, 2], "step": [0, 1.08] } }
+    ],
+    "f2-gym": [
+      { "blueprint": "wallBars", "wall": "minZ", "at": 48.5, "grid": { "count": [8, 1], "step": [1.0, 0] } },
+      { "blueprint": "wallBars", "wall": "maxX", "at": 24.5, "grid": { "count": [1, 3], "step": [0, 1.0] } }
+    ],
+    "f2-satna": [
+      { "blueprint": "cabinet", "variant": "locker", "wall": "minX", "at": 24.0, "grid": { "count": [1, 5], "step": [0, 1.08] } },
+      { "blueprint": "cabinet", "variant": "locker", "wall": "maxX", "at": 24.5, "grid": { "count": [1, 4], "step": [0, 1.08] } }
+    ]
+  }
+}

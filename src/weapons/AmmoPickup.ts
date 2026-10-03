@@ -12,7 +12,7 @@ const TWO_PI = Math.PI * 2;
 export interface AmmoPickupPlacement extends StationPlacement {
   weapon: string;
   amount: number;
-  /** Registered model name (`ModelRegistry`), e.g. `WaterBalloonPackModel`. */
+  /** Registered model name (`ModelRegistry`), e.g. `BalloonPackModel`. */
   model: string;
   /** Seconds until it reappears after being taken; 0 = never. */
   respawnSeconds: number;
