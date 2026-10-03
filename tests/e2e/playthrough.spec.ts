@@ -86,6 +86,10 @@ const routeIndex = (label: string): number => {
 };
 const teacherOfSlot = (slot: number): string => teachersData.teachers.find((t) => t.slot === slot)!.id;
 const STEP_MS = 1000 / 60;
+/** data/props.json furnishes 12 rooms (phase 15). */
+const PROP_ROOMS_MIN = 12;
+/** A prop keeps this far (m) from a teacher's chair and a station's front point. */
+const PROP_CLEARANCE_M = 0.3;
 
 /** In-page helpers of the scripted player (serialised into the page; no closures over test-side values). */
 function installPlayer(cfg: {
@@ -351,6 +355,10 @@ test.describe.serial("playthrough of the level on the main page", () => {
         hydrants: g.weaponStations!.hydrants(),
         pickups: g.pickups!.list().map((p) => p.id),
         weapons: g.weapons!.list().filter((w) => w.owned).map((w) => w.id),
+        furniture: g.furniture!.instances(),
+        furnitureMeshes: g.furniture!.meshes(),
+        furnitureTriangles: g.furniture!.triangles(),
+        litProps: g.lighting!.lightsOn("prop:"),
       };
     });
     expect(state.scene).toBe("game");
@@ -383,6 +391,22 @@ test.describe.serial("playthrough of the level on the main page", () => {
     expect(state.hydrants.map((h) => level.pickups.find((p) => p.id === h.id)!.room)).toEqual(["f2-gym"]);
     expect(state.pickups.sort()).toEqual(level.pickups.filter((p) => !pickupsData.external.includes(p.item)).map((p) => p.id).sort());
     expect(state.weapons).toEqual(["waterPistol"]);
+    // Props of data/props.json furnish the rooms (phase 15 → 16), lit by the rooms' lamps, clear of the teacher chairs
+    // and the stations (wall extinguishers, hydrant) where they really stand.
+    expect(new Set(state.furniture.map((p) => p.room)).size).toBeGreaterThanOrEqual(PROP_ROOMS_MIN);
+    expect(state.furnitureMeshes).toBeGreaterThan(0);
+    expect(state.furnitureTriangles).toBeGreaterThan(0);
+    expect(state.litProps).toBeGreaterThan(0);
+    const covers = (f: { x0: number; z0: number; x1: number; z1: number }, x: number, z: number, margin: number) =>
+      x > f.x0 - margin && x < f.x1 + margin && z > f.z0 - margin && z < f.z1 + margin;
+    for (const prop of state.furniture) {
+      for (const slot of level.teachers.filter((t) => t.room === prop.room)) {
+        expect(covers(prop.footprint, slot.chair.x, slot.chair.z, PROP_CLEARANCE_M), `${prop.blueprint} on teacher ${slot.slot}`).toBe(false);
+      }
+      for (const station of [...state.refills, ...state.hydrants]) {
+        expect(covers(prop.footprint, station.position.x, -station.position.z, PROP_CLEARANCE_M), `${prop.room} ${prop.blueprint} on ${station.id}`).toBe(false);
+      }
+    }
 
     await page.evaluate(() => window.__game!.progress!.intro.dismiss());
     expect(await page.evaluate(() => window.__game!.progress!.intro.visible)).toBe(false);
@@ -654,5 +678,8 @@ test.describe.serial("playthrough of the level on the main page", () => {
       description: `walked ${end.play.walked.toFixed(0)} m, teleported ${end.play.teleports}× (${end.play.teleported.toFixed(0)} m), heals ${end.play.heals}, kills ${end.stats.kills}/${end.dead} dead, shots ${end.play.shots}, simulated time ${end.stats.timeSeconds.toFixed(0)} s (walk ${(end.play.walkMs / 1000).toFixed(1)} s, fights ${(end.play.fightMs / 1000).toFixed(1)} s of real time)`,
     });
     console.log(test.info().annotations.map((a) => a.description).join("\n"));
+    // The end screen with the run's real numbers (time, kills, answers), for the handoff.
+    await page.evaluate(() => window.__game!.step(1));
+    await page.screenshot({ path: "screenshots/16-level-end.png" });
   });
 });

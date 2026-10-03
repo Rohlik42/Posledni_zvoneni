@@ -21,6 +21,7 @@ import { LevelStations } from "./LevelStations";
 import { NavMeshService } from "./NavMeshService";
 import { PickupField } from "./PickupField";
 import { ProgressionConfig } from "./ProgressionConfig";
+import { PropPlacer, type PlacedProps } from "./PropPlacer";
 import { RoomLighting } from "./RoomLighting";
 import { TeacherSystem } from "./TeacherSystem";
 
@@ -53,6 +54,8 @@ export interface LevelGameplayOptions {
 
 /** The full game's systems on top of the level (`play`, phase 16). */
 export interface GameParts {
+  /** Furniture of `data/props.json` (phase 15), lit by its rooms; no collisions. */
+  props: PlacedProps;
   quiz: QuizSystem;
   teachers: TeacherSystem;
   stations: WeaponStations;
@@ -66,9 +69,20 @@ export interface LightingTestApi {
   lightsOn: (prefix: string) => number;
 }
 
+/** `window.__game.furniture` — props placed in the full game (`play`). */
+export interface FurnitureTestApi {
+  /** Placed props with their plan footprint (x right, z down the floorplan). */
+  instances: () => { room: string; blueprint: string; footprint: { x0: number; z0: number; x1: number; z1: number } }[];
+  /** Prop meshes in the scene (one per room × blueprint × variant × material). */
+  meshes: () => number;
+  /** Triangles drawn by all props (thin instances counted). */
+  triangles: () => number;
+}
+
 declare module "../core/TestHooks" {
   interface GameTestModules {
     lighting: LightingTestApi;
+    furniture: FurnitureTestApi;
   }
 }
 
@@ -116,8 +130,9 @@ export class LevelGameplay {
     hud.setHintSource(() => doors.hint);
     const pickups = PickupField.create(game, player, inventory, lighting);
     pickups.spawnLevel(level.layout);
-    // Phase 15 hook: props of data/props.json (PropPlacer) go here, after the level geometry and before the robots.
     const play = options.play === true;
+    // The full game furnishes the rooms (phase 15 props); the bare level stays empty for geometry tests and `?scene=props`.
+    const props = play ? LevelGameplay.furnish(game, level, lighting) : null;
     const countDelta = options.countDelta ?? ProgressionConfig.load().countDelta;
     const enemies = LevelGameplay.enemies(game, player, navmesh, level, options.enemies ?? (play ? "all" : null), countDelta);
     if (enemies !== null) {
@@ -125,7 +140,7 @@ export class LevelGameplay {
       pickups.attachDrops(enemies.enemies);
       for (const enemy of enemies.enemies) lighting.track(() => LevelGameplay.robotMeshes(enemy), () => enemy.position);
     }
-    const parts = play ? LevelGameplay.play(game, physics, level, navmesh, player, weapons, inventory, hud, doors, pickups, lighting, enemies, options) : null;
+    const parts = props !== null ? LevelGameplay.play(game, physics, level, navmesh, player, weapons, inventory, hud, doors, pickups, lighting, enemies, props, options) : null;
     if (parts === null) {
       // The bare level (geometry tests): back to the start at once. The full game goes back to its checkpoint.
       player.health.onDeath.add(() => {
@@ -170,6 +185,7 @@ export class LevelGameplay {
     pickups: PickupField,
     lighting: RoomLighting,
     enemies: EnemyManager | null,
+    props: PlacedProps,
     options: LevelGameplayOptions,
   ): GameParts {
     const data = ProgressionConfig.load();
@@ -192,7 +208,14 @@ export class LevelGameplay {
       { intro: options.intro === true, resume: options.resume === true },
       options.difficultyName ?? null,
     );
-    return { quiz, teachers, stations, progress };
+    return { props, quiz, teachers, stations, progress };
+  }
+
+  /** Props of `data/props.json` in their rooms, each room's props lit by that room's lamps. */
+  private static furnish(game: Game, level: Level, lighting: RoomLighting): PlacedProps {
+    const props = PropPlacer.place(game.scene, level.layout);
+    for (const [room, meshes] of props.meshesByRoom) lighting.attach(meshes, [room]);
+    return props;
   }
 
   private static spawn(level: Level, options: LevelGameplayOptions): PlayerSpawn {
@@ -235,5 +258,13 @@ export class LevelGameplay {
       rooms: () => lighting.trackedRooms(),
       lightsOn: (prefix) => level.lights.filter((light) => light.includedOnlyMeshes.some((mesh) => mesh.name.startsWith(prefix))).length,
     });
+    const props = this.game?.props;
+    if (props !== undefined) {
+      TestHooks.register("furniture", {
+        instances: () => props.props.instances.map((i) => ({ room: i.room, blueprint: i.blueprint, footprint: { ...i.footprint } })),
+        meshes: () => [...props.meshesByRoom.values()].reduce((sum, list) => sum + list.length, 0),
+        triangles: () => props.triangles(),
+      });
+    }
   }
 }

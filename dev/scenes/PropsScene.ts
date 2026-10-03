@@ -7,7 +7,7 @@ import { ModelBlueprints } from "../../src/rendering/ModelBlueprints";
 
 export const id = "props";
 export const title =
-  "Škola z level.json s rekvizitami z data/props.json (PropPlacer, thin instances; ?room=<id> začne v místnosti, ?yaw=<stupně> otočí pohled). Do levelu je napojí fáze 16.";
+  "Škola z level.json s rekvizitami z data/props.json (PropPlacer, thin instances; ?room=<id> začne v místnosti, ?yaw=<stupně> otočí pohled). Ve hře (/, ?play=1) je staví LevelGameplay sám (fáze 16).";
 
 export interface PropsRoomInfo {
   room: string;

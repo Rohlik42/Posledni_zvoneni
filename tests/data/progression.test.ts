@@ -1,11 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { LevelEnemySpawns } from "../../src/enemies/LevelEnemySpawns";
 import { GreyboxConfig } from "../../src/level/GreyboxConfig";
 import { LevelConfig } from "../../src/level/LevelConfig";
 import { LevelLayout } from "../../src/level/LevelLayout";
 import { PickupConfig } from "../../src/level/PickupConfig";
 import { ProgressionConfig } from "../../src/level/ProgressionConfig";
+import { PropLayout } from "../../src/level/PropLayout";
 import { TeacherConfig } from "../../src/level/TeacherConfig";
 import { Palette } from "../../src/utils/Palette";
 import { Texts } from "../../src/utils/Texts";
@@ -85,6 +87,31 @@ test("route: from the start through every teacher's room and every locked door t
       const door = level.doors.find((d) => d.lock === lock);
       if (door === undefined) continue;
       assert.ok(keyAt < route.findIndex((p) => p.door === door.id), `${key.color} key before ${door.id}`);
+    }
+  }
+});
+
+/** Sampling step (m) along a route segment when checking it against the props. */
+const ROUTE_SAMPLE_M = 0.1;
+
+test("route: the furniture of props.json leaves the whole route walkable (player radius off every prop)", () => {
+  const radius = (JSON.parse(readFileSync("data/player.json", "utf8")) as { body: { radius: number } }).body.radius;
+  const props = new PropLayout(layout).instances.map((i) => ({ ...i, floor: layout.room(i.room).floor }));
+  const route = level.route;
+  for (let i = 1; i < route.length; i++) {
+    const a = route[i - 1]!;
+    const b = route[i]!;
+    if (a.floor !== b.floor) continue;
+    const length = Math.hypot(b.x - a.x, b.z - a.z);
+    const samples = Math.max(1, Math.ceil(length / ROUTE_SAMPLE_M));
+    for (let s = 0; s <= samples; s++) {
+      const x = a.x + ((b.x - a.x) * s) / samples;
+      const z = a.z + ((b.z - a.z) * s) / samples;
+      for (const prop of props.filter((p) => p.floor === a.floor)) {
+        const f = LevelLayout.grow(prop.footprint, radius);
+        const inside = x > f.x0 && x < f.x1 && z > f.z0 && z < f.z1;
+        assert.ok(!inside, `route ${i - 1}→${i} (${x.toFixed(2)}, ${z.toFixed(2)}) runs through ${prop.room} ${prop.blueprint}`);
+      }
     }
   }
 });
