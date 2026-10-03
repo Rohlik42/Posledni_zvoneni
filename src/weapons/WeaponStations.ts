@@ -11,7 +11,7 @@ import { HoseStation } from "./HoseStation";
 import { WeaponConfig, type WeaponData } from "./WeaponConfig";
 import type { WeaponInventory } from "./WeaponInventory";
 // Pickup models are looked up by name in ModelRegistry; their modules register themselves on import.
-import "./models/WaterBalloonPackModel";
+import "../level/models/BalloonPackModel";
 
 const EXTINGUISHER_CLASS = "Extinguisher";
 const HOSE_CLASS = "Hose";

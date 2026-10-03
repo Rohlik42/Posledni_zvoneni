@@ -12,6 +12,9 @@ export interface ModelInstance {
   dispose(): void;
 }
 
+/** Options a registered factory accepts: blueprint options plus model-specific ones (`lock` of a door, `features` of a teacher). */
+export type ModelOptions = BlueprintOptions & { readonly [key: string]: unknown };
+
 export interface ModelEntry {
   /** Unique model name, e.g. `"WaterPistolModel"`. */
   name: string;
@@ -19,12 +22,12 @@ export interface ModelEntry {
   /** One line for the gallery label. */
   title: string;
   /** Builds the model with default parameters, or with a variant / colours / scale (pickups, phase 10). */
-  create(scene: Scene, options?: BlueprintOptions): ModelInstance;
+  create(scene: Scene, options?: ModelOptions): ModelInstance;
 }
 
 /**
  * Every primitive model class registers itself here when its module loads (`ModelRegistry.register` at the bottom of
- * the file). The model-budget smoke test and the gallery (phase 15) load all `src/**\/models/*Model.ts` modules with
+ * the file). The model-budget smoke test and the gallery (`dev/?scene=gallery`, phase 15) load all `src/**\/models/*Model.ts` modules with
  * `import.meta.glob`, build each entry and compare its triangles with the budget of its category (`data/models.json`).
  */
 export class ModelRegistry {

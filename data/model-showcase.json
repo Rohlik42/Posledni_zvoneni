@@ -1,9 +1,0 @@
-{
-  "//": "Dev scéna 'models' (dev/scenes/ModelsScene.ts): všechny modely z ModelRegistry v řadě, každý zvětšený nebo zmenšený tak, aby jeho delší strana měla displaySize m, rozestup spacing m, otočený podle yawDegByCategory (zbraně bokem ke kameře). Slouží rozpočtovému testu (tests/smoke/model-budget.spec.ts); plnou galerii s popisky staví fáze 15.",
-  "displaySize": 1.2,
-  "spacing": 1.8,
-  "camera": { "position": [0, 1.4, -4.2], "target": [0, 0.6, 0] },
-  "light": { "position": [0, 3, -2.5], "color": "light.lamp", "intensity": 2.2, "range": 12 },
-  "floorColor": "world.floorTileDark",
-  "yawDegByCategory": { "weapon": -90 }
-}
