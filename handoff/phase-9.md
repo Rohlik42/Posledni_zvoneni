@@ -9,6 +9,9 @@ Quick gate green (PW_PORT=5304): `npm run typecheck` clean; `npm run test:data` 
 tests/e2e/level-walk.spec.ts` 11/11 (5 smoke + 6 level-walk, ~5 s). Full suite and `npm run build` NOT run (shift gate,
 per brief). Dev server killed.
 
+**After merging main @ 0d16433 (phase 3 merged, clean auto-merge):** typecheck clean, `npm run test:data` 50/50,
+`npx playwright test tests/smoke tests/e2e/level-walk.spec.ts` 12/12 (6 smoke incl. phase 3's model-budget + 6 level-walk).
+
 ## What changed
 
 **Shift-1 critique fixes**
