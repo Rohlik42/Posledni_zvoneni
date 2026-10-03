@@ -34,8 +34,9 @@ declare module "../../src/core/TestHooks" {
 
 export async function create(game: Game): Promise<void> {
   const gameplay = await LevelGameplay.create(game, LevelGameplay.optionsFromUrl(window.location.search));
-  const placed = PropPlacer.place(game.scene, gameplay.level.layout);
-  for (const [room, meshes] of placed.meshesByRoom) gameplay.lighting.attach(meshes, [room]);
+  // `?play=1` already furnished the level (phase 16); the bare level gets its props here.
+  const placed = gameplay.game?.props ?? PropPlacer.place(game.scene, gameplay.level.layout);
+  if (gameplay.game === null) for (const [room, meshes] of placed.meshesByRoom) gameplay.lighting.attach(meshes, [room]);
   const rooms = (): PropsRoomInfo[] =>
     placed.props.rooms().map((room) => {
       const instances = placed.props.inRoom(room);
