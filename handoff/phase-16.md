@@ -33,7 +33,7 @@ Playwright on its hashed port. Base: main @ f1359bc (worktree was cut from stale
 - **Verified:** `npm run typecheck` exit 0; `npm run test:data` 104/104; `PW_PORT=5351 npx playwright test tests/smoke
   tests/e2e/playthrough.spec.ts` 13/13 (49.8 s); playthrough `--repeat-each=2` 14/14. Run summary: **walked 424 m,
   teleported 4× (3 m), heals 0, 22/22 robots, 202 shots, 148 s simulated**. Play time estimate unchanged ≈ 18 min (+10 m).
-- **Screenshots (viewed):** `screenshots/16-level-end.png` now taken at the end of the real playthrough: Čas 2:23,
+- **Screenshots (viewed):** `screenshots/16-level-end.png` now taken at the end of the real playthrough: Čas 2:28 (148 s simulated),
   Zničení roboti 22, Správné 9, Špatné 1, Osvobození učitelé 9 z 9, Návraty na checkpoint 1, Obtížnost Záškoláček.
   `screenshots/16-main.png` (mandatory `/` check on :5301, click, 4 s): učebna 30 now furnished — two columns of desks
   with chairs, cabinet on the west wall, door ahead, HUD, pistol; webgpu ~46 fps, 0 console problems; 143 props,
