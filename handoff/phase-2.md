@@ -2,7 +2,21 @@
 
 Branch: `worktree-wf_c12d8fbe-c51-9` · worktree `.claude/worktrees/wf_c12d8fbe-c51-9` · base main @ 6d3b8f2 (merged in)
 
-## Status: DONE (milestone 5/5)
+## Status: DONE (fix pass after review, 2026-10-03)
+
+**Fix pass:** review failed the branch on one blocking issue: commit 0183b1c tracked the worktree's `node_modules`
+symlink (mode 120000, absolute path to the main checkout) because `.gitignore` had `node_modules/`, which matches only
+directories. Fixed in 2b0d1b9: `git rm --cached node_modules`, `.gitignore` entry is now `node_modules` (no slash,
+covers symlinks too). `git ls-files node_modules` is empty; `git diff main...HEAD --stat` no longer lists it. Then
+merged current main @ e9d71b5 (phases 7, 8, 12) into the branch, clean auto-merge, no conflicts. Quick gate rerun on
+the merged branch (PW_PORT=5302): `tsc --noEmit` exit 0; `npm run test:data` 31/31 (17 before + main's level/textures/
+quiz tests); `npx playwright test tests/smoke tests/e2e/movement.spec.ts` 14/14 (9.8 s). Visual check on my server
+:5302: `/` clicked + 4 s → `screenshots/02-fix-main.png`, unchanged empty fogged scene with vignette (this phase does
+not touch `/`); `/dev/?scene=boxroom` clicked + 4 s → `screenshots/02-fix-boxroom.png`: checker floor, stairs with
+landing on the left, 4 pillars, gold/red/green jump boxes, doorway on the north wall, lamp panel with bloom, level
+horizon; player grounded at (2, 0, −9.2), health 150, roll 0; 0 console warnings/errors on both pages. Server killed.
+
+### Original implementation status (milestone 5/5)
 
 Quick gate green (run on this branch, Playwright server on PW_PORT=5302): `npm run typecheck` 0 errors;
 `npm run test:data` 17/17; `npx playwright test tests/smoke tests/e2e/movement.spec.ts` 14/14 (5 smoke + 9 movement,
