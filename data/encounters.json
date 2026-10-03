@@ -1,0 +1,36 @@
+{
+  "//": "Rozmístění nepřátel v dev scénách (src/enemies/EncounterConfig.ts). Level má vlastní spawny a cover pointy v data/level.json (fáze 10/14/16). navExclude = jména mesh, které se nepečou do navmeshe (stropy: jejich horní plocha by byla 'podlaha' nad místností). enemies: id, type (klíč v data/enemies.json), pozice chodidel, yaw (0 = robot hledí k +z), patrol = body hlídkové trasy (robot je obchází dokola). coverPoints = místa, kde se robot kryje (pozice na podlaze, typicky za sloupem nebo bednou).",
+  "boxroomEnemy": {
+    "navExclude": ["ceiling", "alcoveCeiling"],
+    "enemies": [
+      {
+        "id": "humanoid1",
+        "type": "humanoid",
+        "position": [-4, 0, 8.4],
+        "yaw": 0,
+        "patrol": [[-4, 0, 8.4], [-7.4, 0, 8.4], [-7, 0, 5.4]]
+      }
+    ],
+    "coverPoints": [
+      { "id": "pillarNorthWest-north", "position": [-4, 0, 4.85] },
+      { "id": "pillarNorthWest-south", "position": [-4, 0, 3.15] },
+      { "id": "pillarNorthWest-east", "position": [-3.15, 0, 4] },
+      { "id": "pillarNorthWest-west", "position": [-4.85, 0, 4] },
+      { "id": "pillarNorthEast-north", "position": [4, 0, 4.85] },
+      { "id": "pillarNorthEast-south", "position": [4, 0, 3.15] },
+      { "id": "pillarNorthEast-east", "position": [4.85, 0, 4] },
+      { "id": "pillarNorthEast-west", "position": [3.15, 0, 4] },
+      { "id": "pillarSouthWest-north", "position": [-4, 0, -2.15] },
+      { "id": "pillarSouthWest-south", "position": [-4, 0, -3.85] },
+      { "id": "pillarSouthWest-east", "position": [-3.15, 0, -3] },
+      { "id": "pillarSouthWest-west", "position": [-4.85, 0, -3] },
+      { "id": "pillarSouthEast-north", "position": [4, 0, -2.15] },
+      { "id": "pillarSouthEast-south", "position": [4, 0, -3.85] },
+      { "id": "pillarSouthEast-east", "position": [4.85, 0, -3] },
+      { "id": "pillarSouthEast-west", "position": [3.15, 0, -3] },
+      { "id": "crateTall-north", "position": [-6, 0, -6.45] },
+      { "id": "jumpBox15-north", "position": [1.2, 0, 9.15] },
+      { "id": "alcove", "position": [6, 0, 12.6] }
+    ]
+  }
+}

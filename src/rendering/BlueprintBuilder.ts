@@ -8,6 +8,7 @@ import { ModelBlueprints, type Blueprint, type BlueprintPart } from "./ModelBlue
 
 const DEG_TO_RAD = Math.PI / 180;
 const DEFAULT_TESSELLATION = 8;
+const COMMENT_PREFIX = "//";
 
 export interface BlueprintOptions {
   /** Variant name from the blueprint (`defaultVariant` when omitted). */
@@ -47,18 +48,17 @@ export class BlueprintBuilder {
 
     const root = new TransformNode(prefix, scene);
     root.scaling.setAll(options.scale ?? 1);
-    const groups = new Map<string, TransformNode>();
-    for (const [group, pivot] of Object.entries(blueprint.groups ?? {})) {
-      const node = new TransformNode(`${prefix}-${group}`, scene);
-      node.parent = root;
-      node.position = Vector3.FromArray(pivot);
-      groups.set(group, node);
-    }
+    const groups = BlueprintBuilder.groups(scene, blueprint, prefix, root);
+    /** Pivots in model space; a node's local position is its pivot minus its parent group's pivot. */
+    const pivotOf = (group: string | undefined): Vector3 =>
+      group === undefined || blueprint.groups?.[group] === undefined ? Vector3.Zero() : Vector3.FromArray(blueprint.groups[group]);
     const anchors = new Map<string, TransformNode>();
     for (const [anchor, position] of Object.entries(blueprint.anchors ?? {})) {
+      if (anchor.startsWith(COMMENT_PREFIX)) continue;
+      const parentGroup = blueprint.anchorParents?.[anchor];
       const node = new TransformNode(`${prefix}-${anchor}`, scene);
-      node.parent = root;
-      node.position = Vector3.FromArray(position);
+      node.parent = (parentGroup === undefined ? undefined : groups.get(parentGroup)) ?? root;
+      node.position = Vector3.FromArray(position).subtractInPlace(pivotOf(parentGroup));
       anchors.set(anchor, node);
     }
 
@@ -67,9 +67,7 @@ export class BlueprintBuilder {
       const parent = part.group === undefined ? root : groups.get(part.group);
       if (parent === undefined) throw new Error(`blueprint ${blueprintName}: part ${part.name} has no parent`);
       mesh.parent = parent;
-      const position = Vector3.FromArray(part.position);
-      if (part.group !== undefined) position.subtractInPlace(parent.position);
-      mesh.position = position;
+      mesh.position = Vector3.FromArray(part.position).subtractInPlace(pivotOf(part.group));
       if (part.rotationDeg !== undefined) mesh.rotation = Vector3.FromArray(part.rotationDeg).scale(DEG_TO_RAD);
       mesh.material = FlatMaterials.get(scene, slots[part.color] ?? part.color, {
         emissive: material.baseEmissive + (part.emissive ?? 0),
@@ -87,6 +85,28 @@ export class BlueprintBuilder {
       anchors,
       dispose: () => root.dispose(false, false),
     };
+  }
+
+  /** Group nodes at their pivots, nested by `groupParents` (a parent is created before its children). */
+  private static groups(scene: Scene, blueprint: Blueprint, prefix: string, root: TransformNode): Map<string, TransformNode> {
+    const pivots = blueprint.groups ?? {};
+    const parents = blueprint.groupParents ?? {};
+    const groups = new Map<string, TransformNode>();
+    const make = (group: string): TransformNode => {
+      const existing = groups.get(group);
+      if (existing !== undefined) return existing;
+      const parentName = parents[group];
+      const parent = parentName === undefined ? root : make(parentName);
+      const node = new TransformNode(`${prefix}-${group}`, scene);
+      node.parent = parent;
+      const pivot = Vector3.FromArray(pivots[group] ?? [0, 0, 0]);
+      const parentPivot = parentName === undefined ? Vector3.Zero() : Vector3.FromArray(pivots[parentName] ?? [0, 0, 0]);
+      node.position = pivot.subtract(parentPivot);
+      groups.set(group, node);
+      return node;
+    };
+    for (const group of Object.keys(pivots)) if (!group.startsWith(COMMENT_PREFIX)) make(group);
+    return groups;
   }
 
   private static slots(blueprint: Blueprint, name: string, options: BlueprintOptions): Record<string, string> {

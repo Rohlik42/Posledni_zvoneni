@@ -1,0 +1,119 @@
+{
+  "//": "Nepřátelé (src/enemies/*, DESIGN §5). Jednotky: metry, sekundy, m/s, úhly ve stupních (*Deg). health = HP; resistances = násobič damage podle typu (voda a elektřina robotům škodí víc, DESIGN §4). drops = co po smrti padne: item (id pro fázi 10, zatím jen událost), chance 0–1, amount; los je deterministický (dropSeed). statusResistance = násobič trvání zpomalení a omráčení (applyStatus). Fáze 14 přidá 'quadruped' a 'drone'.",
+  "dropSeed": 4066,
+  "humanoid": {
+    "model": "HumanoidRobotModel",
+    "variant": "patrol",
+    "health": 60,
+    "resistances": { "water": 1.5, "electric": 2, "kinetic": 0.6, "explosion": 1, "quiz": 0 },
+    "drops": [
+      { "item": "ammo.waterBalloons", "chance": 0.3, "amount": 2 },
+      { "item": "ammo.extinguisher", "chance": 0.25, "amount": 20 }
+    ],
+    "statusResistance": { "slow": 1, "stun": 1 },
+    "body": {
+      "//": "radius = poloměr pro navmesh a zásah projektilem hráče; eyeHeight = odkud robot vidí; aimHeight = kam míří hráč a odkud se počítá střed robota.",
+      "radius": 0.4,
+      "height": 1.95,
+      "eyeHeight": 1.75,
+      "aimHeight": 1.3
+    },
+    "movement": {
+      "//": "walkSpeed při hlídce a hledání, runSpeed při pronásledování a běhu do krytu. acceleration = maxForce Yuka vozidla (m/s²). turnRate = rad/s otáčení. waypointDistance = kdy cesta přepne na další bod, arriveDistance = kdy je robot v cíli. repathInterval = jak často se přepočítá cesta za pohyblivým cílem.",
+      "walkSpeed": 1.5,
+      "runSpeed": 3.1,
+      "acceleration": 14,
+      "turnRate": 6,
+      "waypointDistance": 0.45,
+      "arriveDistance": 0.35,
+      "repathInterval": 0.5
+    },
+    "senses": {
+      "//": "fovDeg = zorné pole, visionRange = dohled, visionInterval = jak často se testuje viditelnost (paprsek do scény). hearingRange = do jaké vzdálenosti slyší výstřel hráče (× hlasitost zvuku). memorySpan = jak dlouho si pamatuje, kde hráče naposledy vnímal. alertTime = jak dlouho se po podnětu otáčí a rozhoduje (stav Alert).",
+      "fovDeg": 120,
+      "visionRange": 24,
+      "visionInterval": 0.1,
+      "hearingRange": 26,
+      "memorySpan": 6,
+      "alertTime": 0.45
+    },
+    "attack": {
+      "//": "range = do jaké vzdálenosti střílí, když hráče vidí (dál pronásleduje). windup = nápřah (ústí kanónu se rozzáří, pak záblesk a výboj). cooldown = pauza mezi výstřely. loseSightTime = po jaké době bez výhledu přejde zpět do pronásledování. aimErrorDeg = rozptyl mušky.",
+      "range": 10,
+      "windup": 0.4,
+      "cooldown": 1.3,
+      "firstShotDelay": 0.35,
+      "loseSightTime": 1.2,
+      "aimErrorDeg": 1.2,
+      "damage": 10,
+      "damageType": "electric"
+    },
+    "projectile": {
+      "//": "Elektrický výboj: koule letí speed m/s, žije life s, zasáhne hráče do vzdálenosti radius od jeho kapsle, zastaví ji zeď. glow = jas (nad 1 → bloom). trail = jiskry za výbojem (za sekundu). flash = záblesk na ústí při výstřelu (velikost m a doba s).",
+      "speed": 13,
+      "radius": 0.16,
+      "life": 2.5,
+      "size": 0.26,
+      "color": "neon.electric",
+      "glow": 3.2,
+      "trailPerSecond": 70,
+      "trailLife": 0.25,
+      "flashSize": 0.55,
+      "flashTime": 0.09
+    },
+    "cover": {
+      "//": "Robot se při poklesu HP pod každou hodnotu z healthThresholds (podíl max HP) rozběhne k nejbližšímu krytu (coverPoints v data/encounters.json), ze kterého ho hráč nevidí a který je do searchRadius m. V krytu čeká holdTime s, pak znovu útočí nebo pronásleduje.",
+      "healthThresholds": [0.6, 0.3],
+      "searchRadius": 12,
+      "holdTime": 1.8
+    },
+    "search": {
+      "//": "Když hráče ztratí: dojde na poslední známé místo a pak duration s obchází náhodné body do radius m (seed), na každém počká pauseTime s. Potom se vrátí k hlídce.",
+      "duration": 7,
+      "radius": 4,
+      "pauseTime": 0.8,
+      "seed": 31
+    },
+    "patrol": { "waitTime": 1.4 },
+    "hit": {
+      "//": "Reakce na zásah: robot na time s problikne barvou flashColor (síla flashIntensity) a trhne trupem dozadu o leanDeg.",
+      "time": 0.16,
+      "leanDeg": 14,
+      "flashColor": "neon.spark",
+      "flashIntensity": 0.55
+    },
+    "animation": {
+      "//": "Procedurální animace (HumanoidRobotModel): strideLength = m na jeden krok, legSwingDeg/kneeBendDeg/armSwingDeg = rozkmit končetin při chůzi, bobHeight = pohup boků. aimBlend = jak rychle zvedne kanón (1/s). chargeOrbSize = průměr nabíjecí koule na ústí na konci nápřahu, chargeGlow = její jas. stunTwitchDeg = cukání hlavy při omráčení.",
+      "strideLength": 0.75,
+      "legSwingDeg": 30,
+      "kneeBendDeg": 42,
+      "armSwingDeg": 22,
+      "bobHeight": 0.035,
+      "aimBlend": 9,
+      "chargeOrbSize": 0.24,
+      "chargeGlow": 2.4,
+      "chargeColor": "neon.electric",
+      "stunTwitchDeg": 18
+    },
+    "death": {
+      "//": "Smrt: robot se rozpadne na díly, které odletí rychlostí speed (m/s, rozsah) s výskokem up, rotují spin rad/s, padají s gravity a odráží se od podlahy (bounce, friction). Po life s zmizí (posledních fade s se propadají do podlahy). Jiskry: sparks naráz, pak lingerSparksPerSecond z trupu po dobu lingerTime.",
+      "speed": [1.5, 4.2],
+      "up": [1.8, 4.5],
+      "spin": 9,
+      "gravity": 14,
+      "bounce": 0.3,
+      "friction": 0.55,
+      "life": 5,
+      "fade": 1,
+      "sparks": 70,
+      "sparkSpeed": [2, 7.5],
+      "sparkLife": [0.25, 0.8],
+      "sparkSize": [0.03, 0.08],
+      "sparkColor": "neon.spark",
+      "sparkGlow": 3,
+      "lingerSparksPerSecond": 26,
+      "lingerTime": 2.2,
+      "seed": 77
+    }
+  }
+}

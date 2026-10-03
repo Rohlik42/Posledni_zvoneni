@@ -154,6 +154,8 @@ Quick gate: `tests/e2e/humanoid.spec.ts` na `dev/?scene=boxroom-enemy`. Robot hr
 **Do not**
 Yuka navmesh místo recastu. AI parametry v kódu. Modely ze souborů.
 
+**Done 2026-10-03** (handoff `handoff/phase-4.md`). Dev scéna `?scene=boxroom-enemy` (boxroom + pistolka + 1 humanoid z `data/encounters.json`), robot 928 tri, navmesh boxroomu se upeče za ~17 ms, pistolka robota zabije 7 zásahy (60 HP, voda ×1,5). Odchylky od litery: stavy AI navíc Cover (kryt při poklesu HP pod prahy z `enemies.json`), Stunned a Dead; recast se injektuje z lokálních balíčků (addon by ho stahoval z unpkg); drop munice je zatím jen událost `Enemy.onDrop` (pickupy fáze 10); výboje a trosky jsou vlastní balistika, ne Havok tělesa; robot má navíc animovanou Havok kapsli (`EnemyCollider`), aby jím hráč neprocházel; blueprinty v `data/models.json` umí vnořené skupiny (`groupParents`) a kotvy ve skupinách (`anchorParents`); nová akce `debugNavmesh` (N); hluk výstřelů jde přes `src/core/NoiseEvents.ts` (emituje `WeaponInventory`). `__game` navíc `enemies` a `navmesh`.
+
 ## Phase 5 — Weapon feel
 
 **Implement**
