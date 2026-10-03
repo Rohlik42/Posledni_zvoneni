@@ -1,6 +1,7 @@
 {
   "//": "Nastavení RenderPipeline (src/rendering/RenderPipeline.ts). Každá část jde vypnout ('enabled'); presety kvality (fáze 21) přepisují tyto hodnoty. Barvy jsou klíče z palette.json.",
   "clearColor": "fog.night",
+  "reverseDepth": true,
   "hdr": true,
   "msaaSamples": 4,
   "fxaa": { "enabled": false },

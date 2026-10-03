@@ -1,6 +1,6 @@
 import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
 import { Texture } from "@babylonjs/core/Materials/Textures/texture";
-import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
+import type { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { PointLight } from "@babylonjs/core/Lights/pointLight";
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
@@ -9,6 +9,7 @@ import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
 import type { Scene } from "@babylonjs/core/scene";
 import type { Game } from "../src/core/Game";
 import type { Physics } from "../src/core/Physics";
+import { MatteDefaults } from "../src/rendering/MatteDefaults";
 import { PaletteColor } from "../src/rendering/PaletteColor";
 import type { PlayerSpawn } from "../src/player/Player";
 import { Palette } from "../src/utils/Palette";
@@ -162,9 +163,8 @@ export class BoxRoom {
       const [width, height, depth] = panel.size;
       const mesh = MeshBuilder.CreateBox(`boxroom-panel${i}`, { width, height, depth }, this.scene);
       mesh.position = Vector3.FromArray(panel.position);
-      const material = new StandardMaterial(`boxroom-glow${i}`, this.scene);
+      const material = MatteDefaults.material(`boxroom-glow${i}`, this.scene);
       material.diffuseColor = Color3.Black();
-      material.specularColor = Color3.Black();
       material.emissiveColor = PaletteColor.emissive(panel.color, panel.emissive);
       material.disableLighting = true;
       mesh.material = material;
@@ -175,9 +175,8 @@ export class BoxRoom {
   private matte(key: string, color: string): StandardMaterial {
     let material = this.materials.get(key);
     if (material === undefined) {
-      material = new StandardMaterial(`boxroom-${key}`, this.scene);
+      material = MatteDefaults.material(`boxroom-${key}`, this.scene);
       material.diffuseColor = PaletteColor.color3(color);
-      material.specularColor = Color3.Black();
       material.maxSimultaneousLights = this.maxLights;
       this.materials.set(key, material);
     }

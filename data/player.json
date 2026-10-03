@@ -27,7 +27,7 @@
   "camera": {
     "fov": 1.25,
     "minZ": 0.05,
-    "maxZ": 200,
+    "maxZ": 150,
     "mouseSensitivity": 0.0025,
     "pitchLimit": 1.52,
     "sprintFovKick": 0.09,

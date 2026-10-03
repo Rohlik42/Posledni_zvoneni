@@ -7,7 +7,7 @@
   "camera": {
     "fov": 1.25,
     "minZ": 0.05,
-    "maxZ": 200,
+    "maxZ": 150,
     "position": [0, 1.65, -6],
     "target": [0, 1.2, 0]
   },

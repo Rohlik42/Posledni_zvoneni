@@ -1,4 +1,4 @@
-import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
+import type { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
 import { Texture } from "@babylonjs/core/Materials/Textures/texture";
 import { Color3 } from "@babylonjs/core/Maths/math.color";
@@ -6,6 +6,7 @@ import type { Scene } from "@babylonjs/core/scene";
 import type { PaletteKey } from "../utils/Palette";
 import { Palette } from "../utils/Palette";
 import { MaterialsConfig, type MaterialDef, type MaterialFallback, type MaterialsData } from "./MaterialsConfig";
+import { MatteDefaults } from "./MatteDefaults";
 import { PaletteColor } from "./PaletteColor";
 
 /** One entry of `public/textures/index.json` (written by the phase 7 tools). */
@@ -45,8 +46,8 @@ const LCG_RANGE = 2 ** 32;
  * textures span the unit square. A material whose texture is missing from the index, or fails to load, gets a
  * procedural canvas texture (checker / grid / noise in palette colours).
  *
- * Every material has a black specular colour: the flat low-poly look needs no highlights, and point-light specular
- * on walls reads as a torch carried by the player (FEEDBACK.md, light near walls).
+ * Every material is made by `MatteDefaults.material` (black specular): the flat low-poly look needs no highlights, and
+ * point-light specular on walls reads as a torch carried by the player (FEEDBACK.md, light near walls).
  */
 export class MaterialLibrary {
   readonly data: MaterialsData;
@@ -99,7 +100,7 @@ export class MaterialLibrary {
     const id = `glow:${color}:${intensity}`;
     let material = this.materials.get(id);
     if (material === undefined) {
-      material = MaterialLibrary.matte(id, this.scene);
+      material = MatteDefaults.material(id, this.scene);
       material.diffuseColor = Color3.Black();
       material.emissiveColor = PaletteColor.emissive(color, intensity);
       material.disableLighting = true;
@@ -114,7 +115,7 @@ export class MaterialLibrary {
   }
 
   private create(id: string, def: MaterialDef): StandardMaterial {
-    const material = MaterialLibrary.matte(`mat:${id}`, this.scene);
+    const material = MatteDefaults.material(`mat:${id}`, this.scene);
     material.maxSimultaneousLights = this.data.maxLights;
     const tint = Color3.White().scale(1 - (def.tintStrength ?? 1)).add(PaletteColor.color3(def.tint).scale(def.tintStrength ?? 1));
     const texture = this.texture(id, def, () => {
@@ -198,13 +199,5 @@ export class MaterialLibrary {
     texture.vScale = 1 / fallback.sizeM;
     this.fallbacks.set(id, texture);
     return texture;
-  }
-
-  /** A StandardMaterial without specular highlights (see the class comment). */
-  private static matte(name: string, scene: Scene): StandardMaterial {
-    const material = new StandardMaterial(name, scene);
-    material.specularColor = Color3.Black();
-    material.specularPower = 1;
-    return material;
   }
 }

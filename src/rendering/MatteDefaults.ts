@@ -3,6 +3,9 @@ import { Color3 } from "@babylonjs/core/Maths/math.color";
 import type { Material } from "@babylonjs/core/Materials/material";
 import type { Scene } from "@babylonjs/core/scene";
 
+/** Specular power of matte materials (irrelevant with a black specular colour, kept low for clarity). */
+const MATTE_SPECULAR_POWER = 1;
+
 /** `material.metadata.keepSpecular = true` opts a material out (a deliberate highlight, e.g. a later water effect). */
 export interface SpecularOptOut {
   keepSpecular?: boolean;
@@ -23,6 +26,17 @@ export interface SpecularOptOut {
  */
 export class MatteDefaults {
   private static readonly installed = new WeakSet<Scene>();
+
+  /**
+   * A new matte `StandardMaterial`: black specular, specular power 1. The one place that sets up "no highlights" for
+   * materials the game creates itself (MaterialLibrary, BoxRoom, FlatMaterials); `install` is the net for the rest.
+   */
+  static material(name: string, scene: Scene): StandardMaterial {
+    const material = new StandardMaterial(name, scene);
+    MatteDefaults.apply(material);
+    material.specularPower = MATTE_SPECULAR_POWER;
+    return material;
+  }
 
   static install(scene: Scene): void {
     if (MatteDefaults.installed.has(scene)) return;
