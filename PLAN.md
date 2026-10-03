@@ -316,6 +316,8 @@ Quick gate: `tests/e2e/enemies-all.spec.ts` na `?scene=arena` se všemi třemi t
 **Do not**
 Boston Dynamics podobu. Bossy.
 
+**Done 2026-10-03** (handoff `handoff/phase-14.md`). Aréna se všemi typy: `npm run dev` → http://localhost:5173/dev/?scene=arena&encounter=arenaMixed. Quick gate `tests/e2e/enemies-all.spec.ts` zelený: každý typ po výstřelu najde hráče do 0,1 s, za 3–12 s ho dvakrát zraní (úbytek zdraví = damage z JSON), slow/stun funguje, pistolka zabije humanoida 7, čtyřnožce 5 a dron 3 zásahy. Modely: čtyřnožec 816 tri, dron 660 tri. Odchylky od litery: aréna se všemi typy je parametr `&encounter=arenaMixed` (výchozí aréna fáze 5 zůstala, její test počítá s humanoidy); navmesh chůze je nová společná třída `GroundAgent` (humanoid přesunut mechanicky); obíhání a výpad jsou Yuka seek (`steerTo`), dron má seedovaný wander místo Yuka `WanderBehavior` (Math.random); spawny v level.json už osadila fáze 8 — fáze 14 přidala `minCountDelta` (brána podle `enemyCountDelta` z fáze 17) a 4 roboty navíc pro těžší obtížnosti, osazení do levelu dělá fáze 16 přes `LevelEnemySpawns.encounter(layout, delta)`; bzučení je opakovaný nesprostorový vzorek (fáze 20).
+
 ## Phase 15 — Model gallery (kompletní) a stylová revize
 
 **Implement**
