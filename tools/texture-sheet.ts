@@ -2,7 +2,7 @@
 // Repeating textures are shown tiled 2×2 so seams are visible; decals are shown over their floor texture.
 // Run: npm run tool tools/texture-sheet.ts   (no engine needed, sharp only)
 import { mkdirSync } from "node:fs";
-import sharp from "sharp";
+import sharp, { type OverlayOptions } from "sharp";
 import { readIndex, type TextureEntry } from "./lib/TextureIndex";
 
 const OUT_PATH = "screenshots/07-textures.png";
@@ -70,7 +70,7 @@ async function main(): Promise<void> {
   const rows = Math.ceil(list.length / COLS);
   const width = COLS * (CELL + PAD) + PAD;
   const height = rows * (CELL + LABEL_H + PAD) + PAD;
-  const comps: sharp.OverlayOptions[] = [];
+  const comps: OverlayOptions[] = [];
   for (let i = 0; i < list.length; i++) {
     const t = list[i] as TextureEntry;
     const left = PAD + (i % COLS) * (CELL + PAD);

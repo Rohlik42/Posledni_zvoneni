@@ -2,7 +2,7 @@
 // sharp only for decode, blur, resize and PNG encode. Deterministic: same input → same bytes.
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
-import sharp from "sharp";
+import sharp, { type Sharp } from "sharp";
 
 /** Float image, `c` interleaved channels (3 = RGB, 4 = RGBA), values 0..255. */
 export interface Img {
@@ -125,11 +125,11 @@ export function toBytes(img: Img): Buffer {
   return b;
 }
 
-function sharpOf(img: Img): sharp.Sharp {
+function sharpOf(img: Img): Sharp {
   return sharp(toBytes(img), { raw: { width: img.w, height: img.h, channels: img.c as 3 | 4 } });
 }
 
-async function fromSharp(s: sharp.Sharp, channels: number): Promise<Img> {
+async function fromSharp(s: Sharp, channels: number): Promise<Img> {
   const { data, info } = await s.raw().toBuffer({ resolveWithObject: true });
   if (info.channels !== channels) throw new Error(`expected ${channels} channels, got ${info.channels}`);
   return { w: info.width, h: info.height, c: info.channels, d: Float32Array.from(data) };
@@ -336,7 +336,7 @@ export function twoTone(img: Img, keep: number): { img: Img; darkMask: Uint8Arra
   const out = create(img.w, img.h, img.c);
   for (let p = 0; p < n; p++) {
     const ref = darkMask[p] ? dark : light;
-    for (let k = 0; k < 3; k++) out.d[p * img.c + k] = ref[k] + (at(img.d, p * img.c + k) - ref[k]) * keep;
+    for (let k = 0; k < 3; k++) out.d[p * img.c + k] = (ref[k] ?? 0) + (at(img.d, p * img.c + k) - (ref[k] ?? 0)) * keep;
   }
   return { img: out, darkMask, dark, light };
 }
@@ -391,9 +391,9 @@ export function fitDiamondChecker(img: Img, keep: number): { img: Img; phase: [n
       // Photo grain only inside tiles where photo and ideal agree; blurred photo edges add nothing.
       const agrees = (cov === 1 && darkMask[p] === 1) || (cov === 0 && darkMask[p] === 0);
       for (let k = 0; k < 3; k++) {
-        const raw = agrees ? at(toned.d, p * img.c + k) - own[k] : 0;
+        const raw = agrees ? at(toned.d, p * img.c + k) - (own[k] ?? 0) : 0;
         const detail = Math.max(-MAX_DETAIL, Math.min(MAX_DETAIL, raw));
-        out.d[p * img.c + k] = dark[k] * cov + light[k] * (1 - cov) + detail;
+        out.d[p * img.c + k] = (dark[k] ?? 0) * cov + (light[k] ?? 0) * (1 - cov) + detail;
       }
     }
   }
@@ -407,7 +407,7 @@ export function recolour(img: Img, target: [number, number, number]): Img {
   for (let p = 0; p < n; p++) for (let k = 0; k < 3; k++) mean[k] = (mean[k] ?? 0) + at(img.d, p * img.c + k) / n;
   const out = create(img.w, img.h, img.c);
   out.d.set(img.d);
-  for (let p = 0; p < n; p++) for (let k = 0; k < 3; k++) out.d[p * img.c + k] = at(img.d, p * img.c + k) * (target[k] / Math.max(1, mean[k] ?? 1));
+  for (let p = 0; p < n; p++) for (let k = 0; k < 3; k++) out.d[p * img.c + k] = at(img.d, p * img.c + k) * ((target[k] ?? 0) / Math.max(1, mean[k] ?? 1));
   return out;
 }
 

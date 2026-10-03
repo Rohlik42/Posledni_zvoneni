@@ -191,6 +191,96 @@
       "notes": "One locker column (stile centre to stile centre, vent strip to the rail between tiers) from the changing room, rectified; repeats sideways into a row and upwards into tiers."
     },
     {
+      "id": "ph-burnt",
+      "group": "ph",
+      "file": "textures/ph/ph-burnt.png",
+      "px": [
+        512,
+        512
+      ],
+      "sizeM": [
+        1,
+        1
+      ],
+      "tiling": "repeat",
+      "kind": "floor",
+      "source": "https://polyhaven.com/a/burned_ground_01",
+      "license": "CC0 (Poly Haven)",
+      "notes": "Burnt ground with ash for fire spots and scorched floors. Posterized from textures/ph/raw/burned_ground_01_diffuse_1k.jpg (Diffuse 1k)."
+    },
+    {
+      "id": "ph-concrete",
+      "group": "ph",
+      "file": "textures/ph/ph-concrete.png",
+      "px": [
+        512,
+        512
+      ],
+      "sizeM": [
+        2,
+        2
+      ],
+      "tiling": "repeat",
+      "kind": "floor",
+      "source": "https://polyhaven.com/a/concrete_floor_02",
+      "license": "CC0 (Poly Haven)",
+      "notes": "Plain rough concrete for broken floors, basements and exposed slabs. Posterized from textures/ph/raw/concrete_floor_02_diffuse_1k.jpg (Diffuse 1k)."
+    },
+    {
+      "id": "ph-metal",
+      "group": "ph",
+      "file": "textures/ph/ph-metal.png",
+      "px": [
+        512,
+        512
+      ],
+      "sizeM": [
+        0.5,
+        0.5
+      ],
+      "tiling": "repeat",
+      "kind": "prop",
+      "source": "https://polyhaven.com/a/metal_plate",
+      "license": "CC0 (Poly Haven)",
+      "notes": "Clean metal plate for robot-installed hatches, panels and traps. Posterized from textures/ph/raw/metal_plate_diffuse_1k.jpg (Diffuse 1k)."
+    },
+    {
+      "id": "ph-rubble",
+      "group": "ph",
+      "file": "textures/ph/ph-rubble.png",
+      "px": [
+        512,
+        512
+      ],
+      "sizeM": [
+        2,
+        2
+      ],
+      "tiling": "repeat",
+      "kind": "floor",
+      "source": "https://polyhaven.com/a/rubble",
+      "license": "CC0 (Poly Haven)",
+      "notes": "Rubble/debris pile surface for collapsed corridors (blockers). Posterized from textures/ph/raw/rubble_diffuse_1k.jpg (Diffuse 1k)."
+    },
+    {
+      "id": "ph-rust",
+      "group": "ph",
+      "file": "textures/ph/ph-rust.png",
+      "px": [
+        512,
+        512
+      ],
+      "sizeM": [
+        2.2,
+        2.2
+      ],
+      "tiling": "repeat",
+      "kind": "prop",
+      "source": "https://polyhaven.com/a/rust_coarse_01",
+      "license": "CC0 (Poly Haven)",
+      "notes": "Coarse rust for damaged metal, pipes and radiators. Posterized from textures/ph/raw/rust_coarse_01_diffuse_1k.jpg (Diffuse 1k)."
+    },
+    {
       "id": "stair-tread",
       "group": "mp",
       "file": "textures/mp/stair-tread.png",
