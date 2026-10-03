@@ -137,8 +137,8 @@
         { "name": "prongR", "shape": "box", "size": [0.008, 0.008, 0.045], "position": [0.024, 0.005, 0.19], "color": "metal" },
         { "name": "tipL", "shape": "box", "size": [0.012, 0.012, 0.01], "position": [-0.024, 0.005, 0.214], "color": "charge", "emissive": 1.5 },
         { "name": "tipR", "shape": "box", "size": [0.012, 0.012, 0.01], "position": [0.024, 0.005, 0.214], "color": "charge", "emissive": 1.5 },
-        { "name": "chargeBar", "shape": "box", "size": [0.006, 0.014, 0.11], "position": [0.032, 0.012, 0.04], "color": "charge", "emissive": 1.2 },
-        { "name": "chargeFrame", "shape": "box", "size": [0.004, 0.024, 0.12], "position": [0.031, 0.012, 0.04], "color": "stripe" },
+        { "name": "chargeBar", "shape": "box", "size": [0.006, 0.014, 0.11], "position": [-0.032, 0.012, 0.04], "color": "charge", "emissive": 1.2 },
+        { "name": "chargeFrame", "shape": "box", "size": [0.004, 0.024, 0.12], "position": [-0.031, 0.012, 0.04], "color": "stripe" },
         { "name": "lanyard", "shape": "cylinder", "size": [0.026, 0.008, 0.026], "tessellation": 8, "position": [0, -0.15, -0.09], "rotationDeg": [0, 0, 90], "color": "metal" }
       ]
     },

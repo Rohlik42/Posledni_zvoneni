@@ -7,8 +7,8 @@ import type { Scene } from "@babylonjs/core/scene";
 import type { HitResult, Hitscan } from "./Hitscan";
 import { WaterBalloonModel } from "./models/WaterBalloonModel";
 
-/** After a Havok contact the balloon looks for the surface this many radii ahead along its flight. */
-const CONTACT_PROBE_RADII = 3;
+/** After a Havok contact (a wall, or a robot's capsule, which is wider than its body) the balloon looks this far ahead along its flight for the surface it splashes on (m). */
+const CONTACT_PROBE_DISTANCE = 1;
 /** The burst point sits this far off the surface, so splash rays start in the open (m). */
 const SURFACE_OFFSET = 0.05;
 
@@ -124,7 +124,7 @@ export class BalloonProjectiles {
     if (!balloon.touched) return null;
     const speed = balloon.velocity.length();
     const ahead = speed > 0 ? balloon.velocity.scale(1 / speed) : Vector3.Down();
-    const hit = this.hitscan.cast(position, ahead, radius * CONTACT_PROBE_RADII);
+    const hit = this.hitscan.cast(position, ahead, CONTACT_PROBE_DISTANCE);
     return { point: hit === null ? position : hit.point.add(hit.normal.scale(SURFACE_OFFSET)), hit, velocity: balloon.velocity };
   }
 
