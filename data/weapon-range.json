@@ -23,7 +23,7 @@
       { "id": "hydrantWest", "position": [-9.95, 0, 7], "yaw": 1.5708 }
     ],
     "ammoPickups": [
-      { "id": "balloonBucket", "weapon": "waterBalloons", "amount": 3, "model": "WaterBalloonPackModel", "position": [3, 0, -6.5], "yaw": 0, "respawnSeconds": 8 }
+      { "id": "balloonBucket", "weapon": "waterBalloons", "amount": 3, "model": "BalloonPackModel", "position": [3, 0, -6.5], "yaw": 0, "respawnSeconds": 8 }
     ]
   }
 }

@@ -88,5 +88,5 @@ ModelRegistry.register({
   name: "DoorModel",
   category: "prop",
   title: "Křídlo dveří (zamčené: svítící pruh v barvě klíče)",
-  create: (scene) => new DoorModel(scene, { lock: "red" }),
+  create: (scene, options) => new DoorModel(scene, { lock: "red", ...(options as DoorModelOptions | undefined) }),
 });

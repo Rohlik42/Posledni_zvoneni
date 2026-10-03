@@ -3,8 +3,9 @@ import { join } from "node:path";
 import { expect, test } from "@playwright/test";
 import { ConsoleGuard } from "../support/ConsoleGuard";
 
-// Every primitive model (src/**/models/*Model.ts) registers itself in ModelRegistry; the `models` dev scene builds all
-// of them. A model over the triangle budget of its category (data/models.json, DESIGN §13) fails here.
+// Every primitive model (src/**/models/*Model.ts) registers itself in ModelRegistry; the `gallery` dev scene (phase 15)
+// builds all of them with their variants. A model over the triangle budget of its category (data/models.json,
+// DESIGN §13) fails here.
 
 const READY_TIMEOUT_MS = 30_000;
 
@@ -19,7 +20,7 @@ function modelFiles(dir: string, out: string[] = []): string[] {
 
 test("every registered model stays within its triangle budget", async ({ page }) => {
   const guard = new ConsoleGuard(page);
-  await page.goto("/dev/?scene=models");
+  await page.goto("/dev/?scene=gallery");
   await page.waitForFunction(() => window.__game?.ready === true || window.__game?.error != null, undefined, { timeout: READY_TIMEOUT_MS });
   expect(await page.evaluate(() => window.__game?.error ?? null)).toBeNull();
 
@@ -32,5 +33,10 @@ test("every registered model stays within its triangle budget", async ({ page })
     expect(model.triangles, `${model.name} (${model.category}) over budget`).toBeLessThanOrEqual(model.budget);
   }
   expect(models.find((m) => m.name === "WaterPistolModel")?.budget).toBe(1000);
+  // Every gallery item (variants, the nine teachers) is within budget too, and every model is on show.
+  const items = await page.evaluate(() => window.__game!.gallery!.items());
+  for (const item of items) expect(item.triangles, `${item.label} over budget`).toBeLessThanOrEqual(item.budget);
+  expect(new Set(items.map((i) => i.name)).size).toBe(models.length);
+  expect(items.filter((i) => i.section === "teachers")).toHaveLength(9);
   expect(guard.problems).toEqual([]);
 });

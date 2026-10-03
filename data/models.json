@@ -377,19 +377,218 @@
         { "name": "bottleHorn", "shape": "cylinder", "size": [0.06, 0.08, 0.03], "tessellation": 8, "position": [0.1, 1.0, 0.16], "color": "dark", "group": "bottle" }
       ]
     },
-    "waterBalloonPack": {
-      "//": "Sbíratelné vodní balónky (fáze 13, pickup munice zbraně 3): kbelík se třemi balónky. Počátek = dno kbelíku na zemi.",
-      "category": "pickup",
-      "defaultVariant": "default",
+    "//props": "Rekvizity učeben a kabinetů (fáze 15, src/level/models/*Model.ts nad BlueprintModel). Přední strana míří k +z. Volně stojící kusy mají počátek uprostřed půdorysu na zemi, nástěnné (tabule, skříň, piano, žebřiny) na zemi u zdi (záda v z = 0). Rozmístění je v data/props.json (PropPlacer, thin instances).",
+    "schoolDesk": {
+      "//": "Dvoumístná školní lavice: deska, polička na tašky, čelní deska a kovový rám se dvěma ližinami. Žák sedí na straně −z a dívá se k +z (k tabuli).",
+      "category": "prop",
+      "defaultVariant": "classic",
       "variants": {
-        "default": { "bucket": "accent.teal", "rim": "base.white", "a": "neon.water", "b": "accent.red", "c": "accent.lime" }
+        "classic": { "top": "world.wood", "shelf": "world.woodDark", "frame": "world.plinth" },
+        "worn": { "top": "world.woodDark", "shelf": "base.ash", "frame": "world.metal" }
       },
       "parts": [
-        { "name": "bucket", "shape": "cylinder", "size": [0.34, 0.26, 0.26], "tessellation": 10, "position": [0, 0.13, 0], "color": "bucket" },
-        { "name": "rim", "shape": "cylinder", "size": [0.36, 0.025, 0.36], "tessellation": 10, "position": [0, 0.27, 0], "color": "rim", "emissive": 0.3 },
-        { "name": "balloonA", "shape": "cylinder", "size": [0.08, 0.16, 0.13], "tessellation": 8, "position": [-0.07, 0.32, 0.03], "rotationDeg": [0, 0, 18], "color": "a", "emissive": 0.6 },
-        { "name": "balloonB", "shape": "cylinder", "size": [0.08, 0.16, 0.13], "tessellation": 8, "position": [0.07, 0.33, 0.02], "rotationDeg": [10, 0, -15], "color": "b", "emissive": 0.6 },
-        { "name": "balloonC", "shape": "cylinder", "size": [0.08, 0.16, 0.13], "tessellation": 8, "position": [0, 0.34, -0.08], "rotationDeg": [-20, 0, 0], "color": "c", "emissive": 0.6 }
+        { "name": "top", "shape": "box", "size": [1.2, 0.035, 0.5], "position": [0, 0.7425, 0], "color": "top" },
+        { "name": "shelf", "shape": "box", "size": [1.1, 0.02, 0.36], "position": [0, 0.6, 0.05], "color": "shelf" },
+        { "name": "panel", "shape": "box", "size": [1.08, 0.3, 0.02], "position": [0, 0.56, 0.235], "color": "shelf" },
+        { "name": "legFrontLeft", "shape": "box", "size": [0.04, 0.725, 0.04], "position": [-0.56, 0.3625, 0.2], "color": "frame" },
+        { "name": "legBackLeft", "shape": "box", "size": [0.04, 0.725, 0.04], "position": [-0.56, 0.3625, -0.2], "color": "frame" },
+        { "name": "legFrontRight", "shape": "box", "size": [0.04, 0.725, 0.04], "position": [0.56, 0.3625, 0.2], "color": "frame" },
+        { "name": "legBackRight", "shape": "box", "size": [0.04, 0.725, 0.04], "position": [0.56, 0.3625, -0.2], "color": "frame" },
+        { "name": "runnerLeft", "shape": "box", "size": [0.05, 0.03, 0.48], "position": [-0.56, 0.015, 0], "color": "frame" },
+        { "name": "runnerRight", "shape": "box", "size": [0.05, 0.03, 0.48], "position": [0.56, 0.015, 0], "color": "frame" }
+      ]
+    },
+    "schoolChair": {
+      "//": "Školní židle: sedák a opěradlo z překližky na trubkovém rámu. Sedící se dívá k +z, opěradlo je na straně −z.",
+      "category": "prop",
+      "defaultVariant": "classic",
+      "variants": {
+        "classic": { "seat": "world.wood", "frame": "world.plinth" },
+        "worn": { "seat": "world.woodDark", "frame": "world.metal" }
+      },
+      "parts": [
+        { "name": "seat", "shape": "box", "size": [0.4, 0.03, 0.38], "position": [0, 0.45, 0], "color": "seat" },
+        { "name": "back", "shape": "box", "size": [0.4, 0.2, 0.025], "position": [0, 0.75, -0.19], "color": "seat" },
+        { "name": "legFrontLeft", "shape": "box", "size": [0.025, 0.435, 0.025], "position": [-0.18, 0.2175, 0.16], "color": "frame" },
+        { "name": "legFrontRight", "shape": "box", "size": [0.025, 0.435, 0.025], "position": [0.18, 0.2175, 0.16], "color": "frame" },
+        { "name": "legBackLeft", "shape": "box", "size": [0.025, 0.86, 0.025], "position": [-0.18, 0.43, -0.16], "color": "frame" },
+        { "name": "legBackRight", "shape": "box", "size": [0.025, 0.86, 0.025], "position": [0.18, 0.43, -0.16], "color": "frame" },
+        { "name": "rail", "shape": "box", "size": [0.34, 0.02, 0.02], "position": [0, 0.2, 0.16], "color": "frame" }
+      ]
+    },
+    "teacherDesk": {
+      "//": "Katedra: široká deska na dvou kontejnerech se šuplíky, čelní deska ke třídě (+z), třídnice a dvě knihy. Učitel stojí na straně −z.",
+      "category": "prop",
+      "defaultVariant": "classic",
+      "variants": {
+        "classic": { "top": "world.woodDark", "body": "world.wood", "metal": "world.steel", "book": "accent.red", "book2": "accent.teal", "register": "accent.gold" }
+      },
+      "parts": [
+        { "name": "top", "shape": "box", "size": [1.6, 0.05, 0.75], "position": [0, 0.765, 0], "color": "top" },
+        { "name": "pedestalLeft", "shape": "box", "size": [0.45, 0.74, 0.68], "position": [-0.55, 0.37, 0], "color": "body" },
+        { "name": "pedestalRight", "shape": "box", "size": [0.45, 0.74, 0.68], "position": [0.55, 0.37, 0], "color": "body" },
+        { "name": "modesty", "shape": "box", "size": [0.66, 0.5, 0.03], "position": [0, 0.49, 0.32], "color": "top" },
+        { "name": "handleTop", "shape": "box", "size": [0.14, 0.02, 0.02], "position": [0.55, 0.6, -0.35], "color": "metal" },
+        { "name": "handleMid", "shape": "box", "size": [0.14, 0.02, 0.02], "position": [0.55, 0.4, -0.35], "color": "metal" },
+        { "name": "handleLow", "shape": "box", "size": [0.14, 0.02, 0.02], "position": [0.55, 0.2, -0.35], "color": "metal" },
+        { "name": "register", "shape": "box", "size": [0.24, 0.025, 0.32], "position": [0.3, 0.8025, -0.05], "rotationDeg": [0, -8, 0], "color": "register", "emissive": 0.15 },
+        { "name": "book", "shape": "box", "size": [0.28, 0.07, 0.2], "position": [-0.45, 0.825, -0.1], "color": "book", "emissive": 0.15 },
+        { "name": "book2", "shape": "box", "size": [0.24, 0.05, 0.18], "position": [-0.45, 0.885, -0.1], "rotationDeg": [0, 14, 0], "color": "book2", "emissive": 0.15 }
+      ]
+    },
+    "blackboard": {
+      "//": "Školní tabule na zdi: zelená deska v dřevěném rámu, žlábek s křídou a houbou, pár křídových čar. Záda na zdi (z = 0), plocha míří k +z.",
+      "category": "prop",
+      "defaultVariant": "chalk",
+      "variants": {
+        "chalk": { "board": "world.chalkboard", "frame": "world.woodDark", "chalk": "world.chalk", "sponge": "accent.gold" }
+      },
+      "parts": [
+        { "name": "board", "shape": "box", "size": [3.0, 1.2, 0.03], "position": [0, 1.5, 0.025], "color": "board" },
+        { "name": "frameTop", "shape": "box", "size": [3.12, 0.06, 0.05], "position": [0, 2.13, 0.03], "color": "frame" },
+        { "name": "frameBottom", "shape": "box", "size": [3.12, 0.06, 0.05], "position": [0, 0.87, 0.03], "color": "frame" },
+        { "name": "frameLeft", "shape": "box", "size": [0.06, 1.2, 0.05], "position": [-1.53, 1.5, 0.03], "color": "frame" },
+        { "name": "frameRight", "shape": "box", "size": [0.06, 1.2, 0.05], "position": [1.53, 1.5, 0.03], "color": "frame" },
+        { "name": "tray", "shape": "box", "size": [3.0, 0.03, 0.1], "position": [0, 0.825, 0.07], "color": "frame" },
+        { "name": "chalkStick", "shape": "box", "size": [0.08, 0.015, 0.015], "position": [-0.6, 0.8475, 0.08], "color": "chalk", "emissive": 0.3 },
+        { "name": "sponge", "shape": "box", "size": [0.13, 0.045, 0.06], "position": [0.9, 0.8625, 0.08], "color": "sponge" },
+        { "name": "lineA", "shape": "box", "size": [0.9, 0.018, 0.004], "position": [-0.7, 1.85, 0.042], "color": "chalk", "emissive": 0.35 },
+        { "name": "lineB", "shape": "box", "size": [0.6, 0.018, 0.004], "position": [-0.85, 1.68, 0.042], "color": "chalk", "emissive": 0.35 },
+        { "name": "lineC", "shape": "box", "size": [0.7, 0.018, 0.004], "position": [0.6, 1.35, 0.042], "rotationDeg": [0, 0, 12], "color": "chalk", "emissive": 0.35 },
+        { "name": "lineD", "shape": "box", "size": [0.5, 0.018, 0.004], "position": [0.55, 1.2, 0.042], "rotationDeg": [0, 0, -8], "color": "chalk", "emissive": 0.35 }
+      ]
+    },
+    "cabinet": {
+      "//": "Skříň (dřevěná do učeben a kabinetů, plechová skříňka do šatny): korpus na soklu, římsa, dvoje dvířka s úchyty a větráky. Záda na zdi (z = 0), dvířka míří k +z.",
+      "category": "prop",
+      "defaultVariant": "wood",
+      "variants": {
+        "wood": { "body": "world.woodDark", "door": "world.wood", "trim": "world.woodDark", "dark": "base.ash", "metal": "world.steel" },
+        "locker": { "body": "world.metal", "door": "world.plinth", "trim": "world.metal", "dark": "base.night", "metal": "world.steel" }
+      },
+      "parts": [
+        { "name": "body", "shape": "box", "size": [1.0, 1.92, 0.45], "position": [0, 1.01, 0.225], "color": "body" },
+        { "name": "plinth", "shape": "box", "size": [0.96, 0.08, 0.42], "position": [0, 0.04, 0.22], "color": "dark" },
+        { "name": "cornice", "shape": "box", "size": [1.06, 0.06, 0.5], "position": [0, 1.99, 0.24], "color": "trim" },
+        { "name": "doorLeft", "shape": "box", "size": [0.48, 1.78, 0.02], "position": [-0.245, 1.01, 0.46], "color": "door" },
+        { "name": "doorRight", "shape": "box", "size": [0.48, 1.78, 0.02], "position": [0.245, 1.01, 0.46], "color": "door" },
+        { "name": "handleLeft", "shape": "box", "size": [0.025, 0.16, 0.03], "position": [-0.04, 1.05, 0.485], "color": "metal" },
+        { "name": "handleRight", "shape": "box", "size": [0.025, 0.16, 0.03], "position": [0.04, 1.05, 0.485], "color": "metal" },
+        { "name": "ventLeftTop", "shape": "box", "size": [0.3, 0.02, 0.01], "position": [-0.245, 1.7, 0.474], "color": "dark" },
+        { "name": "ventLeftLow", "shape": "box", "size": [0.3, 0.02, 0.01], "position": [-0.245, 1.62, 0.474], "color": "dark" },
+        { "name": "ventRightTop", "shape": "box", "size": [0.3, 0.02, 0.01], "position": [0.245, 1.7, 0.474], "color": "dark" },
+        { "name": "ventRightLow", "shape": "box", "size": [0.3, 0.02, 0.01], "position": [0.245, 1.62, 0.474], "color": "dark" }
+      ]
+    },
+    "globe": {
+      "//": "Stojací glóbus: osmiboká koule ze tří válců s kontinenty, poledník a dřevěný stojan. Počátek = střed podstavy.",
+      "category": "prop",
+      "defaultVariant": "classic",
+      "variants": {
+        "classic": { "ocean": "accent.sea", "land": "accent.lime", "stand": "world.woodDark", "metal": "accent.copper" }
+      },
+      "parts": [
+        { "name": "base", "shape": "cylinder", "size": [0.3, 0.05, 0.42], "tessellation": 8, "position": [0, 0.025, 0], "color": "stand" },
+        { "name": "pole", "shape": "box", "size": [0.05, 0.6, 0.05], "position": [0, 0.35, 0], "color": "stand" },
+        { "name": "ballMid", "shape": "cylinder", "size": [0.5, 0.2, 0.5], "tessellation": 10, "position": [0, 0.9, 0], "color": "ocean", "emissive": 0.05 },
+        { "name": "ballTop", "shape": "cylinder", "size": [0.22, 0.14, 0.5], "tessellation": 10, "position": [0, 1.07, 0], "color": "ocean", "emissive": 0.05 },
+        { "name": "ballBottom", "shape": "cylinder", "size": [0.5, 0.14, 0.22], "tessellation": 10, "position": [0, 0.73, 0], "color": "ocean", "emissive": 0.05 },
+        { "name": "landEurope", "shape": "box", "size": [0.12, 0.1, 0.03], "position": [0.03, 0.97, 0.235], "color": "land", "emissive": 0.1 },
+        { "name": "landAfrica", "shape": "box", "size": [0.1, 0.16, 0.03], "position": [0.05, 0.85, 0.235], "color": "land", "emissive": 0.1 },
+        { "name": "landAmerica", "shape": "box", "size": [0.03, 0.22, 0.12], "position": [-0.235, 0.9, -0.03], "color": "land", "emissive": 0.1 },
+        { "name": "landAsia", "shape": "box", "size": [0.03, 0.12, 0.16], "position": [0.235, 0.97, -0.02], "color": "land", "emissive": 0.1 },
+        { "name": "meridian", "shape": "box", "size": [0.03, 0.52, 0.03], "position": [0, 0.9, -0.29], "color": "metal" },
+        { "name": "meridianTop", "shape": "box", "size": [0.03, 0.03, 0.3], "position": [0, 1.16, -0.15], "color": "metal" },
+        { "name": "meridianBottom", "shape": "box", "size": [0.03, 0.03, 0.3], "position": [0, 0.64, -0.15], "color": "metal" }
+      ]
+    },
+    "piano": {
+      "//": "Pianino do hudebny: tmavá skříň, klávesnice s černými klávesami po skupinách, otevřený notový stojan s notami, nohy a dva mosazné pedály. Záda na zdi (z = 0), klávesy míří k +z.",
+      "category": "prop",
+      "defaultVariant": "black",
+      "variants": {
+        "black": { "body": "base.ash", "trim": "base.smoke", "keys": "world.paper", "sharps": "base.void", "brass": "accent.gold", "paper": "world.chalk" }
+      },
+      "parts": [
+        { "name": "body", "shape": "box", "size": [1.5, 1.24, 0.4], "position": [0, 0.68, 0.2], "color": "body" },
+        { "name": "lid", "shape": "box", "size": [1.54, 0.04, 0.44], "position": [0, 1.32, 0.21], "color": "trim" },
+        { "name": "keybed", "shape": "box", "size": [1.46, 0.1, 0.26], "position": [0, 0.71, 0.52], "color": "body" },
+        { "name": "keysWhite", "shape": "box", "size": [1.36, 0.025, 0.16], "position": [0, 0.7725, 0.56], "color": "keys", "emissive": 0.05 },
+        { "name": "sharp1", "shape": "box", "size": [0.07, 0.02, 0.09], "position": [-0.6, 0.795, 0.52], "color": "sharps" },
+        { "name": "sharp2", "shape": "box", "size": [0.1, 0.02, 0.09], "position": [-0.42, 0.795, 0.52], "color": "sharps" },
+        { "name": "sharp3", "shape": "box", "size": [0.07, 0.02, 0.09], "position": [-0.25, 0.795, 0.52], "color": "sharps" },
+        { "name": "sharp4", "shape": "box", "size": [0.1, 0.02, 0.09], "position": [-0.07, 0.795, 0.52], "color": "sharps" },
+        { "name": "sharp5", "shape": "box", "size": [0.07, 0.02, 0.09], "position": [0.1, 0.795, 0.52], "color": "sharps" },
+        { "name": "sharp6", "shape": "box", "size": [0.1, 0.02, 0.09], "position": [0.28, 0.795, 0.52], "color": "sharps" },
+        { "name": "sharp7", "shape": "box", "size": [0.07, 0.02, 0.09], "position": [0.45, 0.795, 0.52], "color": "sharps" },
+        { "name": "sharp8", "shape": "box", "size": [0.07, 0.02, 0.09], "position": [0.6, 0.795, 0.52], "color": "sharps" },
+        { "name": "fallboard", "shape": "box", "size": [1.4, 0.12, 0.02], "position": [0, 0.86, 0.43], "color": "trim" },
+        { "name": "musicStand", "shape": "box", "size": [0.6, 0.26, 0.02], "position": [0, 1.04, 0.43], "color": "trim" },
+        { "name": "sheet", "shape": "box", "size": [0.42, 0.22, 0.006], "position": [0, 1.05, 0.443], "color": "paper" },
+        { "name": "legLeft", "shape": "box", "size": [0.06, 0.66, 0.06], "position": [-0.68, 0.33, 0.6], "color": "body" },
+        { "name": "legRight", "shape": "box", "size": [0.06, 0.66, 0.06], "position": [0.68, 0.33, 0.6], "color": "body" },
+        { "name": "pedalBoard", "shape": "box", "size": [0.4, 0.1, 0.03], "position": [0, 0.06, 0.415], "color": "trim" },
+        { "name": "pedalLeft", "shape": "box", "size": [0.04, 0.02, 0.1], "position": [-0.07, 0.04, 0.48], "color": "brass", "emissive": 0.2 },
+        { "name": "pedalRight", "shape": "box", "size": [0.04, 0.02, 0.1], "position": [0.07, 0.04, 0.48], "color": "brass", "emissive": 0.2 }
+      ]
+    },
+    "labBench": {
+      "//": "Laboratorní stůl do fyziky: skříňový korpus s dvířky na obou stranách, černá deska, dřez, dva plynové kohouty a polička se svítícími reagenciemi. Počátek = střed půdorysu, delší strana podél x.",
+      "category": "prop",
+      "defaultVariant": "lab",
+      "variants": {
+        "lab": { "body": "world.plinth", "door": "accent.sea", "top": "base.ash", "dark": "base.night", "steel": "world.steel", "shelf": "world.woodDark", "reagentA": "neon.toxic", "reagentB": "neon.water", "reagentC": "accent.red", "reagentD": "neon.warning" }
+      },
+      "parts": [
+        { "name": "body", "shape": "box", "size": [2.3, 0.74, 0.7], "position": [0, 0.45, 0], "color": "body" },
+        { "name": "kick", "shape": "box", "size": [2.26, 0.08, 0.66], "position": [0, 0.04, 0], "color": "dark" },
+        { "name": "top", "shape": "box", "size": [2.44, 0.05, 0.84], "position": [0, 0.845, 0], "color": "top" },
+        { "name": "doorFront1", "shape": "box", "size": [0.5, 0.6, 0.02], "position": [-0.84, 0.45, 0.36], "color": "door" },
+        { "name": "doorFront2", "shape": "box", "size": [0.5, 0.6, 0.02], "position": [-0.28, 0.45, 0.36], "color": "door" },
+        { "name": "doorFront3", "shape": "box", "size": [0.5, 0.6, 0.02], "position": [0.28, 0.45, 0.36], "color": "door" },
+        { "name": "doorFront4", "shape": "box", "size": [0.5, 0.6, 0.02], "position": [0.84, 0.45, 0.36], "color": "door" },
+        { "name": "doorBack1", "shape": "box", "size": [0.5, 0.6, 0.02], "position": [-0.84, 0.45, -0.36], "color": "door" },
+        { "name": "doorBack2", "shape": "box", "size": [0.5, 0.6, 0.02], "position": [-0.28, 0.45, -0.36], "color": "door" },
+        { "name": "doorBack3", "shape": "box", "size": [0.5, 0.6, 0.02], "position": [0.28, 0.45, -0.36], "color": "door" },
+        { "name": "doorBack4", "shape": "box", "size": [0.5, 0.6, 0.02], "position": [0.84, 0.45, -0.36], "color": "door" },
+        { "name": "sink", "shape": "box", "size": [0.36, 0.012, 0.3], "position": [0.75, 0.876, 0], "color": "steel" },
+        { "name": "tapLeft", "shape": "cylinder", "size": [0.03, 0.18, 0.03], "tessellation": 6, "position": [-0.9, 0.96, 0], "color": "steel" },
+        { "name": "tapRight", "shape": "cylinder", "size": [0.03, 0.18, 0.03], "tessellation": 6, "position": [-0.6, 0.96, 0], "color": "steel" },
+        { "name": "tapLeftHead", "shape": "box", "size": [0.02, 0.02, 0.1], "position": [-0.9, 1.04, 0], "color": "steel" },
+        { "name": "tapRightHead", "shape": "box", "size": [0.02, 0.02, 0.1], "position": [-0.6, 1.04, 0], "color": "steel" },
+        { "name": "shelf", "shape": "box", "size": [1.9, 0.03, 0.2], "position": [0, 1.25, 0], "color": "shelf" },
+        { "name": "postLeft", "shape": "box", "size": [0.03, 0.38, 0.03], "position": [-0.93, 1.06, 0], "color": "steel" },
+        { "name": "postRight", "shape": "box", "size": [0.03, 0.38, 0.03], "position": [0.93, 1.06, 0], "color": "steel" },
+        { "name": "bottleA", "shape": "cylinder", "size": [0.05, 0.14, 0.08], "tessellation": 6, "position": [-0.6, 1.335, 0], "color": "reagentA", "emissive": 0.8 },
+        { "name": "bottleB", "shape": "cylinder", "size": [0.05, 0.12, 0.08], "tessellation": 6, "position": [-0.2, 1.325, 0.03], "color": "reagentB", "emissive": 0.8 },
+        { "name": "bottleC", "shape": "cylinder", "size": [0.05, 0.16, 0.07], "tessellation": 6, "position": [0.25, 1.345, -0.02], "color": "reagentC", "emissive": 0.8 },
+        { "name": "bottleD", "shape": "cylinder", "size": [0.04, 0.1, 0.08], "tessellation": 6, "position": [0.65, 1.315, 0], "color": "reagentD", "emissive": 0.8 }
+      ]
+    },
+    "wallBars": {
+      "//": "Jeden díl žebřin do tělocvičny: dva sloupky na konzolách a deset příček. Záda na zdi (z = 0), příčky míří k +z.",
+      "category": "prop",
+      "defaultVariant": "wood",
+      "variants": {
+        "wood": { "wood": "world.wood", "metal": "world.metal" }
+      },
+      "parts": [
+        { "name": "postLeft", "shape": "box", "size": [0.08, 2.7, 0.06], "position": [-0.45, 1.35, 0.13], "color": "wood" },
+        { "name": "postRight", "shape": "box", "size": [0.08, 2.7, 0.06], "position": [0.45, 1.35, 0.13], "color": "wood" },
+        { "name": "bracketLeftLow", "shape": "box", "size": [0.06, 0.06, 0.1], "position": [-0.45, 0.3, 0.05], "color": "metal" },
+        { "name": "bracketRightLow", "shape": "box", "size": [0.06, 0.06, 0.1], "position": [0.45, 0.3, 0.05], "color": "metal" },
+        { "name": "bracketLeftHigh", "shape": "box", "size": [0.06, 0.06, 0.1], "position": [-0.45, 2.4, 0.05], "color": "metal" },
+        { "name": "bracketRightHigh", "shape": "box", "size": [0.06, 0.06, 0.1], "position": [0.45, 2.4, 0.05], "color": "metal" },
+        { "name": "rung1", "shape": "cylinder", "size": [0.035, 0.84, 0.035], "tessellation": 6, "position": [0, 0.25, 0.13], "rotationDeg": [0, 0, 90], "color": "wood" },
+        { "name": "rung2", "shape": "cylinder", "size": [0.035, 0.84, 0.035], "tessellation": 6, "position": [0, 0.5, 0.13], "rotationDeg": [0, 0, 90], "color": "wood" },
+        { "name": "rung3", "shape": "cylinder", "size": [0.035, 0.84, 0.035], "tessellation": 6, "position": [0, 0.75, 0.13], "rotationDeg": [0, 0, 90], "color": "wood" },
+        { "name": "rung4", "shape": "cylinder", "size": [0.035, 0.84, 0.035], "tessellation": 6, "position": [0, 1.0, 0.13], "rotationDeg": [0, 0, 90], "color": "wood" },
+        { "name": "rung5", "shape": "cylinder", "size": [0.035, 0.84, 0.035], "tessellation": 6, "position": [0, 1.25, 0.13], "rotationDeg": [0, 0, 90], "color": "wood" },
+        { "name": "rung6", "shape": "cylinder", "size": [0.035, 0.84, 0.035], "tessellation": 6, "position": [0, 1.5, 0.13], "rotationDeg": [0, 0, 90], "color": "wood" },
+        { "name": "rung7", "shape": "cylinder", "size": [0.035, 0.84, 0.035], "tessellation": 6, "position": [0, 1.75, 0.13], "rotationDeg": [0, 0, 90], "color": "wood" },
+        { "name": "rung8", "shape": "cylinder", "size": [0.035, 0.84, 0.035], "tessellation": 6, "position": [0, 2.0, 0.13], "rotationDeg": [0, 0, 90], "color": "wood" },
+        { "name": "rung9", "shape": "cylinder", "size": [0.035, 0.84, 0.035], "tessellation": 6, "position": [0, 2.25, 0.13], "rotationDeg": [0, 0, 90], "color": "wood" },
+        { "name": "rung10", "shape": "cylinder", "size": [0.035, 0.84, 0.035], "tessellation": 6, "position": [0, 2.5, 0.13], "rotationDeg": [0, 0, 90], "color": "wood" }
       ]
     },
     "key": {

@@ -55,5 +55,5 @@ ModelRegistry.register({
   name: "WaterPistolModel",
   category: "weapon",
   title: "Vodní pistolka (zbraň 1)",
-  create: (scene) => new WaterPistolModel(scene),
+  create: (scene, options) => new WaterPistolModel(scene, options),
 });

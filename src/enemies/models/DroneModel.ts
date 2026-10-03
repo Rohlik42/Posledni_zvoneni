@@ -159,5 +159,5 @@ ModelRegistry.register({
   name: "DroneModel",
   category: "robot",
   title: "Dron (létá, bzučí, slabé výboje zespodu)",
-  create: (scene) => new DroneModel(scene),
+  create: (scene, options) => new DroneModel(scene, options),
 });

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ModelShowcaseData } from "../../dev/ModelShowcaseData";
+import { GalleryData } from "../../dev/GalleryData";
 import { SoundConfig } from "../../src/audio/SoundConfig";
 import { SoundSynthesizer } from "../../src/audio/SoundSynthesizer";
 import { MODEL_CATEGORIES, ModelBlueprints } from "../../src/rendering/ModelBlueprints";
@@ -10,7 +10,7 @@ import { TargetConfig } from "../../src/weapons/TargetConfig";
 import { WeaponConfig, WEAPON_SLOTS } from "../../src/weapons/WeaponConfig";
 import { WeaponRangeConfig } from "../../src/weapons/WeaponRangeConfig";
 
-// Phase 3 data: weapons.json, models.json, sounds.json, targets.json, model-showcase.json.
+// Phase 3 data: weapons.json, models.json, sounds.json, targets.json, gallery.json (phase 15 replaced model-showcase.json).
 
 /** Every string validated as a palette reference, found by walking the schema next to the data. */
 function paletteRefs(value: unknown, node: SchemaNode, out: string[] = []): string[] {
@@ -40,7 +40,7 @@ const files = [
   { name: "models", load: () => ModelBlueprints.load(), schema: ModelBlueprints.schema },
   { name: "sounds", load: () => SoundConfig.load(), schema: SoundConfig.schema },
   { name: "targets", load: () => TargetConfig.load(), schema: TargetConfig.schema },
-  { name: "model-showcase", load: () => ModelShowcaseData.load(), schema: ModelShowcaseData.schema },
+  { name: "gallery", load: () => GalleryData.load(), schema: GalleryData.schema },
   { name: "weapon-range", load: () => WeaponRangeConfig.load(), schema: WeaponRangeConfig.schema },
 ];
 

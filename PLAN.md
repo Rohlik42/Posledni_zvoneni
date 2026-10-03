@@ -337,6 +337,8 @@ Quick gate: výchozí (rozpočtový test je ve smoke), plus datový test, že re
 **Do not**
 Nový styl. Textury fotek na postavách (jen paleta).
 
+**Done 2026-10-04** (handoff `handoff/phase-15.md`). Galerie `npm run dev` → http://localhost:5173/dev/?scene=gallery (`&section=props|teachers|…` detail), snímek `screenshots/15-gallery.png` (nahrazuje smazaný `14-models.png`), ukázka rekvizit `?scene=props` (`15-props.png`). Quick gate zelený (data 98/98 včetně `tests/data/props.test.ts`, smoke 6/6). Odchylky od litery: galerie nahradila scénu `models` (rozpočtový test běží na `gallery`, `__game.models` zůstal) a `data/model-showcase.json` → `data/gallery.json`; police nad sebou místo podstavců na podlaze, herní mlha posunutá o vzdálenost kamery; balónky sjednocené na `BalloonPackModel` (`WaterBalloonPackModel` smazán); rekvizity (9 blueprintů, třídy nad `BlueprintModel`) jsou v plánových souřadnicích level.json, nekolidují a nejsou pickable (kolize, světla a napojení do levelu dělá fáze 16); stylová revize ztlumila jen glóbus a noty na pianu, terč (líc −z) otáčí galerie, model zůstal. CLAUDE.md jsem needitoval: URL `dev/?scene=gallery` v něm už platí.
+
 ## Phase 16 — Progrese, osazení levelu, checkpointy, průchod levelem
 
 **Implement**
