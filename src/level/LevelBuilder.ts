@@ -66,8 +66,11 @@ export class LevelBuilder {
       point.specular = Color3.Black();
       point.intensity = light.intensity * greybox.lights.intensityScale;
       point.range = light.range * greybox.lights.rangeScale;
-      // A light reaches only its own room's meshes, so each mesh stays within the material light limit.
-      point.includedOnlyMeshes = geometry.owners.get(light.room)?.visible ?? [];
+      // A light reaches only its own room's meshes (no shadows, so it would shine through walls), so each mesh stays
+      // within the material light limit. A stairwell and the shaft above it are one open space.
+      const stairwell = level.stairs.filter((s) => s.fromFloor !== s.toFloor && (s.bottomRoom === room.id || s.topRoom === room.id));
+      const rooms = new Set([room.id, ...stairwell.flatMap((s) => [s.bottomRoom, s.topRoom])]);
+      point.includedOnlyMeshes = [...rooms].flatMap((id) => geometry.owners.get(id)?.visible ?? []);
       return point;
     });
     return new Level(layout, geometry, materials, lights);

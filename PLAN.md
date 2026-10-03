@@ -228,6 +228,8 @@ Quick gate: `tests/e2e/level-walk.spec.ts` (jedna načtená stránka pro všechn
 **Do not**
 Detaily, suť a oheň (fáze 19). Ruční pozice v kódu.
 
+**Done 2026-10-03** (handoff `handoff/phase-9.md`). `?scene=level` staví celý level (28 místností, 3 patra) za < 1 s; quick gate zelený (39 datových testů, 5 smoke + 6 `level-walk`). Odchylky od litery: kromě `WallBuilder`/`StairBuilder`/`OpeningBuilder` jsou samostatné třídy `LevelLayout` (dotazy bez enginu, sdílí je data test), `RailingBuilder`, `StaticGeometry` (sloučení + Havok compound), `LevelGraph` (`pathLength` po dveřích a schodech, bez navmeshe) a `Level`; parametry generátoru jsou v `data/greybox.json`. Kolize jsou box tvary v jednom statickém compoundu na místnost, ne Havok aggregate na mesh. Okna: sklo s kolizí + samosvítící billboard `window-prague` (tónovaný podle `view`). Závaly jsou zatím jeden box suti. Opravy z kritiky směny 1: barvy světel v `level.json` jsou klíče palety (+ test), textury z půdorysu přegenerované v 83 px/m, Evidence opravena; navíc 6 světel do neosvětlených místností, `ceilingHeight` snížených místností a Vite `cacheDir` per worktree (sdílený cache rozbíjel paralelní dev servery).
+
 ## Phase 10 — Dveře, klíče, inventář, HUD, pickupy
 
 **Implement**
