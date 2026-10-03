@@ -3,7 +3,44 @@
 Branch `worktree-wf_5b8b3a47-068-1`, worktree `.claude/worktrees/wf_5b8b3a47-068-1`, dev port 5301 (killed at the end),
 Playwright on its hashed port. Base: main @ f1359bc (worktree was cut from stale 6e5ac74 and fast-forwarded to main).
 
-## Status: DONE (milestone 5/5, 2026-10-04)
+## Status: DONE after fix pass 1 (2026-10-04) — see „Fix pass 1“ right below; the rest of the file is the first pass
+
+## Fix pass 1 (reviewer: props not placed; end screenshot had zeros)
+- **Merged main** (d774452, Phase 15) into the branch: no conflicts. Data test after the merge: 103/103 before my
+  changes (Phase 15's props test accepts pk02/pk13 moves).
+- **Props wired** — `src/level/LevelGameplay.ts → create`: with `play` (= `/`), `PropPlacer.place(scene, layout)` runs
+  right after `LevelBuilder.build`, **before the navmesh bakes**; `src/level/PropColliders.ts` (new) puts one invisible
+  static Havok box per prop (plan footprint × model height, not pickable) and those boxes are **navmesh input** (robots
+  path around desks; bake 63 ms). After `RoomLighting` exists, every room's prop meshes are attached to its lamps.
+  `GameParts` gained `props: PlacedProps`, `colliders: PropColliders`. The bare level (`?scene=level`, level-walk) has
+  no props, as before. `dev/scenes/PropsScene.ts` reuses `gameplay.game.props` with `?play=1` (no double placement).
+  The comment hook is gone.
+- **Clearance:** `tests/data/progression.test.ts` new test — every same-floor route segment, sampled every 0.1 m,
+  stays ≥ player radius 0.35 m off every prop footprint. It failed at first (route went through desks in učebna 30, the
+  globe in Zeměpis, the teacher desk in Čeština, lab benches in Fyzika — the Fyzika teacher point was *inside* a lab
+  bench), so `data/level.json → route`: +1 point in u30 (aisle 6.4/12.2), Zeměpis point → (30.85, 23.0), Čeština via
+  (15.3, 26.0) to (15.3, 28.7), Fyzika along the east wall (9.25, 10.0) → (9.25, 5.4) → teacher point (7.0, 5.45);
+  `data/props.json`: Čeština teacher desk x 14.2 → 13.9 (wider east gap). Teacher chairs, pickups (= station spots
+  pk02/03/07/08/13/14/18), spawns, cover points stay covered by Phase 15's props test (all green). Playthrough start
+  test checks in the engine: ≥ 12 furnished rooms, meshes/triangles > 0, props lit (`lighting.lightsOn("prop:")` > 0),
+  colliders = props, no prop within 0.3 m of a teacher chair or of a station's **real** (wall-pushed) position in the
+  same room, and the player walking east from the spawn into a desk column stops before the desk.
+- **Test hook (added):** `window.__game.furniture { instances(), meshes(), triangles(), colliders() }` (only with play).
+- **Playthrough robustness:** the hudebna doorway check teleports the player to the waypoint before the door first (a
+  fight had left him in the doorway → „Ustup od dveří“ instead of the robot message); `walkRoute` retries a stuck
+  waypoint once from the previous waypoint (logged „retried“, counted as a teleport); the stuck log lists robots within
+  3 m. One flaky stuck at `d-f2-kab-dej` seen in 1 of 6 runs before the retry; 0 retries in the runs after it.
+- **Verified:** `npm run typecheck` exit 0; `npm run test:data` 104/104; `PW_PORT=5351 npx playwright test tests/smoke
+  tests/e2e/playthrough.spec.ts` 13/13 (49.8 s); playthrough `--repeat-each=2` 14/14. Run summary: **walked 424 m,
+  teleported 4× (3 m), heals 0, 22/22 robots, 202 shots, 148 s simulated**. Play time estimate unchanged ≈ 18 min (+10 m).
+- **Screenshots (viewed):** `screenshots/16-level-end.png` now taken at the end of the real playthrough: Čas 2:23,
+  Zničení roboti 22, Správné 9, Špatné 1, Osvobození učitelé 9 z 9, Návraty na checkpoint 1, Obtížnost Záškoláček.
+  `screenshots/16-main.png` (mandatory `/` check on :5301, click, 4 s): učebna 30 now furnished — two columns of desks
+  with chairs, cabinet on the west wall, door ahead, HUD, pistol; webgpu ~46 fps, 0 console problems; 143 props,
+  177 meshes, 19 136 prop triangles, 143 colliders. Probes viewed, not kept: Čeština (Komoň behind the shifted desk,
+  cabinets, globe), Fyzika (lab benches with flasks, Voltr between them and the board), Zeměpis (Lambertová, globe
+  beside, E hint), u30 aisle toward the board. No collider box is visible.
+
 
 Quick gate green: `npm run typecheck` exit 0; `npm run test:data` 97/97 (92 before + 5 new in
 `tests/data/progression.test.ts`); `npx playwright test tests/smoke tests/e2e/playthrough.spec.ts` 13/13 (6 smoke +
@@ -25,8 +62,7 @@ the dev scene (`&intro=1`, `&continue=1`, `&delta=<n>`).
   `RoomLighting`, `doors.yieldInteract(teachers)`, hint teachers → doors, robots `LevelEnemySpawns.encounter(layout,
   countDelta)` (default `progression.json → countDelta` 0 → 22 robots), `WeaponStations` from `LevelStations`
   (lit by their room), `LevelProgress`. Options `intro`, `resume`, `countDelta`, `difficultyName` (phase 17);
-  URL `?play=1&intro=1&continue=1&delta=n`. Without `play` the level is bare as before (level-walk). **Phase 15 hook:**
-  comment `// Phase 15 hook: props of data/props.json (PropPlacer) go here` right after `pickups.spawnLevel`.
+  URL `?play=1&intro=1&continue=1&delta=n`. Without `play` the level is bare as before (level-walk). Props: see „Fix pass 1“.
   `src/core/MainScene.ts`: `/` = `{ play: true, intro: true, resume: ?continue=1 }`.
 - **Stations** — `src/level/LevelStations.ts`: `level.json → pickups` items `extinguisher-refill` (6) and `weapon-hose`
   (1, gym) → `StationPlacements`, pushed against the nearest wall found by 4 horizontal rays at 0.5 m (below window
@@ -95,10 +131,13 @@ the dev scene (`&intro=1`, `&continue=1`, `&delta=<n>`).
   fires `onOpened`), `quiz.spec.ts` (`onAnswered`), `dev-scenes.spec.ts`, `humanoid/enemies-all/arena.spec.ts`
   (Enemy gained `footprint`/`removeFromPlay`, Drone `footprint`), `weapons-all.spec.ts` (`ExtinguisherRefill.reset` now
   via `setCharges`, same effect), `movement.spec.ts`, `npm run build`.
-- **Phase 15 (PropPlacer, parallel, not on main when I finished):** wire it at the `// Phase 15 hook` line in
-  `LevelGameplay.create` (after `pickups.spawnLevel`, before robots); props must not cover the teacher chairs
-  (`level.json → teachers`), stations (pk02/03/07/08/13/14/18) or the route. Phase 15 plans to delete
-  `WaterBalloonPackModel`: the level does not use it (balloons are `BalloonPackModel` pickups).
+- **Props (done in fix pass 1):** they collide and block shots (Havok boxes); robots path around them. `?room=<id>` in
+  play mode spawns at `layout.freeSpot(room)`, which ignores props (in the lab it is inside a bench → Havok pushes the
+  player out); dev-only. Phase 19 (details) can reuse `PropLayout` footprints; a moved prop must keep the
+  `progression.test.ts` route test and Phase 15's props test green.
+- **Shift gate, also could be affected by fix pass 1:** `dev-scenes.spec.ts` (`?scene=props`), `perf`/fps suites if
+  they load `/` (143 extra static bodies, +navmesh input), `level-walk.spec.ts` only through the shared code (bare
+  level has no props).
 - **Phase 17:** pass `countDelta` (robots) and `difficultyName` (end screen) in `LevelGameplayOptions`; `quiz` is in
   `gameplay.game.quiz` (`damageMultiplier`); player max health via `PlayerHealth.reset(max)` before the start checkpoint
   is saved (LevelProgress saves in its constructor — set health before `LevelGameplay.create` returns or re-save).
