@@ -1,0 +1,35 @@
+{
+  "//": "Mapování ovládání (src/core/Input.ts). Klíče v 'keys' jsou KeyboardEvent.code, hodnoty jsou akce. Tlačítka myši: 0 levé, 1 prostřední (kolečko), 2 pravé. Ovládání podle LEGACY §3: stisk kolečka = dveře, Esc = pauza.",
+  "keys": {
+    "KeyW": "forward",
+    "KeyS": "back",
+    "KeyA": "left",
+    "KeyD": "right",
+    "ShiftLeft": "sprint",
+    "ShiftRight": "sprint",
+    "Space": "jump",
+    "KeyE": "interact",
+    "Digit1": "weapon1",
+    "Digit2": "weapon2",
+    "Digit3": "weapon3",
+    "Digit4": "weapon4",
+    "Digit5": "weapon5",
+    "Digit6": "weapon6",
+    "Escape": "pause",
+    "KeyM": "mute"
+  },
+  "mouseButtons": {
+    "0": "fire",
+    "1": "door",
+    "2": "altFire"
+  },
+  "wheel": {
+    "up": "weaponPrev",
+    "down": "weaponNext",
+    "cooldownMs": 120
+  },
+  "pointerLock": {
+    "lockOnClick": true,
+    "fallbackMessage": "Myš bez uzamčení: rozhlížej se pohybem kurzoru. Esc = pauza."
+  }
+}

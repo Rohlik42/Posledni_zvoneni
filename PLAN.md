@@ -100,6 +100,8 @@ Quick gate: výchozí. `npm run build` bez varování. Přidej smoke test, kter�
 **Do not**
 Neimplementuj hráče ani fyziku (fáze 2). Nepřidávej herní konstanty do kódu. Neimportuj celý `@babylonjs/core` index.
 
+**Done 2026-10-03** (handoff `handoff/phase-1.md`). Odchylky od litery: obsah testovací scény s krabicemi je samostatná dev scéna `pipeline` (data v `data/dev-scenes.json`), `empty` je opravdu prázdná; `?off=bloom,ssao` v dev scénách vypíná části pipeline. Navíc `data/game.json` (pevný krok, výchozí kamera, ambient) a `data/input.json` (mapování kláves). Boot smoke test už nepřepisuje `screenshots/00-boot.png`. Snímky dělá `tools/screenshot.ts`.
+
 ## Phase 2 — Player: FPS pohyb v krabicové místnosti
 
 **Implement**
@@ -186,6 +188,8 @@ Quick gate: výchozí (typecheck + `npm test`). Skripty běží idempotentně (d
 **Do not**
 Textury v plném rozlišení (> 1K). Ruční úpravy obrázků mimo skript. Stahování z jiných domén než Poly Haven.
 
+**Done 2026-10-03** (handoff `handoff/phase-7.md`): 14 Matterport textur + decal čar tělocvičny, 5 Poly Haven (CC0), `public/textures/index.json`, 5,9 MB, skripty idempotentní, `tests/data/textures.test.ts`. Šachovnice: perioda 35,5 px → dlaždice 29,5 cm kladená 45°. Odchylky: parkety, žluté a zelené linoleum, dlažba dvora a schody jsou z `down.jpg` panoramat (354 px/m) místo půdorysů (85 px/m je málo). Oranžové linoleum má barvu z půdorysu Floor 3 a zrno z panoramatu. Geometrie šachovnice je ideální mřížka napasovaná na fotku. Čáry hřiště jsou samostatný decal (`plan.rectPx`). Poly Haven 1K cache je v `public/textures/ph/raw/` a do hry jde posterizovaná 512px kopie.
+
 ## Phase 8 — Level layout: level.json podle Matterportu
 
 **Implement**
@@ -269,6 +273,8 @@ Quick gate: výchozí. Test zelený. Vypiš 3 náhodné otázky na předmět do 
 
 **Do not**
 Otázky odkazující na skutečné osoby ze školy. Anglické otázky mimo předmět Angličtina.
+
+**Done 2026-10-03** (směna 1, handoff `handoff/phase-12.md`). `data/quiz.json`: 72 otázek (7–9 na předmět), správné odpovědi A/B/C/D 18/18/18/18 a vyvážené i uvnitř každého předmětu. `tests/data/quiz.test.ts` navíc hlídá horní mez 10 otázek na předmět, žádné neznámé předměty a jen klíče `wrongAnswerDamage` + `subjects`. Odchylky od litery: žádné. Fáze vytváří adresář `data/`, který na main chyběl.
 
 ## Phase 13 — Zbývající zbraně
 

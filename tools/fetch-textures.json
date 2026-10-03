@@ -1,0 +1,19 @@
+{
+  "api": "https://api.polyhaven.com",
+  "allowedHosts": ["api.polyhaven.com", "dl.polyhaven.org"],
+  "resolution": "1k",
+  "map": "Diffuse",
+  "format": "jpg",
+  "cacheDir": "public/textures/ph/raw",
+  "outDir": "public/textures/ph",
+  "timeoutMs": 20000,
+  "license": "CC0 (Poly Haven)",
+  "process": { "outPx": 512, "colours": 32 },
+  "textures": [
+    { "id": "ph-concrete", "asset": "concrete_floor_02", "kind": "floor", "notes": "Plain rough concrete for broken floors, basements and exposed slabs." },
+    { "id": "ph-rubble", "asset": "rubble", "kind": "floor", "notes": "Rubble/debris pile surface for collapsed corridors (blockers)." },
+    { "id": "ph-burnt", "asset": "burned_ground_01", "kind": "floor", "notes": "Burnt ground with ash for fire spots and scorched floors." },
+    { "id": "ph-metal", "asset": "metal_plate", "kind": "prop", "notes": "Clean metal plate for robot-installed hatches, panels and traps." },
+    { "id": "ph-rust", "asset": "rust_coarse_01", "kind": "prop", "notes": "Coarse rust for damaged metal, pipes and radiators." }
+  ]
+}

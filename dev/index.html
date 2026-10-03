@@ -6,11 +6,18 @@
     <title>MALGYM 2066 – dev scény</title>
     <style>
       html, body { margin: 0; height: 100%; background: #0b0b10; color: #ddd; font-family: system-ui, sans-serif; overflow: hidden; }
-      #game { width: 100%; height: 100%; display: block; }
+      #game { width: 100%; height: 100%; display: block; outline: none; }
+      #scene-index { padding: 24px 32px; overflow: auto; height: 100%; box-sizing: border-box; }
+      #scene-index a { color: #bcf274; }
+      #scene-index li { margin: 6px 0; }
+      #scene-index .error { color: #ff7580; }
     </style>
   </head>
   <body>
     <canvas id="game"></canvas>
+    <main id="scene-index" hidden>
+      <h1>MALGYM 2066 – dev scény</h1>
+    </main>
     <script type="module" src="/dev/main.ts"></script>
   </body>
 </html>

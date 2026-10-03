@@ -35,3 +35,17 @@ Každé rozhodnutí je jedna věta s důvodem. Člověk je může změnit. Agent
 24. **Trasa a zámky:** start ve Floor 4 (učebna 30), červené dveře na prostředním schodišti do Floor 3, žluté dveře do západní haly Floor 3 se schodištěm do Floor 2, modrý klíč z tělocvičny otevírá hlavní vchod (`lock: exit`); ostatní napojení schodišť jsou zavalená, aby šlo patra odemykat postupně.
 25. **Místnosti jsou obdélníky** a sousední místnosti spojují dveře nebo průchody (`kind: opening`) přes mezeru zdi (`depth`); polygonové místnosti by fáze 9 musela triangulovat a skutečná dispozice se obdélníky popíše s chybou pod 0,5 m.
 26. **Tělocvična a zádveří jsou níž** (−1,4 m a −1,0 m podle výšek kamer Matterportu), takže level má i krátká schodiště uvnitř patra (`fromFloor == toFloor`).
+## Fáze 1 — Core (2026-10-03)
+21. **Data přes statický `import json` + `DataLoader.parse(file, raw, schema)`:** soubory se bundlují Vitem a v Node testech je čte tsx, takže validace (povinná pole, typy, rozsahy, neznámé klíče = chyba, klíče `//` = komentář) běží v prohlížeči i v `npm run test:data` bez fetch a async načítání.
+22. **Barvy v datech jsou klíče palety (`"neon.water"`), ne hex:** jediný zdroj barev je `data/palette.json` a překlep v klíči spadne v datovém testu.
+23. **Simulace v pevném kroku (`data/game.json → simulationHz` 60), render jednou za snímek; `__game.step(ms)` krokuje i v pauze:** testy pohybu a AI jsou pak deterministické nezávisle na zátěži stroje.
+24. **Esc a ztráta pointer locku jen pauzují (nepřepínají), návrat kliknutím do canvasu:** Chrome při zamčeném kurzoru Esc spolkne, takže přepínání by pauzu dvakrát přeplo; LEGACY stejně pokračuje tlačítkem v menu.
+25. **Render mimo smyčku (`step`) se obaluje `engine.beginFrame/endFrame`:** WebGPU jinak použije zničenou swap-chain texturu a hlásí varování, které smoke test (DoD bez varování) zachytí.
+26. **Smoke testy selhávají na `console.warn` i `console.error` (`tests/support/ConsoleGuard.ts`), allowlist je zatím prázdný:** na tomto stroji WebGPU i WebGL2 běží bez varování.
+
+### Fáze 7 – textury (2026-10-03)
+- **Textury jsou paletové PNG ≤ 512 px posterizované přes libimagequant (sharp, bez ditheringu, 10–32 barev):** dává low-poly punk vzhled, deterministický výstup (skripty jsou idempotentní, druhý běh nic nemění) a celé `public/textures/` má 5,9 MB.
+- **Parkety, žluté/zelené linoleum a dlažba dvora jsou z `down.jpg` panoramat, ne z půdorysů:** půdorys má 85 px/m a 7 cm lamely ani zrnitost linolea neukáže; měřítko down plochy 354 px/m je změřené na 5 cm čáře hřiště. Oranžové linoleum (žádné panorama) má zrno ze žlutého linolea a barvu z mediánu půdorysu Floor 3.
+- **Šachovnice chodby: barvy a rozměr z půdorysu Floor 4 (perioda 35,5 px → dlaždice 29,5 cm, kladené 45° k chodbě), geometrie je ideální šachovnice napasovaná na fotku (95,6 % shoda):** stitching půdorysu dělá zubaté hrany a zadání chce pravidelnou šachovnici bez švů.
+- **Čáry tělocvičny jsou samostatný RGBA decal přes celou tělocvičnu (`plan.rectPx` v index.json):** vznikl detekcí modré/žluté v půdorysu a překreslením rovnými 6 cm tahy, aby se dal položit přes opakující se parkety.
+- **Poly Haven: ve hře se používá posterizovaná 512px kopie, originál 1K zůstává jako cache v `public/textures/ph/raw/`:** plán chce cache v `public/textures/ph/`; přidá ~4 MB do buildu, fáze 21 ji může z buildu vyřadit.
