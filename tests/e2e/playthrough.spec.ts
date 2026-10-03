@@ -8,7 +8,8 @@ import type { LevelData, RoutePoint } from "../../src/level/LevelTypes";
 // walks the designed route of level.json (`route`) for real — doors opened by the middle button, teachers freed with E
 // and the quiz (one wrong answer on purpose), robots destroyed with aimAt + fire whenever they show up — and teleports
 // only to get line of sight on a robot it cannot hit from where it stands. Checkpoints: saved at the start and after
-// each key, restored after a deliberate death and from a second tab with `?continue=1`. The end: the main entrance
+// each key, restored after a deliberate death (through the death screen, phase 18) and from a second tab with
+// `?continue=1`. The end: the main entrance
 // with the blue key opens the level-end screen.
 
 interface Vec {
@@ -339,6 +340,8 @@ test.describe.serial("playthrough of the level on the main page", () => {
     await page.goto("/");
     await page.waitForFunction(() => window.__game?.ready === true || window.__game?.error != null, undefined, { timeout: READY_TIMEOUT_MS });
     expect(await page.evaluate(() => window.__game?.error ?? null)).toBeNull();
+    // Phase 18: `/` opens the main menu; „Nová hra“ starts the run (story screen, start checkpoint).
+    await page.evaluate(() => window.__game!.menu!.newGame());
     await page.evaluate(() => window.__game!.setPaused(true));
     const rooms = level.rooms.map((r) => {
       const floor = level.floors.find((f) => f.id === r.floor)!;
@@ -517,6 +520,13 @@ test.describe.serial("playthrough of the level on the main page", () => {
     expect(await page.evaluate(() => window.__game!.player!.health)).toBe(0);
     expect(await page.evaluate(() => window.__game!.progress!.restoreIn)).toBeCloseTo(progression.checkpoint.restoreDelay, 1);
     await page.evaluate((ms) => window.__game!.step(ms), progression.checkpoint.restoreDelay * 1000 + 100);
+    // Phase 18: the death screen comes up (paused); „Zkusit znovu“ restores the checkpoint and resumes — the script
+    // keeps driving the paused game with `step`.
+    expect(await page.evaluate(() => window.__game!.menu!.death.visible)).toBe(true);
+    await page.evaluate(() => {
+      window.__game!.menu!.death.confirm();
+      window.__game!.setPaused(true);
+    });
     const after = await page.evaluate(() => {
       const g = window.__game!;
       return {

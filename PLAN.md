@@ -381,6 +381,8 @@ Quick gate: `tests/e2e/menu.spec.ts`: menu → hra → pauza → menu → pokra�
 **Do not**
 Externí CDN pro fonty a skripty.
 
+**Done 2026-10-04** (handoff `handoff/phase-18.md`). `/` otevře hlavní menu (DOM, styl LEGACY §4: Nová hra, Pokračovat od uloženého checkpointu, Nastavení, Kvalita, Ovládání, Zdroje s tabulkou ASSETS.md a odkazem na `legacy/`), level se staví za ním a `LevelProgress` čeká na volbu (`deferStart`). Esc → pauza (Zpátky do hry, Nastavení, Ovládání, Hlavní menu) jen když obrazovku nemá kvíz ani úvod / konec / smrt; smrt → obrazovka smrti → „ZKUSIT ZNOVU →“ z checkpointu; „HRÁT ZNOVU“ na konci levelu → nová hra. Nastavení (citlivost myši, hlasitost, invert Y, kvalita) v localStorage přes `src/core/Settings.ts`, platí hned a ve všech scénách. `src/core/GameFlow.ts`, `src/ui/MenuOverlay.ts`, `MenuPages.ts`, `MenuConfig.ts`, `AssetCredits.ts`, `data/menu.json`, dev scéna `?scene=menu`. `tests/e2e/menu.spec.ts` 6/6, `tests/data/menu.test.ts`. Odchylky od litery: písma se nepřibalují (jen jménem se systémovou zálohou, DECISIONS „Fáze 18“); Kvalita jen ukládá volbu, presety zapne fáze 21; „Nová hra“ po odehraném běhu načte stránku znovu s `?new=1`; výběr obtížnosti je háček `GameFlow.setNewGameStep` pro fázi 17; `playthrough.spec.ts` upravený (start přes menu, potvrzení obrazovky smrti), ale nespuštěný (shift gate).
+
 ## Phase 19 — Visual pass
 
 **Implement**
