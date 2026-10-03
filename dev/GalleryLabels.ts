@@ -34,14 +34,14 @@ export class GalleryLabels {
     this.observer = scene.onAfterRenderObservable.add(() => this.update());
   }
 
-  /** A model label: name (+ variant) and its triangles against the budget of its category. */
-  addModel(anchor: Vector3, name: string, triangles: number, budget: number): void {
+  /** A model label: name (+ variant), its triangles against the budget of its category and the display scale. */
+  addModel(anchor: Vector3, name: string, triangles: number, budget: number, scale: string | null): void {
     const element = this.box(LABEL_FONT_PX);
     const title = document.createElement("div");
     title.textContent = name;
     title.style.color = Palette.hex(LABEL_TEXT);
     const count = document.createElement("div");
-    count.textContent = `${Math.round(triangles)} / ${budget} tri`;
+    count.textContent = `${Math.round(triangles)} / ${budget} tri${scale === null ? "" : ` · ×${scale}`}`;
     count.style.color = Palette.hex(triangles > budget ? LABEL_OVER : LABEL_DIM);
     element.append(title, count);
     this.labels.push({ element, anchor });

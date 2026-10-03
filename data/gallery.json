@@ -1,13 +1,15 @@
 {
-  "//": "Dev scéna 'gallery' (dev/scenes/GalleryScene.ts, fáze 15): všechny modely z ModelRegistry na podstavcích s popiskem a počtem trojúhelníků, pod herním osvětlením (ambient, zářivky, mlha a pipeline jako ve hře). Sekce jdou odpředu dozadu a každá další stojí o rowRise výš (tribuna); sekce s víc než 'columns' kusy se zalomí. Model se zmenší, aby se vešel do buňky (cell.fill × width, maxHeight), a zvětší nejvýš na maxScale sekce. 'teachers' rozvine model na 9 podob z data/teachers.json. Modely, které žádná sekce nejmenuje, skončí v poslední sekci 'Ostatní'. yawDeg otočí přední stranu (+z) ke kameře, zbraně bokem. ?section=<id> zabere kameru na jednu sekci.",
-  "columns": 10,
-  "cell": { "width": 1.5, "depth": 2.0, "maxHeight": 1.9, "fill": 0.85 },
-  "rowRise": 0.5,
-  "pedestal": { "size": 1.3, "height": 0.12, "color": "base.ash" },
-  "floorColor": "world.floorTileDark",
+  "//": "Dev scéna 'gallery' (dev/scenes/GalleryScene.ts, fáze 15): všechny modely z ModelRegistry na podstavcích s popiskem a počtem trojúhelníků, pod herním osvětlením (ambient, zářivky, mlha a pipeline jako ve hře). Sekce jsou police nad sebou (první nahoře, rowHeight m od sebe) na tmavé zdi, kamera hledí zpředu; sekce s víc než 'columns' kusy se zalomí. Model se zmenší, aby se vešel do buňky (cell.fill × width, maxHeight), a zvětší nejvýš na maxScale sekce. 'teachers' rozvine model na 9 podob z data/teachers.json. Modely, které žádná sekce nejmenuje, skončí v poslední sekci 'Ostatní'. yawDeg otočí přední stranu (+z) ke kameře, zbraně bokem; položka může mít vlastní yawDeg (terč má lícem −z). ?section=<id> ukáže jen jednu sekci po camera.focusColumns kusech v řadě (detail). Mlha je herní (data/rendering.json), jen posunutá o vzdálenost kamery tak, aby modely vypadaly jako z fogViewDistance m.",
+  "columns": 12,
+  "cell": { "width": 1.5, "depth": 1.4, "maxHeight": 1.5, "fill": 0.85 },
+  "rowHeight": 2.3,
+  "pedestal": { "size": 1.3, "height": 0.1, "color": "base.ash" },
+  "shelfColor": "world.woodDark",
+  "wallColor": "world.plasterDark",
+  "fogViewDistance": 6,
   "yawDeg": { "default": 180, "weapon": -90 },
-  "camera": { "fov": 0.7, "pitchDeg": 22, "margin": 1.08, "focusMargin": 1.25 },
-  "lights": { "spacing": 4.5, "height": 2.6, "forward": -1.2, "color": "light.fluorescent", "intensity": 1.3, "range": 6 },
+  "camera": { "fov": 0.7, "pitchDeg": 6, "margin": 1.04, "focusMargin": 1.1, "focusColumns": 5, "labelSpace": 0.45 },
+  "lights": { "spacing": 4.5, "height": 1.9, "forward": -1.6, "color": "light.fluorescent", "intensity": 1.2, "range": 6 },
   "labelDrop": 0.18,
   "otherTitle": "Ostatní",
   "sections": [
@@ -90,7 +92,7 @@
         { "model": "DoorModel", "label": "blue", "options": { "lock": "blue" } },
         { "model": "ExtinguisherCabinetModel" },
         { "model": "HydrantModel" },
-        { "model": "TargetModel" }
+        { "model": "TargetModel", "yawDeg": 0 }
       ]
     }
   ]
