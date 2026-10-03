@@ -15,6 +15,9 @@ const TABLE_CELL_PADDING = "4px 8px";
 const TABLE_BORDER_ALPHA_HEX = "40";
 const VALUE_MIN_WIDTH_PX = 64;
 const SETTINGS_ROW_GAP_PX = 14;
+/** Czech decimal separator for the sensitivity value. */
+const DECIMAL_POINT = ".";
+const DECIMAL_COMMA = ",";
 
 /** What the menu pages do; `GameFlow` implements it (and the dev scene `menu` a stand-in). */
 export interface MenuActions {
@@ -129,7 +132,7 @@ export class MenuPages {
     grid.style.rowGap = `${SETTINGS_ROW_GAP_PX}px`;
     grid.append(
       ...this.slider("mouseSensitivity", t.labels.mouseSensitivity, s.mouseSensitivity, values.mouseSensitivity, (v) =>
-        Texts.format(t.sensitivityValue, { value: v.toFixed(SENSITIVITY_DECIMALS) }),
+        Texts.format(t.sensitivityValue, { value: v.toFixed(SENSITIVITY_DECIMALS).replace(DECIMAL_POINT, DECIMAL_COMMA) }),
       ),
       ...this.slider("volume", t.labels.volume, s.volume, values.volume, (v) => Texts.format(t.volumeValue, { value: Math.round(v * PERCENT) })),
       ...this.toggle("invertY", t.labels.invertY, values.invertY, t.on, t.off),

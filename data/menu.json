@@ -18,7 +18,7 @@
     "noteSize": 14,
     "rowSize": 16,
     "tableSize": 12,
-    "tableHeight": 300,
+    "tableHeight": 200,
     "sliderWidth": 240,
     "selectedMarker": "◆",
     "focusMarker": "▶"
@@ -64,7 +64,7 @@
       "button": "ZKUSIT ZNOVU →"
     },
     "settings": {
-      "kicker": "NASTAVENÍ",
+      "kicker": "MYŠ A ZVUK",
       "title": "Nastavení",
       "lead": "Ukládá se v tomto prohlížeči a platí hned.",
       "labels": { "mouseSensitivity": "Citlivost myši", "volume": "Hlasitost", "invertY": "Obrácená osa Y" },
@@ -74,7 +74,7 @@
       "off": "VYPNUTO"
     },
     "quality": {
-      "kicker": "KVALITA",
+      "kicker": "PŘEDVOLBY GRAFIKY",
       "title": "Kvalita",
       "titleAccent": "obrazu",
       "lead": "Automaticky vybere předvolbu podle grafické karty a prvních vteřin hry. Volba se uloží.",
@@ -92,7 +92,7 @@
       }
     },
     "controls": {
-      "kicker": "OVLÁDÁNÍ",
+      "kicker": "KLÁVESNICE A MYŠ",
       "title": "Jak se",
       "titleAccent": "to hraje",
       "rows": [
@@ -112,7 +112,7 @@
       "note": "Hra je pro počítač s klávesnicí a myší. Pokud prohlížeč neuzamkne kurzor, rozhlížej se běžným pohybem myši; pro neomezené otáčení otevři hru v samostatné kartě."
     },
     "credits": {
-      "kicker": "ZDROJE",
+      "kicker": "ASSETS.MD · LICENCE",
       "title": "Zdroje",
       "titleAccent": "a díky.",
       "lead": "Budova, roboti, učitelé, zbraně i zvuky vznikají v kódu. Všechno převzaté je v tabulce (ASSETS.md).",

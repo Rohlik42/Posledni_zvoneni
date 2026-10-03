@@ -14,6 +14,7 @@ import { TestHooks } from "./TestHooks";
 
 const SECONDS_PER_MINUTE = 60;
 const TIME_PAD = 2;
+const NO_VALUE = "–";
 /** `/?new=1` starts a new run at once (the menu's „Nová hra“ after a run was played on the page). */
 export const NEW_GAME_PARAM = "new";
 /** `/?continue=1` continues from the stored checkpoint at once (phase 16 deep link). */
@@ -242,7 +243,7 @@ export class GameFlow implements MenuActions {
       titleAccent: t.titleAccent ?? "",
       lead: t.lead,
       rows: [
-        { key: "checkpoint", label: t.labels.checkpoint, value: label === null ? "–" : (labels[label] ?? label) },
+        { key: "checkpoint", label: t.labels.checkpoint, value: GameFlow.capitalize(label === null ? NO_VALUE : (labels[label] ?? label)) },
         { key: "time", label: t.labels.time, value: time },
         { key: "deaths", label: t.labels.deaths, value: String(progress.stats.deaths) },
       ],
@@ -257,6 +258,10 @@ export class GameFlow implements MenuActions {
     this.deathScreen.hide();
     progress.restore();
     this.play(trusted);
+  }
+
+  private static capitalize(text: string): string {
+    return text.charAt(0).toLocaleUpperCase() + text.slice(1);
   }
 
   private reload(choice: NewGameChoice): void {
