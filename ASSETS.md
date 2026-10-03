@@ -27,3 +27,4 @@ Každý stažený nebo odvozený soubor má řádek: název, zdroj, licence. Mod
 | `public/textures/mp/window-prague.png` | Matterport `reference/matterport/panoramas/terasa_vyhled/b.jpg`, tools/matterport-textures.ts | odvozeno z prohlídky školy (viz řádek reference/matterport); nekomerční školní projekt |
 | `public/textures/ph/raw/*_diffuse_1k.jpg` | Poly Haven 1K diffuse originals (concrete_floor_02, rubble, burned_ground_01, metal_plate, rust_coarse_01) z `dl.polyhaven.org`, cache pro tools/fetch-textures.ts | CC0 |
 | `public/textures/index.json` | seznam textur (id, soubor, px, rozměr v m, zdroj); generují tools/matterport-textures.ts a tools/fetch-textures.ts | – |
+| `reference/matterport/panoramas_4k/terasa_vyhled/*` | 360° panoráma ze střešní terasy školy (Matterport, 4096²/stěna), zdroj skyboxu Prahy | stejné jako ostatní Matterport reference |

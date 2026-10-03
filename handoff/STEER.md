@@ -7,3 +7,4 @@
 5. **Rychlost:** neověřuj nad rámec quick gate a shift gate. Žádné další běhy plné sady, žádná videa, fps jen ve fázích 21 a 24. Po směně 2 a 5 nečekej na člověka a pokračuj.
 6. Nikdy nepushuj.
 7. **2026-10-03 21:2x:** FEEDBACK.md má bod o světle u zdi. Zapracuje ho **fáze 5 (Weapon feel)** v téhle směně jako součást své práce (je malý a týká se vzhledu v boxroomu). Ve verifikaci fáze 5 přidej A/B snímky u zdi. Po merge fáze 5 připiš do FEEDBACK.md „Zapracováno <datum>“, takže další směna z něj novou fázi nevytvoří.
+8. **2026-10-03 22:35:** druhý záznam ve FEEDBACK.md je už zapsaný jako hotová sekce `## Phase F1` v PLAN.md a v tabulce Rozvrh (směna 3: serial `F1`, `10`, `11`). **Nevytvářej z FEEDBACK.md další fázi**, použij F1. Quick gate F1: `tests/e2e/level-walk.spec.ts`. Po merge F1 připiš do FEEDBACK.md „Zapracováno <datum>“.

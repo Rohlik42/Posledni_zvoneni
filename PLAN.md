@@ -27,7 +27,7 @@ Cíl: single-player FPS v prohlížeči (Babylon.js 9 + TypeScript + Vite) podle
 | --- | --- | --- | --- |
 | 1 | `1`, `2` | `7`, `8`, `12` | 7, 8 a 12 jsou čistě nástroje a data, nepotřebují engine |
 | 2 | `3`, `4`, `5` | `9` | 9 = geometrie levelu bez navmeshe; po směně 2 → člověk hraje Weapon feel |
-| 3 | `10`, `11` | `13`, `14` | 13/14 stojí na 3–5 (směna 2) |
+| 3 | `F1`, `10`, `11` | `13`, `14` | F1 = feedback (z-fighting, skybox); 13/14 stojí na 3–5 (směna 2) |
 | 4 | `16`, `18`, `17` | `15` | 18 (menu) před 17 (výběr obtížnosti v menu); 15 = jen modely rekvizit + PropPlacer, napojí 16 |
 | 5 | `19`, `20` | `23` | po směně 5 → člověk hraje Visual pass |
 | 6 | `21`, `24` | – | 21 měří fps → běží sama, bez paralelní zátěže |
@@ -438,6 +438,29 @@ Quick gate: `tests/e2e/perf.spec.ts`, `tests/e2e/playthrough.spec.ts`. Všechny 
 
 **Do not**
 Prohlásit hotovo, dokud některý bod DoD nemá důkaz.
+
+## Phase F1 — FEEDBACK: z-fighting a panorama Prahy
+
+Zdroj: `FEEDBACK.md` (2026-10-03 22:30). Patří na začátek `serial` ve směně 3, před fázi 10.
+
+**Implement**
+1. **Z-fighting audit:** `src/level/GeometryAudit.ts` projde po stavbě levelu všechny statické meshe (i ty sloučené podle materiálu). Najde dvojice trojúhelníků, které leží ve stejné rovině (normála ±, vzdálenost roviny < 2 mm) a průmět jejich ploch se překrývá (> 1 cm²). Výpis obsahuje mesh, materiál, místnost a pozici. Je dostupný přes `__game.level.audit()` a jako `npm run tool tools/geometry-audit.ts` (headless přes Playwright, vypíše tabulku).
+2. Oprav **příčiny** v builderech (`WallBuilder`, `StairBuilder`, `OpeningBuilder`, `LevelBuilder`), ne jednotlivé výskyty:
+   - podlaha patra N+1 vs strop patra N: strop o tloušťku desky níž, nebo jen jedna plocha;
+   - stěny sousedních místností sdílející hranici: generuj sdílenou stěnu jednou, nebo s tloušťkou;
+   - překryv segmentů stěn v rozích a u otvorů;
+   - obklady, sokly, tabule a zárubně na stěně: odsazení ≥ 1 cm;
+   - podlahy chodby a místnosti v otvoru dveří.
+3. Hloubková přesnost: kamera `minZ` ≥ 0,05 m a `maxZ` podle velikosti levelu. Pokud to engine podporuje na WebGPU i WebGL2, zapni `useReverseDepthBuffer`. Zapiš do DECISIONS.
+4. **Panorama Prahy jako skybox:** `tools/prague-skybox.ts` (sharp). Zdroj je `reference/matterport/panoramas_4k/terasa_vyhled/{a,b,c,d}.jpg` (4 souvislé boční stěny krychle 4096², pořadí a→b→c→d navazuje dokola), `up.jpg` (obloha) a `preview.jpg` (náhled). Popředí terasy (dlažba, židle, stoly, atika) je pod horizontem. Ořízni ho tak, že pod linií střech a atiky nahradíš plochu tmavou siluetou střech nebo tmou s mlhou. Plynulý přechod, žádný šev. `down` = tma. Výstup: cube map `public/textures/sky/prague_{px,nx,py,ny,pz,nz}.jpg`, 2048² (Nízké může použít 1024²), s nočním gradingem podle DESIGN §1: tma, modrá noc, zář požárů na obloze, kouř. Zachovej siluety Mikuláše a Hradu, aby to bylo poznat.
+5. `src/rendering/Skybox.ts`: `CubeTexture` + skybox mesh (infinite distance), orientace taková, aby výhled sedělo se skutečnou orientací (Mikuláš ze západních oken; ověř podle `reference/matterport/views/` a panorámat chodeb a zapiš do DECISIONS). Okna mají jen sklo, žádnou per-okno texturu `window-prague`; přes sklo je vidět skybox. Odstraň použití `window-prague` z materiálů.
+6. `ASSETS.md`: řádek pro skybox (zdroj Matterport panoráma terasy).
+
+**Verification**
+Quick gate: `tests/e2e/level-walk.spec.ts`. Přidej do něj assert `audit()` = 0 nálezů. Snímky: pohled z okna chodby na 2 místech (`screenshots/F1-window-*.png`) — výhled navazuje, žádný šev a žádné židle z terasy. Pohled do chodby a rohu učebny, kde dřív problikávalo (`F1-zfight-*.png`).
+
+**Do not**
+Opravovat z-fighting posunem kamery nebo vypnutím depth testu. Používat jiné zdroje než Matterport terasu. Rozlišení vyšší než 2048² na stěnu.
 
 ## Backlog — needs a human
 
