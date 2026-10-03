@@ -1,0 +1,33 @@
+{
+  "description": "Orientation points measured directly in floorplan pixels (reference/matterport/floorplans/*.jpg, 4968×3043). tests/data/level.test.ts converts them with level.json plan.pxPerMeter and compares with the level data.",
+  "measuredOn": "2026-10-03, phase 8: zoomed crops with a 1 m grid plus a background/content edge scan along rows and columns. Landmarks with ref.side are single wall lines (fix pass): only that coordinate is compared; measured outside-in like tools/level-wall-scan.ts and checked by eye on crops.",
+  "scaleBar": {
+    "floorplan": "reference/matterport/floorplans/floor2_vstupni_podlazi.jpg",
+    "barRowPx": 3005,
+    "barStartPx": 40,
+    "barEndPx": 292,
+    "barEndMeaning": "10 ft (3.048 m); the 3 m tick sits just before it",
+    "fiveFootTickPx": 166,
+    "pxPerMeter": 82.7
+  },
+  "toleranceM": 0.5,
+  "landmarks": [
+    { "id": "stair-west-nw", "floor": 2, "px": [202, 1176], "ref": { "stair": "stair-west-23", "corner": "min" }, "note": "outer corner of the main (west) staircase; edge scan: x 201 px, z 1175 px" },
+    { "id": "stair-west-se", "floor": 2, "px": [587, 1833], "ref": { "stair": "stair-west-23", "corner": "max" }, "note": "last step post toward the hall / bottom wall; edge scan bottom 1838 px" },
+    { "id": "stair-mid-nw", "floor": 3, "px": [2318, 1252], "ref": { "stair": "stair-mid-34", "corner": "min" }, "note": "inner corner of the middle staircase next to the wing corridor; edge scan top 1255 px" },
+    { "id": "stair-mid-se", "floor": 3, "px": [2932, 1619], "ref": { "stair": "stair-mid-34", "corner": "max" }, "note": "inner wall at the foot of the right flight, corridor edge" },
+    { "id": "gym1-nw", "floor": 2, "px": [3500, 1888], "ref": { "room": "f2-gym", "corner": "min" }, "note": "Tělocvična č.1 inner corner; edge scan top 1894 px" },
+    { "id": "gym1-se", "floor": 2, "px": [4870, 2502], "ref": { "room": "f2-gym", "corner": "max" }, "note": "Tělocvična č.1 inner corner (wall line, scan debris continues to 2558 px)" },
+    { "id": "main-entrance", "floor": 2, "px": [864, 2585], "ref": { "door": "d-f2-exit" }, "note": "threshold of the main entrance from Josefská (Matterport 28 → 23)" },
+    { "id": "f4-u33-east-wall", "floor": 4, "px": [2392, 2300], "ref": { "room": "f4-ucebna-33", "side": "x1" }, "note": "east wall of učebna č.33 (Matterport 54); rows z 2100/2300/2500 px give 2396/2392/2389 px" },
+    { "id": "f4-u33-west-wall", "floor": 4, "px": [1687, 2300], "ref": { "room": "f4-ucebna-33", "side": "x0" }, "note": "west wall of učebna č.33; rows 2100/2300/2500 px give 1690/1687/1680 px" },
+    { "id": "f4-zem-east-wall", "floor": 4, "px": [2646, 1975], "ref": { "room": "f4-kabinet-zemepis", "side": "x1" }, "note": "east wall of kabinet zeměpisu (Matterport 62); rows 1960/1990 px both 2646 px" },
+    { "id": "f4-zem-south-wall", "floor": 4, "px": [2550, 2017], "ref": { "room": "f4-kabinet-zemepis", "side": "z1" }, "note": "south wall of kabinet zeměpisu; columns 2450/2550/2620 px give 2023/2011/2019 px" },
+    { "id": "f4-mat-west-wall", "floor": 4, "px": [3468, 2350], "ref": { "room": "f4-kabinet-matematika", "side": "x0" }, "note": "west wall of učebna č.35 (Matterport 58); rows 2300/2400 px give 3469/3468 px" },
+    { "id": "f4-u30-west-wall", "floor": 4, "px": [264, 700], "ref": { "room": "f4-ucebna-30", "side": "x0" }, "note": "west wall of učebna č.30 (Matterport 56); rows 500/700/900 px give 268/264/259 px" },
+    { "id": "f3-atelier-west-wall", "floor": 3, "px": [4084, 2100], "ref": { "room": "f3-atelier", "side": "x0" }, "note": "west wall of the atelier; rows 2000/2200 px give 4083/4085 px" },
+    { "id": "f3-atelier-east-wall", "floor": 3, "px": [4673, 2300], "ref": { "room": "f3-atelier", "side": "x1" }, "note": "east wall of the atelier; rows 2200/2400 px give 4675/4672 px" },
+    { "id": "f3-angl-east-wall", "floor": 3, "px": [2926, 1075], "ref": { "room": "f3-kabinet-anglictina", "side": "x1" }, "note": "east wall of kabinet angličtiny; rows 1050/1100 px both 2926 px" },
+    { "id": "f2-satna-west-wall", "floor": 2, "px": [2684, 2300], "ref": { "room": "f2-satna", "side": "x0" }, "note": "west wall of the šatna; rows 2100/2300/2400 px give 2685/2684/2684 px" }
+  ]
+}
