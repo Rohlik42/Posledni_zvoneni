@@ -52,9 +52,7 @@ export class Game {
     this.input.onAction.add(({ action, pressed }) => {
       if (action === "pause" && pressed) this.setPaused(true);
     });
-    canvas.addEventListener("click", () => {
-      if (this.isPaused) this.setPaused(false);
-    });
+    canvas.addEventListener("click", this.onCanvasClick);
     window.addEventListener("resize", this.onResize);
     TestHooks.setCore({
       renderer,
@@ -175,6 +173,7 @@ export class Game {
 
   dispose(): void {
     window.removeEventListener("resize", this.onResize);
+    this.canvas.removeEventListener("click", this.onCanvasClick);
     this.engine.stopRenderLoop();
     this.input.dispose();
     this.pipeline?.dispose();
@@ -215,4 +214,9 @@ export class Game {
   }
 
   private readonly onResize = (): void => this.engine.resize();
+
+  /** Clicking the canvas resumes a paused game (Input requests pointer lock on the same click). */
+  private readonly onCanvasClick = (): void => {
+    if (this.isPaused) this.setPaused(false);
+  };
 }
