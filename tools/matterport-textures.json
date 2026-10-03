@@ -1,0 +1,478 @@
+{
+  "outDir": "public/textures/mp",
+  "license": "derived from the school's Matterport tour (reference/matterport, see ASSETS.md); non-commercial school project",
+  "defaults": {
+    "outPx": [
+      512,
+      512
+    ],
+    "colours": 24,
+    "pixelate": 1,
+    "flattenSigma": 0,
+    "flattenStrength": 1,
+    "brightness": 1,
+    "contrast": 1,
+    "saturation": 1,
+    "seamBlend": 0.15,
+    "rotate": 0
+  },
+  "textures": [
+    {
+      "id": "floor-checker",
+      "kind": "floor",
+      "tiling": "repeat",
+      "method": "fold",
+      "src": "reference/matterport/floorplans/floor4_druhe_patro.jpg",
+      "rect": [
+        3000,
+        1635,
+        1440,
+        140
+      ],
+      "periodSearchPx": [
+        28,
+        45
+      ],
+      "cellPx": 128,
+      "reps": 2,
+      "pxPerM": 85,
+      "colours": 12,
+      "contrast": 1.15,
+      "notes": "Corridor checker (Floor 4, corridor 57 between the chair rows): median-folded over ~150 lattice periods, colours = Otsu class medians, geometry = ideal 45° checker fitted to the folded photo; tiles run at 45° to the corridor axis (= plan x).",
+      "twoTone": {
+        "keep": 0.3
+      },
+      "idealDiamond": true
+    },
+    {
+      "id": "floor-parquet-gym",
+      "kind": "floor",
+      "tiling": "repeat",
+      "method": "quad",
+      "src": "reference/matterport/panoramas/telocvicna_parkety/down.jpg",
+      "flattenSigma": 40,
+      "flattenStrength": 0.85,
+      "contrast": 1.1,
+      "notes": "Gym 1 strip parquet from the straight-down panorama face, rotated 10.7° so the strips run along v (angle of the parallel court line). Ortho face, 354 px/m measured from the 5 cm court line (17.7 px); the plan (85 px/m) is too coarse for 7 cm strips.",
+      "quad": [
+        [
+          18,
+          756
+        ],
+        [
+          274,
+          708
+        ],
+        [
+          322,
+          964
+        ],
+        [
+          66,
+          1012
+        ]
+      ],
+      "samplePx": [
+        260,
+        260
+      ],
+      "sizeM": [
+        0.735,
+        0.735
+      ]
+    },
+    {
+      "id": "floor-gym-lines",
+      "kind": "decal",
+      "tiling": "decal",
+      "method": "lines",
+      "src": "reference/matterport/floorplans/floor2_vstupni_podlazi.jpg",
+      "floor": 2,
+      "rect": [
+        3500,
+        1875,
+        1370,
+        625
+      ],
+      "pxPerM": 85,
+      "outPx": [
+        1024,
+        468
+      ],
+      "colours": 16,
+      "lines": {
+        "classes": [
+          {
+            "name": "blue",
+            "hue": [
+              205,
+              245
+            ],
+            "minSat": 0.5,
+            "minVal": 0.15,
+            "maxVal": 0.8
+          },
+          {
+            "name": "yellow",
+            "hue": [
+              46,
+              64
+            ],
+            "minSat": 0.45,
+            "minVal": 0.84,
+            "maxVal": 1
+          }
+        ],
+        "lineWidthM": 0.06,
+        "minLenM": 1.2,
+        "gapM": 1.8,
+        "snapM": 0.45,
+        "minFill": 0.55,
+        "maskInsetPx": [
+          70,
+          65,
+          70,
+          40
+        ]
+      },
+      "notes": "Court lines of gym 1 (Floor 2) detected in the plan by colour and redrawn as clean 6 cm strokes over the whole gym rectangle (plan.rectPx)."
+    },
+    {
+      "id": "floor-lino-orange",
+      "kind": "floor",
+      "tiling": "repeat",
+      "method": "crop",
+      "src": "reference/matterport/panoramas/ucebna_obklad/down.jpg",
+      "rect": [
+        15,
+        700,
+        240,
+        240
+      ],
+      "pxPerM": 354,
+      "outPx": [
+        256,
+        256
+      ],
+      "pixelate": 1,
+      "colours": 16,
+      "flattenSigma": 30,
+      "flattenStrength": 0.9,
+      "notes": "Orange linoleum of the Floor 3 classrooms: colour = median of the plan (room 39), grain from the speckled linoleum down face (the plan at 85 px/m only shows stitching seams).",
+      "recolourFrom": {
+        "src": "reference/matterport/floorplans/floor3_prvni_patro.jpg",
+        "rect": [
+          380,
+          1930,
+          150,
+          135
+        ]
+      }
+    },
+    {
+      "id": "floor-lino-yellow",
+      "kind": "floor",
+      "tiling": "repeat",
+      "method": "crop",
+      "src": "reference/matterport/panoramas/ucebna_obklad/down.jpg",
+      "rect": [
+        15,
+        700,
+        240,
+        240
+      ],
+      "pxPerM": 354,
+      "outPx": [
+        256,
+        256
+      ],
+      "colours": 16,
+      "flattenSigma": 30,
+      "flattenStrength": 0.9,
+      "notes": "Yellow speckled linoleum (classroom with wood wainscot, down face; same colour as Floor 4 classrooms in the plan)."
+    },
+    {
+      "id": "floor-lino-green",
+      "kind": "floor",
+      "tiling": "repeat",
+      "method": "crop",
+      "src": "reference/matterport/panoramas/ucebna_zelena/down.jpg",
+      "rect": [
+        590,
+        10,
+        220,
+        220
+      ],
+      "pxPerM": 354,
+      "outPx": [
+        256,
+        256
+      ],
+      "colours": 16,
+      "flattenSigma": 30,
+      "flattenStrength": 0.9,
+      "notes": "Green marbled linoleum (green classroom, down face; same as Floor 5 classrooms in the plan)."
+    },
+    {
+      "id": "wall-plaster",
+      "kind": "wall",
+      "tiling": "repeat",
+      "method": "crop",
+      "src": "reference/matterport/panoramas/chodba_dvere_okna/a.jpg",
+      "rect": [
+        20,
+        30,
+        380,
+        360
+      ],
+      "sizeM": [
+        1.6,
+        1.5
+      ],
+      "outPx": [
+        256,
+        256
+      ],
+      "colours": 10,
+      "flattenSigma": 40,
+      "flattenStrength": 1,
+      "contrast": 1.5,
+      "notes": "White corridor plaster beside the classroom door; lighting flattened, contrast raised so the trowel texture survives posterization.",
+      "saturation": 0.45
+    },
+    {
+      "id": "wall-wainscot-wood",
+      "kind": "wall",
+      "tiling": "repeat",
+      "method": "quad",
+      "src": "reference/matterport/panoramas/telocvicna_obklad/b.jpg",
+      "quad": [
+        [
+          660,
+          360
+        ],
+        [
+          1020,
+          275
+        ],
+        [
+          1020,
+          610
+        ],
+        [
+          660,
+          571
+        ]
+      ],
+      "samplePx": [
+        512,
+        384
+      ],
+      "sizeM": [
+        1.25,
+        0.95
+      ],
+      "flattenSigma": 30,
+      "flattenStrength": 1,
+      "notes": "Vertical pine boards of the gym wainscot, perspective-rectified (horizontal edges through the measured vanishing point (48, 505)); width from ~12 boards × 10 cm."
+    },
+    {
+      "id": "door-wood",
+      "kind": "door",
+      "tiling": "clamp",
+      "method": "quad",
+      "src": "reference/matterport/panoramas/chodba_dvere_okna/a.jpg",
+      "quad": [
+        [
+          505,
+          196
+        ],
+        [
+          946,
+          173
+        ],
+        [
+          946,
+          1022
+        ],
+        [
+          505,
+          988
+        ]
+      ],
+      "samplePx": [
+        440,
+        820
+      ],
+      "sizeM": [
+        1.4,
+        2.6
+      ],
+      "outPx": [
+        256,
+        512
+      ],
+      "colours": 24,
+      "flattenSigma": 80,
+      "flattenStrength": 0.5,
+      "notes": "Both leaves of a solid panelled classroom door (no frame), rectified; one texture = whole double door."
+    },
+    {
+      "id": "locker-blue",
+      "kind": "prop",
+      "tiling": "repeat",
+      "method": "quad",
+      "src": "reference/matterport/panoramas/satna_skrinky2/c.jpg",
+      "quad": [
+        [
+          715,
+          352
+        ],
+        [
+          947,
+          330
+        ],
+        [
+          947,
+          960
+        ],
+        [
+          715,
+          902
+        ]
+      ],
+      "samplePx": [
+        240,
+        560
+      ],
+      "sizeM": [
+        0.42,
+        0.9
+      ],
+      "outPx": [
+        256,
+        512
+      ],
+      "seamBlend": 0,
+      "colours": 16,
+      "flattenSigma": 60,
+      "flattenStrength": 0.7,
+      "notes": "One locker column (stile centre to stile centre, vent strip to the rail between tiers) from the changing room, rectified; repeats sideways into a row and upwards into tiers."
+    },
+    {
+      "id": "stair-tread",
+      "kind": "floor",
+      "tiling": "repeat",
+      "method": "crop",
+      "src": "reference/matterport/panoramas/schodiste_zabradli/down.jpg",
+      "rect": [
+        830,
+        80,
+        96,
+        96
+      ],
+      "pxPerM": 354,
+      "outPx": [
+        256,
+        256
+      ],
+      "pixelate": 2,
+      "colours": 12,
+      "flattenSigma": 20,
+      "flattenStrength": 0.9,
+      "notes": "Granite (terrazzo-like) stair tread surface of the main staircase, from inside one tread of the down face."
+    },
+    {
+      "id": "beam-wood",
+      "kind": "ceiling",
+      "tiling": "repeat-x",
+      "method": "quad",
+      "src": "reference/matterport/panoramas/podkrovi_tramy/b.jpg",
+      "quad": [
+        [
+          500,
+          456
+        ],
+        [
+          775,
+          433
+        ],
+        [
+          775,
+          506
+        ],
+        [
+          500,
+          506
+        ]
+      ],
+      "samplePx": [
+        512,
+        128
+      ],
+      "sizeM": [
+        1.1,
+        0.33
+      ],
+      "outPx": [
+        512,
+        128
+      ],
+      "flattenSigma": 25,
+      "flattenStrength": 0.9,
+      "seamBlend": 0.12,
+      "notes": "Side of the dark attic tie beam (Floor 6), rectified, left of the window glare; repeats along the beam (u).",
+      "brightness": 1.5
+    },
+    {
+      "id": "courtyard-paving",
+      "kind": "outdoor",
+      "tiling": "repeat",
+      "method": "crop",
+      "src": "reference/matterport/panoramas/dvur_boulder/down.jpg",
+      "rect": [
+        380,
+        765,
+        540,
+        255
+      ],
+      "periodSearchPx": [
+        40,
+        140
+      ],
+      "pxPerM": 354,
+      "seamBlend": 0.08,
+      "colours": 16,
+      "flattenSigma": 40,
+      "flattenStrength": 0.8,
+      "notes": "Interlocking concrete pavers of the courtyard (boulder corner), crop snapped to whole pattern periods.",
+      "outPx": [
+        512,
+        256
+      ]
+    },
+    {
+      "id": "window-prague",
+      "kind": "view",
+      "tiling": "clamp",
+      "method": "crop",
+      "src": "reference/matterport/panoramas/terasa_vyhled/b.jpg",
+      "rect": [
+        0,
+        0,
+        1024,
+        505
+      ],
+      "sizeM": [
+        8,
+        4
+      ],
+      "outPx": [
+        512,
+        256
+      ],
+      "colours": 32,
+      "notes": "View from the roof terrace over Malá Strana roofs to St Nicholas; billboard behind window glass (not tiling). Phase 19 darkens/tints it for the night setting."
+    }
+  ]
+}
