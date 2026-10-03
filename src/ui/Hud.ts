@@ -54,9 +54,11 @@ declare module "../core/TestHooks" {
 }
 
 /**
- * Minimal HUD over the canvas (phase 5, the base phase 10 builds on): crosshair with hitmarker in the middle, health
- * (number + bar) bottom left, ammo of the active weapon bottom right. Plain DOM, pointer-events off. Hitmarker timers
- * run on simulated time (`Game.onAfterStep`), so tests stepping a paused game see the same thing a player does.
+ * The HUD over the canvas, plain DOM with pointer-events off (DECISIONS „Fáze 5“, „Fáze 10“). Phase 5: crosshair with
+ * hitmarker in the middle, health (number + bar) bottom left, ammo of the active weapon bottom right. Phase 10: weapon
+ * slots 1–6 bottom centre, keys above the health and power-ups with timers top right (`attachItems`), toasts in the
+ * upper middle (`toast`, `showMessages`) and the door hint under the crosshair (`setHintSource`). Timers run on
+ * simulated time (`Game.onAfterStep`), so tests stepping a paused game see the same thing a player does.
  */
 export class Hud {
   readonly crosshair: Crosshair;
