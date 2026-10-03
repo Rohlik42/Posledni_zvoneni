@@ -1,6 +1,7 @@
 import type { Game } from "../../src/core/Game";
 import { Physics } from "../../src/core/Physics";
 import { Player } from "../../src/player/Player";
+import { Hud } from "../../src/ui/Hud";
 import { TargetRange } from "../../src/weapons/TargetRange";
 import { WeaponInventory } from "../../src/weapons/WeaponInventory";
 import { BoxRoom } from "../BoxRoom";
@@ -13,7 +14,8 @@ export async function create(game: Game): Promise<void> {
   const room = BoxRoom.build(game, physics);
   const player = Player.create(game, physics, room.spawn);
   TargetRange.create(game);
-  WeaponInventory.create(game, player);
+  const inventory = WeaponInventory.create(game, player);
+  Hud.create(game, player, inventory);
 
   player.health.onDeath.add(() => {
     window.setTimeout(() => player.respawn(room.spawn), room.layout.respawnDelayMs);

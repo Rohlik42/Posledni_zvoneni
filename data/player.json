@@ -53,7 +53,9 @@
       "amplitude": 0.07,
       "frequency": 28,
       "duration": 0.28
-    }
+    },
+    "//maxShakeOffset": "Strop součtu všech otřesů kamery (zásah, zničený robot) v metrech; plán fáze 5 dovoluje nejvýš 0,3 m.",
+    "maxShakeOffset": 0.2
   },
   "health": {
     "max": 150

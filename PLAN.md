@@ -172,6 +172,8 @@ Quick gate: `tests/e2e/arena.spec.ts`. Aréna se dá vyčistit pistolkou bez ztr
 **Do not**
 Nové zbraně ani nepřátelé. Přehnaný shake (> 0,3 m posunu kamery).
 
+**Done 2026-10-03** (handoff `handoff/phase-5.md`). Aréna `npm run dev` → http://localhost:5173/dev/?scene=arena (4 humanoidi, vlny, HUD). Quick gate `tests/e2e/arena.spec.ts` zelený; skriptovaná palba vyčistí arénu za ~10 s bez ztráty zdraví, otřes ≤ 0,2 m. Odchylky od litery: hitmarker, HUD a zaměřovač jsou DOM vrstva (`src/ui/Hud.ts`, `Crosshair.ts`), ne GUI textura; zpomalení při zásahu jde přes volitelné `IDamageable.applyStatus` a robot se pozná podle `surface: "metal"` (zbraně neimportují nepřátele); otřes je obecný `ScreenShake` s kanály a stropem `player.json → camera.maxShakeOffset`; sway/bob/recoil/pumpa existovaly z fáze 3, fáze 5 přidala sway při chůzi, náklon zbraně při úkroku a výstřelu a cuknutí pumpy. Navíc FEEDBACK „světlo u zdi“ (STEER 7): příčina změřená A/B snímky (`tools/wall-light-ab.ts`, `screenshots/05-wall-light-{near,far}[-before].png`) je tmavá EXP2 mlha + přepálené zdi; mlha je teď lineární od 5 m, SSAO zkrocené, vignette slabší, lampy boxroomu nižší a černý spekulár vynucuje `MatteDefaults` pro celou scénu (DECISIONS „Fáze 5“).
+
 ## Phase 7 — Matterport a Poly Haven textury
 
 **Implement**

@@ -1,4 +1,4 @@
-import type { Observer } from "@babylonjs/core/Misc/observable";
+import { Observable, type Observer } from "@babylonjs/core/Misc/observable";
 import type { Scene } from "@babylonjs/core/scene";
 import { SynthSounds } from "../audio/SynthSounds";
 import type { Game } from "../core/Game";
@@ -8,6 +8,8 @@ import { TestHooks } from "../core/TestHooks";
 import type { Player, Vec3Like } from "../player/Player";
 import { ModelRegistry } from "../utils/ModelRegistry";
 import { Random } from "../utils/Random";
+import { FeelConfig } from "./FeelConfig";
+import { HitFeedback, type HitFeedbackStats } from "./HitFeedback";
 import { Hitscan } from "./Hitscan";
 import type { ShotEvent, Weapon, WeaponContext } from "./Weapon";
 import { WeaponConfig, WEAPON_SLOTS, type WeaponsData } from "./WeaponConfig";
@@ -15,6 +17,8 @@ import { WeaponFactory } from "./WeaponFactory";
 
 /** Switch progress at which the old weapon is fully lowered and the new one starts rising. */
 const SWITCH_MIDPOINT = 0.5;
+/** Seed offset of the hit-effect RNG relative to `aimRandomSeed` (the water effects use +1). */
+const FEEDBACK_SEED_OFFSET = 2;
 const SLOT_ACTIONS: readonly InputAction[] = ["weapon1", "weapon2", "weapon3", "weapon4", "weapon5", "weapon6"];
 
 export interface WeaponSlotInfo {
@@ -47,7 +51,17 @@ export interface WeaponsTestApi {
   /** Shots fired by all weapons since the scene started. */
   readonly shots: number;
   lastShot: () => ShotInfo | null;
-  viewmodel: () => { visible: boolean; renderingGroupId: number; meshes: number; triangles: number } | null;
+  viewmodel: () => {
+    visible: boolean;
+    renderingGroupId: number;
+    meshes: number;
+    triangles: number;
+    /** Offset from the rest pose (sway, bob, recoil; m in view space) and roll in degrees (phase 5). */
+    offset: { x: number; y: number; z: number };
+    rollDeg: number;
+  } | null;
+  /** Hit feedback counters (sparks, slows, robot deaths) and live hit sparks (phase 5). */
+  feedback: () => HitFeedbackStats & { activeSparks: number };
   /** Live water droplets and wet spots of the active weapon (0 for weapons without water). */
   effects: () => { droplets: number; wetSpots: number };
 }
@@ -65,6 +79,10 @@ declare module "../core/TestHooks" {
  * Only `enabled` weapons with a class in `WeaponFactory` can be owned; the starting weapons are given at once.
  */
 export class WeaponInventory {
+  /** Every shot of every owned weapon (HUD hitmarker, hit effects). */
+  readonly onShot = new Observable<ShotEvent>();
+  /** Sparks, stagger, death shake (phase 5); scenes with robots call `feedback.robotDestroyed`. */
+  readonly feedback: HitFeedback;
   private readonly data: WeaponsData;
   private readonly context: WeaponContext;
   private readonly owned = new Map<string, Weapon>();
@@ -84,15 +102,20 @@ export class WeaponInventory {
   ) {
     this.data = WeaponConfig.load();
     this.noise = NoiseEvents.for(game);
+    const feel = FeelConfig.load();
+    const sounds = SynthSounds.for(game);
     this.context = {
       game,
       scene: game.scene,
       player,
-      sounds: SynthSounds.for(game),
+      sounds,
       hitscan: new Hitscan(game.scene, (mesh) => this.isViewmodelMesh(mesh)),
       config: this.data,
+      feel,
       aimRandom: new Random(this.data.aimRandomSeed),
     };
+    this.feedback = new HitFeedback(game.scene, player, sounds, feel, this.data.aimRandomSeed + FEEDBACK_SEED_OFFSET);
+    this.onShot.add((shot) => this.feedback.shot(shot));
     game.scene.setRenderingAutoClearDepthStencil(this.data.viewmodelRenderingGroup, true, true, false);
     for (const id of this.data.startingWeapons) this.give(id);
     this.removeSystem = game.addSystem({ update: (dt) => this.update(dt) });
@@ -131,6 +154,7 @@ export class WeaponInventory {
       this.last = shot;
       // Robots hear the shot (AI hearing, phase 4).
       this.noise.emit(shot.origin, "gunshot");
+      this.onShot.notifyObservers(shot);
     });
     this.owned.set(id, weapon);
     if (this.current === null) this.beginSwitch(weapon);
@@ -151,6 +175,8 @@ export class WeaponInventory {
     this.game.scene.onBeforeRenderObservable.remove(this.frameObserver);
     for (const weapon of this.owned.values()) weapon.dispose();
     this.owned.clear();
+    this.onShot.clear();
+    this.feedback.dispose();
     this.current = null;
     this.pending = null;
   }
@@ -256,13 +282,17 @@ export class WeaponInventory {
         const weapon = inventory.current;
         if (weapon === null) return null;
         const { root, meshes } = weapon.viewmodel;
+        const pose = weapon.viewmodelPose;
         return {
           visible: root.isEnabled(true) && weapon.holster < 1,
           renderingGroupId: meshes[0]?.renderingGroupId ?? 0,
           meshes: meshes.length,
           triangles: ModelRegistry.countTriangles(root),
+          offset: pose.offset,
+          rollDeg: pose.rollDeg,
         };
       },
+      feedback: () => ({ ...inventory.feedback.stats, activeSparks: inventory.feedback.activeSparks }),
       effects: () => {
         const weapon = inventory.current as (Weapon & { effectStats?: { droplets: number; wetSpots: number } }) | null;
         return weapon?.effectStats ?? { droplets: 0, wetSpots: 0 };

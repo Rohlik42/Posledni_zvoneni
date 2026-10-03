@@ -47,6 +47,11 @@ export interface PlayerTestApi {
   lookAt: (x: number, y: number, z: number) => void;
   damage: (amount: number, type?: DamageType) => number;
   heal: (amount: number) => number;
+  /** Turns the view at a point or at anything with a `center` (e.g. `__game.enemies.get(id)`), phase 5. */
+  aimAt: (target: Vec3Like | { center: Vec3Like }) => void;
+  /** Camera shake: this frame's offset, the largest since `resetShakePeak` (m) and whether a shake runs. */
+  shake: () => { offset: number; peak: number; active: boolean };
+  resetShakePeak: () => void;
 }
 
 declare module "../core/TestHooks" {
@@ -194,6 +199,13 @@ export class Player {
       },
       damage: (amount, type) => player.health.damage(amount, type),
       heal: (amount) => player.health.heal(amount),
+      aimAt: (target) => {
+        const point = "center" in target ? target.center : target;
+        player.camera.lookAt(player.eyePosition, new Vector3(point.x, point.y, point.z));
+        player.frame();
+      },
+      shake: () => ({ offset: player.camera.shake.offset, peak: player.camera.shake.peak, active: player.camera.shake.active }),
+      resetShakePeak: () => player.camera.shake.resetPeak(),
     });
   }
 }

@@ -10,6 +10,7 @@ import "@babylonjs/core/Engines/Extensions/engine.multiRender";
 import "@babylonjs/core/Engines/WebGPU/Extensions/engine.multiRender";
 import { Scene } from "@babylonjs/core/scene";
 import { TestHooks } from "../core/TestHooks";
+import { MatteDefaults } from "./MatteDefaults";
 import { PaletteColor } from "./PaletteColor";
 import { RenderingConfig, type RenderingData } from "./RenderingConfig";
 
@@ -21,6 +22,8 @@ export interface RenderingTestApi {
   parts: () => Record<PipelinePart, boolean>;
   setEnabled: (part: PipelinePart, enabled: boolean) => void;
   ssaoSupported: () => boolean;
+  /** Largest specular channel of any StandardMaterial in the scene; 0 = flat look kept (FEEDBACK „světlo u zdi“). */
+  maxSpecular: () => number;
 }
 
 declare module "../core/TestHooks" {
@@ -80,6 +83,7 @@ export class RenderPipeline {
       parts: () => ({ ...this.state }),
       setEnabled: (part, enabled) => this.setEnabled(part, enabled),
       ssaoSupported: () => this.ssao !== null,
+      maxSpecular: () => MatteDefaults.maxSpecular(scene),
     });
   }
 
@@ -137,6 +141,8 @@ export class RenderPipeline {
   private applyFogSettings(): void {
     const { fog } = this.config;
     this.scene.fogDensity = fog.density;
+    this.scene.fogStart = fog.start;
+    this.scene.fogEnd = fog.end;
     this.scene.fogColor = PaletteColor.color3(fog.color);
   }
 

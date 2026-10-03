@@ -8,5 +8,12 @@ import type { DamageType } from "./DamageTypes";
 export interface IDamageable {
   readonly health: number;
   readonly alive: boolean;
+  /** What a hit sounds and sparks like (phase 5); anything without it counts as `"wall"`. */
+  readonly surface?: SurfaceKind;
   takeDamage(amount: number, type: DamageType): number;
+  /** Timed slow / stun (robots); weapons call it for the hit stagger and phase 13's extinguisher and taser. */
+  applyStatus?(kind: "slow" | "stun", seconds: number, strength: number): number;
 }
+
+/** Surface of a damageable thing: robots are `metal`, practice targets and props the default `wall`. */
+export type SurfaceKind = "metal" | "wall";

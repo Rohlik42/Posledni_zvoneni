@@ -22,7 +22,7 @@
       "model": "WaterPistolModel",
       "sounds": { "fire": "pistolShot", "empty": "emptyClick", "impact": "splash", "reload": "pump" },
       "viewmodel": {
-        "//": "Poloha v prostoru kamery (x doprava, y nahoru, z dopředu). lightScale = jak silně na zbraň působí světla scény (zbraň je těsně u kamery a pod lampami by se přepálila). sway = posun proti otáčení pohledu (m na rad/s, strop swayMax, návrat swayReturn za s). recoil = odskok dozadu a zvednutí hlavně při výstřelu, recoilReturn = rychlost návratu. bob = pohupování při chůzi. switchDrop = o kolik zbraň klesne při přepínání. pumpTravel = zdvih pumpy při doplňování.",
+        "//": "Poloha v prostoru kamery (x doprava, y nahoru, z dopředu). lightScale = jak silně na zbraň působí světla scény (zbraň je těsně u kamery a pod lampami by se přepálila). sway = posun proti otáčení pohledu (m na rad/s, strop swayMax, návrat swayReturn za s). recoil = odskok dozadu a zvednutí hlavně při výstřelu, recoilReturn = rychlost návratu. bob = pohupování při chůzi. switchDrop = o kolik zbraň klesne při přepínání. pumpTravel = zdvih pumpy při doplňování. Fáze 5 (feel): moveSwayPerMps = zbraň se při chůzi opožďuje proti pohybu (m na m/s rychlosti v prostoru kamery, strop moveSwayMax, návrat swayReturn), strafeRollDeg = náklon zbraně (ne kamery) při úkroku plnou rychlostí chůze, recoilRollDeg = náklon při výstřelu (střídavě vlevo a vpravo), pumpShotTravel = cuknutí pumpy dozadu při každém výstřelu.",
         "variant": "classic",
         "scale": 0.72,
         "lightScale": 0.4,
@@ -37,7 +37,12 @@
         "bobAmplitude": 0.007,
         "bobStepsPerMeter": 0.75,
         "switchDrop": 0.3,
-        "pumpTravel": 0.06
+        "pumpTravel": 0.06,
+        "moveSwayPerMps": 0.004,
+        "moveSwayMax": 0.018,
+        "strafeRollDeg": 4,
+        "recoilRollDeg": 2.5,
+        "pumpShotTravel": 0.022
       },
       "stream": {
         "//": "Proud vody: kapky letí z ústí k místu zásahu (dropletSpeed m/s, rozptyl rychlostí dropletSpeedSpread, protažení kapky ve směru letu dropletStretch), šplouchnutí v místě dopadu (blíž než splashFullDistance m úměrně méně kapek, aby výstřel do zdi zblízka nezakryl výhled; padá s gravity, proud jen se streamGravity, aby držel směr zaměření), mokrá skvrna (decal) na povrchu, která po wetLifetime zmizí (posledních wetFade s bledne; wetGlow = slabé vlastní světlo skvrny, aby byla vidět i ve tmě). Barvy z palety.",
@@ -84,7 +89,7 @@
       "ammo": { "capacity": 120, "perShot": 1, "reserveStart": 0, "reserveMax": 0, "infiniteReserve": false, "reloadTime": 0, "autoReload": false, "rechargePerSecond": 0, "rechargeDelay": 0 },
       "model": "ExtinguisherModel",
       "sounds": { "fire": "extinguisherHiss", "empty": "emptyClick", "impact": "splash", "reload": "pump" },
-      "viewmodel": { "variant": "default", "scale": 1, "lightScale": 0.4, "position": [0.18, -0.24, 0.42], "rotationDeg": [0, -4, 0], "swayPerRadPerSec": 0.016, "swayMax": 0.04, "swayReturn": 7, "recoilKick": 0.005, "recoilPitchDeg": 0.5, "recoilReturn": 12, "bobAmplitude": 0.01, "bobStepsPerMeter": 0.75, "switchDrop": 0.4, "pumpTravel": 0 },
+      "viewmodel": { "variant": "default", "scale": 1, "lightScale": 0.4, "position": [0.18, -0.24, 0.42], "rotationDeg": [0, -4, 0], "swayPerRadPerSec": 0.016, "swayMax": 0.04, "swayReturn": 7, "recoilKick": 0.005, "recoilPitchDeg": 0.5, "recoilReturn": 12, "bobAmplitude": 0.01, "bobStepsPerMeter": 0.75, "switchDrop": 0.4, "pumpTravel": 0, "moveSwayPerMps": 0.004, "moveSwayMax": 0.02, "strafeRollDeg": 3, "recoilRollDeg": 0, "pumpShotTravel": 0 },
       "params": { "coneAngleDeg": 28, "rays": 9, "slowStrength": 0.5, "slowSeconds": 2.5 }
     },
     {
@@ -103,7 +108,7 @@
       "ammo": { "capacity": 0, "perShot": 1, "reserveStart": 4, "reserveMax": 12, "infiniteReserve": false, "reloadTime": 0, "autoReload": false, "rechargePerSecond": 0, "rechargeDelay": 0 },
       "model": "WaterBalloonModel",
       "sounds": { "fire": "throw", "empty": "emptyClick", "impact": "balloonPop", "reload": "pickup" },
-      "viewmodel": { "variant": "default", "scale": 1, "lightScale": 0.4, "position": [0.16, -0.18, 0.36], "rotationDeg": [0, 0, 0], "swayPerRadPerSec": 0.014, "swayMax": 0.04, "swayReturn": 8, "recoilKick": 0.06, "recoilPitchDeg": 8, "recoilReturn": 10, "bobAmplitude": 0.008, "bobStepsPerMeter": 0.75, "switchDrop": 0.3, "pumpTravel": 0 },
+      "viewmodel": { "variant": "default", "scale": 1, "lightScale": 0.4, "position": [0.16, -0.18, 0.36], "rotationDeg": [0, 0, 0], "swayPerRadPerSec": 0.014, "swayMax": 0.04, "swayReturn": 8, "recoilKick": 0.06, "recoilPitchDeg": 8, "recoilReturn": 10, "bobAmplitude": 0.008, "bobStepsPerMeter": 0.75, "switchDrop": 0.3, "pumpTravel": 0, "moveSwayPerMps": 0.004, "moveSwayMax": 0.02, "strafeRollDeg": 3, "recoilRollDeg": 0, "pumpShotTravel": 0 },
       "params": { "aoeRadius": 2.5, "throwSpeed": 14, "throwUpDeg": 8 }
     },
     {
@@ -122,7 +127,7 @@
       "ammo": { "capacity": 100, "perShot": 34, "reserveStart": 0, "reserveMax": 0, "infiniteReserve": false, "reloadTime": 0, "autoReload": false, "rechargePerSecond": 18, "rechargeDelay": 0.8 },
       "model": "TaserModel",
       "sounds": { "fire": "taserZap", "empty": "emptyClick", "impact": "spark", "reload": "charge" },
-      "viewmodel": { "variant": "default", "scale": 1, "lightScale": 0.4, "position": [0.15, -0.17, 0.34], "rotationDeg": [0, -3, 0], "swayPerRadPerSec": 0.012, "swayMax": 0.035, "swayReturn": 9, "recoilKick": 0.02, "recoilPitchDeg": 3, "recoilReturn": 16, "bobAmplitude": 0.007, "bobStepsPerMeter": 0.75, "switchDrop": 0.3, "pumpTravel": 0 },
+      "viewmodel": { "variant": "default", "scale": 1, "lightScale": 0.4, "position": [0.15, -0.17, 0.34], "rotationDeg": [0, -3, 0], "swayPerRadPerSec": 0.012, "swayMax": 0.035, "swayReturn": 9, "recoilKick": 0.02, "recoilPitchDeg": 3, "recoilReturn": 16, "bobAmplitude": 0.007, "bobStepsPerMeter": 0.75, "switchDrop": 0.3, "pumpTravel": 0, "moveSwayPerMps": 0.004, "moveSwayMax": 0.02, "strafeRollDeg": 3, "recoilRollDeg": 0, "pumpShotTravel": 0 },
       "params": { "stunSeconds": 2.2, "stunStrength": 1 }
     },
     {
@@ -141,7 +146,7 @@
       "ammo": { "capacity": 1, "perShot": 1, "reserveStart": 3, "reserveMax": 10, "infiniteReserve": false, "reloadTime": 1.6, "autoReload": true, "rechargePerSecond": 0, "rechargeDelay": 0 },
       "model": "RailgunModel",
       "sounds": { "fire": "railgunShot", "empty": "emptyClick", "impact": "spark", "reload": "charge" },
-      "viewmodel": { "variant": "default", "scale": 1, "lightScale": 0.4, "position": [0.17, -0.2, 0.4], "rotationDeg": [0, -3, 0], "swayPerRadPerSec": 0.018, "swayMax": 0.045, "swayReturn": 6, "recoilKick": 0.09, "recoilPitchDeg": 9, "recoilReturn": 8, "bobAmplitude": 0.009, "bobStepsPerMeter": 0.75, "switchDrop": 0.4, "pumpTravel": 0 },
+      "viewmodel": { "variant": "default", "scale": 1, "lightScale": 0.4, "position": [0.17, -0.2, 0.4], "rotationDeg": [0, -3, 0], "swayPerRadPerSec": 0.018, "swayMax": 0.045, "swayReturn": 6, "recoilKick": 0.09, "recoilPitchDeg": 9, "recoilReturn": 8, "bobAmplitude": 0.009, "bobStepsPerMeter": 0.75, "switchDrop": 0.4, "pumpTravel": 0, "moveSwayPerMps": 0.004, "moveSwayMax": 0.02, "strafeRollDeg": 3, "recoilRollDeg": 0, "pumpShotTravel": 0 },
       "params": { "chargeTime": 1.0, "pierce": 3 }
     },
     {
@@ -160,7 +165,7 @@
       "ammo": { "capacity": 0, "perShot": 0, "reserveStart": 0, "reserveMax": 0, "infiniteReserve": true, "reloadTime": 0, "autoReload": false, "rechargePerSecond": 0, "rechargeDelay": 0 },
       "model": "HoseModel",
       "sounds": { "fire": "hoseRush", "empty": "emptyClick", "impact": "splash", "reload": "pump" },
-      "viewmodel": { "variant": "default", "scale": 1, "lightScale": 0.4, "position": [0.12, -0.2, 0.45], "rotationDeg": [0, -2, 0], "swayPerRadPerSec": 0.01, "swayMax": 0.03, "swayReturn": 8, "recoilKick": 0.004, "recoilPitchDeg": 0.4, "recoilReturn": 14, "bobAmplitude": 0, "bobStepsPerMeter": 0.75, "switchDrop": 0.3, "pumpTravel": 0 },
+      "viewmodel": { "variant": "default", "scale": 1, "lightScale": 0.4, "position": [0.12, -0.2, 0.45], "rotationDeg": [0, -2, 0], "swayPerRadPerSec": 0.01, "swayMax": 0.03, "swayReturn": 8, "recoilKick": 0.004, "recoilPitchDeg": 0.4, "recoilReturn": 14, "bobAmplitude": 0, "bobStepsPerMeter": 0.75, "switchDrop": 0.3, "pumpTravel": 0, "moveSwayPerMps": 0.004, "moveSwayMax": 0.02, "strafeRollDeg": 3, "recoilRollDeg": 0, "pumpShotTravel": 0 },
       "params": { "stationary": 1, "releaseDistance": 1.2, "pushForce": 6 }
     }
   ]

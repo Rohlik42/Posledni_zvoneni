@@ -34,6 +34,8 @@ export abstract class Enemy implements IDamageable, Simulated {
   readonly onDeath = new Observable<Enemy>();
   readonly onDrop = new Observable<DropEvent>();
   readonly status: StatusEffects;
+  /** Robots are metal: hits spark and clank (phase 5). */
+  readonly surface = "metal" as const;
 
   protected current: number;
   private hits = 0;

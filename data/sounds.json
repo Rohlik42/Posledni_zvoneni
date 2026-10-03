@@ -33,6 +33,23 @@
         { "kind": "noise", "start": 0.38, "duration": 0.2, "volume": 0.16, "attack": 0.03, "from": 1600, "to": 500, "q": 1.2 },
         { "kind": "tone", "wave": "triangle", "start": 0.38, "duration": 0.16, "volume": 0.08, "attack": 0.02, "from": 240, "to": 150 }
       ]
+    },
+    "hitMetal": {
+      "//": "Zásah robota (fáze 5): kovové ťuknutí (dva neharmonické tóny jako plech) s ostrým zasyčením vody na horkém kovu.",
+      "layers": [
+        { "kind": "tone", "wave": "triangle", "start": 0, "duration": 0.16, "volume": 0.2, "attack": 0.002, "from": 2650, "to": 2300 },
+        { "kind": "tone", "wave": "square", "start": 0, "duration": 0.07, "volume": 0.06, "attack": 0.002, "from": 1180, "to": 900 },
+        { "kind": "noise", "start": 0, "duration": 0.09, "volume": 0.22, "attack": 0.002, "from": 6200, "to": 3400, "q": 2.2 }
+      ]
+    },
+    "robotBreak": {
+      "//": "Rozpad robota (fáze 5): tupá rána (sinus 140 → 45 Hz), drnčení plechu (pila) a dlouhé jiskření (vysoký šum).",
+      "layers": [
+        { "kind": "tone", "wave": "sine", "start": 0, "duration": 0.32, "volume": 0.4, "attack": 0.004, "from": 140, "to": 45 },
+        { "kind": "noise", "start": 0, "duration": 0.22, "volume": 0.3, "attack": 0.003, "from": 1400, "to": 300, "q": 0.9 },
+        { "kind": "tone", "wave": "sawtooth", "start": 0.02, "duration": 0.18, "volume": 0.07, "attack": 0.004, "from": 520, "to": 190 },
+        { "kind": "noise", "start": 0.06, "duration": 0.5, "volume": 0.12, "attack": 0.01, "from": 7000, "to": 4200, "q": 3 }
+      ]
     }
   }
 }

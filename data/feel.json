@@ -1,0 +1,67 @@
+{
+  "//": "Weapon feel (fáze 5, src/weapons/HitFeedback.ts, src/ui/Hud.ts, src/ui/Crosshair.ts). Viewmodel (sway, bob, recoil, pumpa) je u každé zbraně v data/weapons.json → viewmodel; tady je to, co sdílí všechny zbraně. Jednotky: metry, sekundy, pixely u HUD. Barvy jsou klíče palety.",
+  "crosshair": {
+    "//": "Zaměřovač uprostřed obrazovky: čtyři čárky délky size px s mezerou gap od středu, tloušťka thickness, tečka dot px (0 = bez tečky), tmavý obrys shadow kvůli čitelnosti na světlé zdi.",
+    "size": 7,
+    "gap": 5,
+    "thickness": 2,
+    "dot": 2,
+    "color": "ui.crosshair",
+    "shadow": "base.black"
+  },
+  "hitmarker": {
+    "//": "Zásah: diagonální křížek (čárky size px od gap px) na duration s, při zničení robota killColor, killScale× větší a na killDuration s. Slábne lineárně.",
+    "size": 10,
+    "gap": 7,
+    "thickness": 3,
+    "duration": 0.2,
+    "color": "ui.crosshairHit",
+    "killDuration": 0.45,
+    "killScale": 1.6,
+    "killColor": "ui.hpLow"
+  },
+  "hud": {
+    "//": "Minimální HUD (základ pro fázi 10): zdraví vlevo dole (pruh barWidth × barHeight, pod lowHealthFraction barva hpLow), munice vpravo dole (pod ammoLowFraction barva ammoLow, nekonečná zásoba = infiniteSymbol). margin = odsazení od okraje.",
+    "margin": 22,
+    "fontFamily": "'Barlow Condensed', 'Arial Narrow', Arial, sans-serif",
+    "fontSize": 30,
+    "labelSize": 12,
+    "barWidth": 200,
+    "barHeight": 8,
+    "lowHealthFraction": 0.3,
+    "ammoLowFraction": 0.25,
+    "infiniteSymbol": "∞",
+    "labels": { "health": "ZDRAVÍ", "ammo": "MUNICE" },
+    "colors": { "text": "ui.text", "label": "ui.label", "panel": "ui.panel", "hpOk": "ui.hpOk", "hpLow": "ui.hpLow", "ammoLow": "ui.highlight" }
+  },
+  "impact": {
+    "//": "Zvuk dopadu podle povrchu zasaženého cíle (IDamageable.surface): metal = roboti; cokoli jiného hraje vlastní impact zvuk zbraně (pistolka: šplouchnutí). robotBreak = zvuk rozpadu robota.",
+    "metal": "hitMetal",
+    "robotBreak": "robotBreak"
+  },
+  "robotHit": {
+    "//": "Zásah robota: jiskry z místa zásahu ve směru normály (rozptyl spread), krátký záblesk flashSize m na flashTime s a zpomalení robota o slowStrength (podíl rychlosti) na slowSeconds s.",
+    "sparks": 14,
+    "sparkSpeed": [2, 5.5],
+    "sparkLife": [0.15, 0.4],
+    "sparkSize": [0.045, 0.09],
+    "sparkColor": "neon.spark",
+    "sparkGlow": 3,
+    "spread": 0.9,
+    "gravity": 9,
+    "flashSize": 0.32,
+    "flashTime": 0.07,
+    "flashGlow": 2.5,
+    "slowSeconds": 0.22,
+    "slowStrength": 0.45
+  },
+  "screenShake": {
+    "//": "Otřes kamery při zničení robota: posun do stran (a vertical × amplitude nahoru/dolů, bez náklonu) amplitude m s frekvencí frequency Hz po duration s, slábne se vzdáleností do maxDistance m. Celkový posun kamery ze všech otřesů je shora omezený data/player.json → camera.maxShakeOffset.",
+    "robotDeath": { "amplitude": 0.08, "frequency": 15, "duration": 0.42, "vertical": 0.8, "maxDistance": 18 }
+  },
+  "arena": {
+    "//": "Dev scéna ?scene=arena: vlna robotů z data/encounters.json → encounter; waveDelay s po vyčištění přijde další vlna, po smrti hráče vše od začátku.",
+    "encounter": "arena",
+    "waveDelay": 3
+  }
+}
