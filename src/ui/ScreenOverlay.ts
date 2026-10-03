@@ -14,6 +14,9 @@ const KICKER_SPACING_EM = 0.18;
 const ROW_GAP_PX = 6;
 const BLOCK_GAP_PX = 14;
 const TITLE_LINE_HEIGHT = 0.95;
+const TEXT_LINE_HEIGHT = 1.45;
+const STAT_COLUMN_GAP_PX = 28;
+const SMALL_SPACING_EM = 0.04;
 /** Panel background opacity as a hex alpha (LEGACY §4 panels `…df`). */
 const PANEL_ALPHA_HEX = "df";
 
@@ -105,10 +108,10 @@ export class ScreenOverlay {
     heading.append(this.title, document.createTextNode(" "), this.accent);
     this.lead = this.element("div", { fontWeight: "700", fontSize: `${data.leadSize}px`, color: Palette.hex(c.lead) });
     this.lead.dataset.screen = "lead";
-    this.body = this.element("div", { display: "flex", flexDirection: "column", gap: `${ROW_GAP_PX * 2}px`, fontSize: `${data.textSize}px`, lineHeight: "1.45" });
+    this.body = this.element("div", { display: "flex", flexDirection: "column", gap: `${ROW_GAP_PX * 2}px`, fontSize: `${data.textSize}px`, lineHeight: String(TEXT_LINE_HEIGHT) });
     this.body.dataset.screen = "body";
-    this.rows = this.element("div", { display: "grid", gridTemplateColumns: "auto auto", columnGap: "28px", rowGap: `${ROW_GAP_PX}px`, justifyContent: "start" });
-    this.controls = this.element("div", { fontSize: `${data.controlsSize}px`, color: Palette.hex(c.kicker), letterSpacing: "0.04em" });
+    this.rows = this.element("div", { display: "grid", gridTemplateColumns: "auto auto", columnGap: `${STAT_COLUMN_GAP_PX}px`, rowGap: `${ROW_GAP_PX}px`, justifyContent: "start" });
+    this.controls = this.element("div", { fontSize: `${data.controlsSize}px`, color: Palette.hex(c.kicker), letterSpacing: `${SMALL_SPACING_EM}em` });
     this.controls.dataset.screen = "controls";
     this.button = this.element("button", {
       alignSelf: "flex-start",
@@ -122,7 +125,7 @@ export class ScreenOverlay {
       fontFamily: data.fontFamily,
       fontWeight: "800",
       fontSize: `${data.buttonSize}px`,
-      letterSpacing: "0.04em",
+      letterSpacing: `${SMALL_SPACING_EM}em`,
     });
     this.button.type = "button";
     this.button.dataset.screen = "button";

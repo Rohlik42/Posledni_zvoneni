@@ -47,6 +47,8 @@ export interface LevelGameplayOptions {
   resume?: boolean;
   /** Robot count delta of the difficulty (phase 17); default `data/progression.json → countDelta`. */
   countDelta?: number;
+  /** Name of the difficulty for the level-end screen (phase 17); default `texts.json → levelEnd.difficulty`. */
+  difficultyName?: string;
 }
 
 /** The full game's systems on top of the level (`play`, phase 16). */
@@ -188,6 +190,7 @@ export class LevelGameplay {
       game,
       { player, inventory, weapons, hud, doors, pickups, teachers, quiz, enemies: robots, stations },
       { intro: options.intro === true, resume: options.resume === true },
+      options.difficultyName ?? null,
     );
     return { quiz, teachers, stations, progress };
   }
