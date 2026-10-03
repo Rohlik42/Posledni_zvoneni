@@ -43,6 +43,14 @@ Každé rozhodnutí je jedna věta s důvodem. Člověk je může změnit. Agent
 25. **Render mimo smyčku (`step`) se obaluje `engine.beginFrame/endFrame`:** WebGPU jinak použije zničenou swap-chain texturu a hlásí varování, které smoke test (DoD bez varování) zachytí.
 26. **Smoke testy selhávají na `console.warn` i `console.error` (`tests/support/ConsoleGuard.ts`), allowlist je zatím prázdný:** na tomto stroji WebGPU i WebGL2 běží bez varování.
 
+## Fáze 2 — Player (2026-10-03)
+27. **Havok se krokuje ze systému hry (`Physics.step` v pevném kroku), automatický krok scény je vypnutý (`scene.physicsEnabled = false`):** fyzika i hráč se pak hýbou přesně s `__game.step(ms)`, takže testy pohybu nezávisí na zátěži stroje.
+28. **Pozice hráče (`__game.player.position`, spawn, teleport) jsou chodidla, ne střed kapsle ani oči:** spawny a body v level.json leží na podlaze a test porovnává výšku přímo s horní plochou krabice.
+29. **Schody mají neviditelný šikmý kolizní pás přes hrany stupňů, stupně jsou jen vizuál:** step-up `PhysicsCharacterController` na celé schodiště spolehlivě nefunguje (dopadne na zaoblenou hranu příliš strmě a krok odmítne podle toho, kde se kapsle hrany dotkne), pás je navíc plynulý pro kameru; fáze 9 má schodiště stavět stejně (`BoxRoom.addStairs`).
+30. **`maxStepHeight` (0,35 m) platí pro jednotlivé nízké překážky (obrubník, práh) s pomocí `stepUpBoost`:** když hráč na zemi tlačí dopředu a minulý krok se pohnul pod polovinu požadované rychlosti, controller dostane na jeden krok dvojnásobnou rychlost, aby jeho step-up dosáhl dál než na hranu; u zdi to nic nedělá, protože solver rychlost do zdi odebere.
+31. **Svislou rychlost řídí hráč, solver ji smí jen ubrat (strop, podlaha), po přistání se kapsle dosedne raycastem (`groundSnapDistance`):** rychlost ze step-upu (teleport nahoru) by jinak hráče vystřelila ze schodů a controller se po pádu považuje za podepřený i pár centimetrů nad plochou.
+32. **`maxSlopeDegrees` 50° místo obvyklých 45°:** step-up controlleru přijme dopad na hranu obrubníku jen s normálou nad `maxSlopeCosine` a při 46° ho odmítal.
+33. **Červené okraje při zásahu jsou DOM vrstva nad canvasem (`src/ui/DamageOverlay.ts`), ne vignette pipeline:** nezávisí na nastavení pipeline (fáze 19/21 ji ladí a vypínají) a nepotřebuje GUI texturu.
 ### Fáze 7 – textury (2026-10-03)
 - **Textury jsou paletové PNG ≤ 512 px posterizované přes libimagequant (sharp, bez ditheringu, 10–32 barev):** dává low-poly punk vzhled, deterministický výstup (skripty jsou idempotentní, druhý běh nic nemění) a celé `public/textures/` má 5,9 MB.
 - **Parkety, žluté/zelené linoleum a dlažba dvora jsou z `down.jpg` panoramat, ne z půdorysů:** půdorys má 85 px/m a 7 cm lamely ani zrnitost linolea neukáže; měřítko down plochy 354 px/m je změřené na 5 cm čáře hřiště. Oranžové linoleum (žádné panorama) má zrno ze žlutého linolea a barvu z mediánu půdorysu Floor 3.

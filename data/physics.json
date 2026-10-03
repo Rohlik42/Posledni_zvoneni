@@ -1,0 +1,6 @@
+{
+  "//": "Fyzika (src/core/Physics.ts): Havok krokovaný pevným krokem hry (data/game.json simulationHz), ne reálným časem snímku. Gravitace světa platí pro padající předměty; hráč má vlastní gravitaci v data/player.json.",
+  "gravity": [0, -9.81, 0],
+  "staticFriction": 0.6,
+  "restitution": 0
+}

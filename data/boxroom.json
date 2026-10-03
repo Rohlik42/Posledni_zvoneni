@@ -1,0 +1,66 @@
+{
+  "//": "Krabicová testovací místnost (dev/BoxRoom.ts, dev scéna 'boxroom'), 20×20×5 m, vnitřek x,z ∈ ⟨−10, 10⟩, podlaha y = 0. Slouží fázím 2–5 (pohyb, zbraně, roboti). Pozice jsou středy krabic, size = [šířka x, výška y, hloubka z]. Testy (tests/e2e/movement.spec.ts) čtou pozice odsud podle 'name'.",
+  "spawn": { "position": [2, 0, -9.2], "yaw": -0.39 },
+  "respawnDelayMs": 1200,
+  "floor": { "name": "floor", "position": [0, -0.2, 0], "size": [20.8, 0.4, 20.8], "tileSize": 1, "color": "world.floorTile", "altColor": "world.floorTileDark" },
+  "boxes": [
+    { "name": "wallSouth", "position": [0, 2.5, -10.2], "size": [20.8, 5, 0.4], "color": "world.plaster" },
+    { "name": "wallWest", "position": [-10.2, 2.5, 0], "size": [0.4, 5, 20.8], "color": "world.plaster" },
+    { "name": "wallEast", "position": [10.2, 2.5, 0], "size": [0.4, 5, 20.8], "color": "world.plaster" },
+    { "name": "wallNorthLeft", "position": [-2.5, 2.5, 10.2], "size": [15.8, 5, 0.4], "color": "world.plaster" },
+    { "name": "wallNorthRight", "position": [8.5, 2.5, 10.2], "size": [3.8, 5, 0.4], "color": "world.plaster" },
+    { "name": "doorLintel", "position": [6, 3.6, 10.2], "size": [1.2, 2.8, 0.4], "color": "world.plaster" },
+    { "name": "ceiling", "position": [0, 5.2, 0], "size": [20.8, 0.4, 20.8], "color": "world.ceiling" },
+
+    { "name": "plinthSouth", "position": [0, 0.4, -9.98], "size": [20, 0.8, 0.04], "color": "world.plinth", "collide": false },
+    { "name": "plinthWest", "position": [-9.98, 0.4, 0], "size": [0.04, 0.8, 20], "color": "world.plinth", "collide": false },
+    { "name": "plinthEast", "position": [9.98, 0.4, 0], "size": [0.04, 0.8, 20], "color": "world.plinth", "collide": false },
+    { "name": "plinthNorthLeft", "position": [-2.3, 0.4, 9.98], "size": [15.4, 0.8, 0.04], "color": "world.plinth", "collide": false },
+    { "name": "plinthNorthRight", "position": [8.3, 0.4, 9.98], "size": [3.4, 0.8, 0.04], "color": "world.plinth", "collide": false },
+    { "name": "doorFrameLeft", "position": [5.34, 1.1, 9.95], "size": [0.12, 2.2, 0.12], "color": "accent.rust", "collide": false },
+    { "name": "doorFrameRight", "position": [6.66, 1.1, 9.95], "size": [0.12, 2.2, 0.12], "color": "accent.rust", "collide": false },
+    { "name": "doorFrameTop", "position": [6, 2.26, 9.95], "size": [1.44, 0.12, 0.12], "color": "accent.rust", "collide": false },
+
+    { "name": "alcoveFloor", "position": [6, -0.2, 12], "size": [3.2, 0.4, 3.2], "color": "world.floorTileDark" },
+    { "name": "alcoveWestWall", "position": [4.3, 1.5, 12], "size": [0.4, 3, 3.6], "color": "world.plasterDark" },
+    { "name": "alcoveEastWall", "position": [7.7, 1.5, 12], "size": [0.4, 3, 3.6], "color": "world.plasterDark" },
+    { "name": "alcoveBackWall", "position": [6, 1.5, 13.8], "size": [3.8, 3, 0.4], "color": "world.plasterDark" },
+    { "name": "alcoveCeiling", "position": [6, 3.2, 12], "size": [3.8, 0.4, 3.6], "color": "world.ceiling" },
+
+    { "name": "stairsLanding", "position": [-8.65, 0.8, 0.3], "size": [2.7, 1.6, 4.6], "color": "world.woodDark" },
+    { "name": "rampLanding", "position": [8.65, 0.6, 1], "size": [2.7, 1.2, 4], "color": "world.metal" },
+
+    { "name": "pillarSouthWest", "position": [-4, 2.5, -3], "size": [0.6, 5, 0.6], "color": "world.concrete" },
+    { "name": "pillarSouthEast", "position": [4, 2.5, -3], "size": [0.6, 5, 0.6], "color": "world.concrete" },
+    { "name": "pillarNorthWest", "position": [-4, 2.5, 4], "size": [0.6, 5, 0.6], "color": "world.concrete" },
+    { "name": "pillarNorthEast", "position": [4, 2.5, 4], "size": [0.6, 5, 0.6], "color": "world.concrete" },
+
+    { "name": "jumpBox05", "position": [-2, 0.25, 6], "size": [1.2, 0.5, 1.2], "color": "accent.gold" },
+    { "name": "jumpBox10", "position": [-0.4, 0.5, 7], "size": [1.2, 1.0, 1.2], "color": "accent.red" },
+    { "name": "jumpBox15", "position": [1.2, 0.75, 8], "size": [1.2, 1.5, 1.2], "color": "accent.teal" },
+    { "name": "curb", "position": [5.8, 0.1, -8], "size": [2.4, 0.2, 2.4], "color": "world.rubble" },
+    { "name": "crateSmall", "position": [-2.5, 0.3, -8.6], "size": [0.6, 0.6, 0.6], "rotationY": 0.4, "color": "world.wood" },
+    { "name": "crateTall", "position": [-6, 0.6, -7.5], "size": [1.2, 1.2, 1.2], "rotationY": 0.25, "color": "accent.violet" }
+  ],
+  "stairs": [
+    { "name": "stairs", "start": [-8.5, 0, -5.2], "yaw": 0, "count": 8, "rise": 0.2, "run": 0.4, "width": 2.4, "color": "world.wood" }
+  ],
+  "ramps": [
+    { "name": "ramp", "start": [8.5, 0, -5], "yaw": 0, "run": 4, "rise": 1.2, "width": 2.4, "thickness": 0.3, "color": "world.steel" }
+  ],
+  "lights": [
+    { "position": [-5, 4.5, -5], "color": "light.lamp", "intensity": 2.8, "range": 16 },
+    { "position": [5, 4.5, -5], "color": "light.lamp", "intensity": 2.8, "range": 16 },
+    { "position": [-5, 4.5, 5], "color": "light.lamp", "intensity": 2.8, "range": 16 },
+    { "position": [5, 4.5, 5], "color": "light.fire", "intensity": 2.4, "range": 14 },
+    { "position": [6, 2.6, 12], "color": "neon.water", "intensity": 1.0, "range": 5 }
+  ],
+  "panels": [
+    { "position": [-5, 4.98, -5], "size": [1.6, 0.04, 0.5], "color": "light.lamp", "emissive": 2.4 },
+    { "position": [5, 4.98, -5], "size": [1.6, 0.04, 0.5], "color": "light.lamp", "emissive": 2.4 },
+    { "position": [-5, 4.98, 5], "size": [1.6, 0.04, 0.5], "color": "light.lamp", "emissive": 2.4 },
+    { "position": [5, 4.98, 5], "size": [1.6, 0.04, 0.5], "color": "light.fire", "emissive": 2.4 },
+    { "position": [6, 2.5, 9.95], "size": [1.2, 0.06, 0.06], "color": "neon.water", "emissive": 3 },
+    { "position": [-9.95, 2.2, -3], "size": [0.06, 0.08, 3.2], "color": "neon.robot", "emissive": 2.2 }
+  ]
+}

@@ -21,6 +21,11 @@ export interface InputTestApi {
   setDown: (action: InputAction, down: boolean) => void;
   lookMode: () => LookMode;
   actions: () => readonly InputAction[];
+  /**
+   * Holds `key` for `ms` of simulated time (deterministic `Game.step`), then releases it; returns the steps taken.
+   * `key` is a `KeyboardEvent.code` from data/input.json (`"KeyW"`, `"Space"`) or an action name (`"forward"`).
+   */
+  simulate: (key: string, ms: number) => number;
 }
 
 declare module "./TestHooks" {
@@ -53,6 +58,7 @@ export class Input {
   private mode: LookMode = "none";
   private releasingLock = false;
   private lastWheelMs = Number.NEGATIVE_INFINITY;
+  private stepper: ((ms: number) => number) | null = null;
   private readonly cleanups: Array<() => void> = [];
 
   constructor(
@@ -78,7 +84,27 @@ export class Input {
       setDown: (action, down) => this.setActionDown(action, down),
       lookMode: () => this.mode,
       actions: () => INPUT_ACTIONS,
+      simulate: (key, ms) => this.simulate(key, ms),
     });
+  }
+
+  /** How `simulate` advances time; `Game` passes its deterministic `step(ms)`. */
+  setStepper(step: (ms: number) => number): void {
+    this.stepper = step;
+  }
+
+  /** See `InputTestApi.simulate`. */
+  simulate(key: string, ms: number): number {
+    const action = this.bindings.keys[key] ?? (INPUT_ACTIONS as readonly string[]).find((a) => a === key);
+    if (action === undefined) throw new Error(`Input.simulate: "${key}" is neither a bound key code nor an action`);
+    if (this.stepper === null) throw new Error("Input.simulate: no stepper (Input is not owned by a Game)");
+    const typed = action as InputAction;
+    this.setActionDown(typed, true);
+    try {
+      return this.stepper(ms);
+    } finally {
+      this.setActionDown(typed, false);
+    }
   }
 
   get lookMode(): LookMode {

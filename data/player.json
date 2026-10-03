@@ -1,0 +1,70 @@
+{
+  "//": "Hráč (src/player/*). Jednotky: metry, sekundy, radiány. Pozice hráče = chodidla. Výchozí hodnoty vychází z LEGACY §7 (150 HP, oči 1,65 m, FOV 1,25 rad, citlivost 0,0025, pitch ±1,52); rychlosti a skok jsou svižnější kvůli větším prostorům.",
+  "body": {
+    "//": "Kapsle PhysicsCharacterController. Překážky vyšší než maxStepHeight (krabice 0,5 m) je nutné přeskočit, schody (≤ 0,25 m) se vyjdou samy.",
+    "height": 1.8,
+    "radius": 0.35,
+    "eyeHeight": 1.65,
+    "maxStepHeight": 0.35,
+    "maxSlopeDegrees": 50,
+    "keepDistance": 0.01,
+    "stepUpBoost": 2
+  },
+  "movement": {
+    "//": "m/s a m/s². groundAcceleration při stisku směru, groundFriction brzdí bez vstupu, ve vzduchu jen airAcceleration. Skok: výška jumpHeight při gravitaci gravity; coyoteTime = skok ještě chvíli po sejití z hrany, jumpBufferTime = stisk těsně před dopadem se nezahodí.",
+    "walkSpeed": 4.6,
+    "sprintSpeed": 7.0,
+    "groundAcceleration": 42,
+    "groundFriction": 32,
+    "airAcceleration": 9,
+    "gravity": 20,
+    "jumpHeight": 1.1,
+    "coyoteTime": 0.12,
+    "jumpBufferTime": 0.12,
+    "maxFallSpeed": 30,
+    "groundSnapDistance": 0.12
+  },
+  "camera": {
+    "fov": 1.25,
+    "minZ": 0.05,
+    "maxZ": 200,
+    "mouseSensitivity": 0.0025,
+    "pitchLimit": 1.52,
+    "sprintFovKick": 0.09,
+    "fovResponse": 8,
+    "headBob": {
+      "//": "Jeden krok = půl cyklu; stepsPerMeter řídí frekvenci podle ujeté vzdálenosti. Kamera se posouvá jen nahoru/dolů a do stran, nikdy se nenaklání (LEGACY: horizont vodorovně).",
+      "stepsPerMeter": 0.62,
+      "verticalAmplitude": 0.045,
+      "lateralAmplitude": 0.022,
+      "sprintAmplitudeScale": 1.35,
+      "fadeResponse": 10
+    },
+    "landing": {
+      "//": "Doskok: propad kamery úměrný rychlosti dopadu, vrací ho tlumená pružina.",
+      "dipPerSpeed": 0.018,
+      "minImpactSpeed": 2.5,
+      "maxDip": 0.2,
+      "stiffness": 140,
+      "damping": 18
+    },
+    "hitShake": {
+      "//": "Zásah: krátký boční otřes kamery bez náklonu (LEGACY §7).",
+      "amplitude": 0.07,
+      "frequency": 28,
+      "duration": 0.28
+    }
+  },
+  "health": {
+    "max": 150
+  },
+  "damageOverlay": {
+    "//": "Červené okraje obrazovky (src/ui/DamageOverlay.ts). Záblesk = max(minIntensity, damage / fullAtDamage), slábne o fadePerSecond. Pod lowHealthFraction zůstane trvalý slabý okraj lowHealthIntensity.",
+    "color": "ui.damage",
+    "fullAtDamage": 40,
+    "minIntensity": 0.35,
+    "fadePerSecond": 1.6,
+    "lowHealthFraction": 0.25,
+    "lowHealthIntensity": 0.3
+  }
+}
