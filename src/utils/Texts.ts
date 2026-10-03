@@ -16,6 +16,8 @@ export interface TextsData {
     stepAway: string;
     unlocked: string;
     locked: LockText;
+    /** A robot stands in the doorway (phase 16). */
+    blocked: string;
   };
   locks: LockText;
   keys: KeyText;
@@ -39,6 +41,22 @@ export interface TextsData {
     continue: string;
     leave: string;
   };
+  /** The story screen at the start (phase 16). */
+  intro: { kicker: string; title: string; titleAccent: string; lead: string; paragraphs: string[]; controls: string; button: string };
+  /** The level-end screen (phase 16). */
+  levelEnd: {
+    kicker: string;
+    title: string;
+    titleAccent: string;
+    lead: string;
+    labels: { time: string; kills: string; right: string; wrong: string; teachers: string; deaths: string; difficulty: string };
+    time: string;
+    teachers: string;
+    difficulty: string;
+    button: string;
+  };
+  /** Checkpoint toasts (phase 16). */
+  checkpoint: { saved: string; restored: string };
 }
 
 const lockTexts = (): SchemaNode =>
@@ -62,6 +80,7 @@ export class Texts {
       stepAway: Schema.string(),
       unlocked: Schema.string(),
       locked: lockTexts(),
+      blocked: Schema.string(),
     }),
     locks: lockTexts(),
     keys: Schema.object({ red: Schema.string(), yellow: Schema.string(), blue: Schema.string() }),
@@ -88,6 +107,35 @@ export class Texts {
       continue: Schema.string(),
       leave: Schema.string(),
     }),
+    intro: Schema.object({
+      kicker: Schema.string(),
+      title: Schema.string(),
+      titleAccent: Schema.string(),
+      lead: Schema.string(),
+      paragraphs: Schema.array(Schema.string(), 1),
+      controls: Schema.string(),
+      button: Schema.string(),
+    }),
+    levelEnd: Schema.object({
+      kicker: Schema.string(),
+      title: Schema.string(),
+      titleAccent: Schema.string(),
+      lead: Schema.string(),
+      labels: Schema.object({
+        time: Schema.string(),
+        kills: Schema.string(),
+        right: Schema.string(),
+        wrong: Schema.string(),
+        teachers: Schema.string(),
+        deaths: Schema.string(),
+        difficulty: Schema.string(),
+      }),
+      time: Schema.string(),
+      teachers: Schema.string(),
+      difficulty: Schema.string(),
+      button: Schema.string(),
+    }),
+    checkpoint: Schema.object({ saved: Schema.string(), restored: Schema.string() }),
   });
 
   private static cached: TextsData | null = null;

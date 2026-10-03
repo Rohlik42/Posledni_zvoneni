@@ -134,6 +134,11 @@ export abstract class Enemy implements IDamageable, Simulated {
     return this.current > 0;
   }
 
+  /** Feet, capsule radius and height: a door must not close on the robot (phase 16). */
+  get footprint(): { feet: Vector3; radius: number; height: number } {
+    return { feet: this.position, radius: this.base.body.radius, height: this.base.body.height };
+  }
+
   /** Hits that did damage. */
   get hitCount(): number {
     return this.hits;
@@ -186,6 +191,17 @@ export abstract class Enemy implements IDamageable, Simulated {
     this.playerDamageDealt = 0;
     this.droppedItems = [];
     this.status.clear();
+  }
+
+  /**
+   * Out of play at once, as a wreck where it stands: no loot, no death event, no kill counted (a checkpoint restores a
+   * robot destroyed before it was saved, phase 16).
+   */
+  removeFromPlay(): void {
+    if (!this.alive) return;
+    this.current = 0;
+    this.status.clear();
+    this.die();
   }
 
   /** Records that one of this robot's attacks hurt the player. */

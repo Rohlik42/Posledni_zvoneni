@@ -70,8 +70,13 @@ export class ExtinguisherRefill {
 
   /** Full charges and the bottle back (dev scenes, checkpoints). */
   reset(): void {
-    this.left = this.settings.charges;
-    this.model.bottle.setEnabled(true);
+    this.setCharges(this.settings.charges);
+  }
+
+  /** Charges as saved in a checkpoint (phase 16); the bottle shows while any are left. */
+  setCharges(charges: number): void {
+    this.left = Math.min(this.settings.charges, Math.max(0, charges));
+    this.model.bottle.setEnabled(this.left > 0);
   }
 
   dispose(): void {

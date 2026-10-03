@@ -106,6 +106,21 @@ export class WeaponStations {
     for (const station of this.hydrants) station.release(this.inventory);
   }
 
+  /** Charges left in each wall extinguisher by station id (checkpoints, phase 16). */
+  refillCharges(): Record<string, number> {
+    return Object.fromEntries(this.refills.map((r) => [r.placement.id, r.charges]));
+  }
+
+  /** Back to a checkpoint: the hose let go, wall extinguishers with their saved charges (unknown ids full). */
+  restore(charges: Record<string, number>): void {
+    for (const station of this.hydrants) station.release(this.inventory);
+    for (const refill of this.refills) {
+      const saved = charges[refill.placement.id];
+      if (saved === undefined) refill.reset();
+      else refill.setCharges(saved);
+    }
+  }
+
   dispose(): void {
     this.removeSystem();
     this.game.scene.onBeforeRenderObservable.remove(this.frameObserver);

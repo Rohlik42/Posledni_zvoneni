@@ -267,7 +267,7 @@
   },
   "pickups": [
     { "id": "pk01", "item": "weapon-balloons", "floor": 4, "room": "f4-corridor", "x": 38.5, "z": 20.8 },
-    { "id": "pk02", "item": "extinguisher-refill", "floor": 4, "room": "f4-corridor", "x": 20.0, "z": 19.75 },
+    { "id": "pk02", "item": "extinguisher-refill", "floor": 4, "room": "f4-corridor", "x": 18.5, "z": 19.75 },
     { "id": "pk03", "item": "extinguisher-refill", "floor": 4, "room": "f4-corridor", "x": 48.0, "z": 21.85 },
     { "id": "pk04", "item": "medkit", "floor": 4, "room": "f4-hudebna", "x": 2.5, "z": 30.0 },
     { "id": "pk05", "item": "energy-drink", "floor": 4, "room": "f4-ucebna-33", "x": 21.5, "z": 30.2 },
@@ -278,7 +278,7 @@
     { "id": "pk10", "item": "ammo-balloons", "floor": 3, "room": "f3-corridor", "x": 45.0, "z": 21.7 },
     { "id": "pk11", "item": "energy-drink", "floor": 3, "room": "f3-atelier", "x": 55.6, "z": 29.6 },
     { "id": "pk12", "item": "ammo-railgun", "floor": 3, "room": "f3-landing-west", "x": 7.6, "z": 17.5 },
-    { "id": "pk13", "item": "extinguisher-refill", "floor": 2, "room": "f2-corridor", "x": 16.0, "z": 19.65 },
+    { "id": "pk13", "item": "extinguisher-refill", "floor": 2, "room": "f2-corridor", "x": 14.5, "z": 19.65 },
     { "id": "pk14", "item": "extinguisher-refill", "floor": 2, "room": "f2-corridor", "x": 38.0, "z": 21.95 },
     { "id": "pk15", "item": "medkit", "floor": 2, "room": "f2-satna", "x": 33.0, "z": 30.3 },
     { "id": "pk16", "item": "rubber-boots", "floor": 2, "room": "f2-satna", "x": 34.6, "z": 30.3 },

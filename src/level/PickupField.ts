@@ -26,6 +26,12 @@ export interface PickupInfo {
   amount: number | null;
 }
 
+/** Pickups in a checkpoint (phase 16): level pickups already taken and other items lying around (drops, rewards). */
+export interface PickupsSnapshot {
+  collected: string[];
+  extras: { item: string; position: [number, number, number]; amount: number | null }[];
+}
+
 /** `window.__game.pickups` — collectables in the scene, spawn one, what was collected. */
 export interface PickupsTestApi {
   list: () => PickupInfo[];
@@ -56,6 +62,8 @@ export class PickupField {
   private collectedCount = 0;
   private droppedCount = 0;
   private serial = 0;
+  private layout: LevelLayout | null = null;
+  private readonly levelIds = new Set<string>();
 
   private constructor(
     private readonly game: Game,
@@ -95,13 +103,39 @@ export class PickupField {
   }
 
   /** The pickups of `data/level.json` (items placed by other phases, `pickups.json → external`, are skipped). */
-  spawnLevel(layout: LevelLayout): void {
+  spawnLevel(layout: LevelLayout, skip: readonly string[] = []): void {
+    this.layout = layout;
     for (const pickup of layout.level.pickups) {
-      if (this.data.external.includes(pickup.item)) continue;
+      if (this.data.external.includes(pickup.item) || skip.includes(pickup.id)) continue;
+      this.levelIds.add(pickup.id);
       const floorY = layout.floorY(layout.room(pickup.room));
       const p = LevelLayout.toWorld(pickup.x, floorY, pickup.z);
       this.spawn(pickup.item, new Vector3(p.x, p.y, p.z), { id: pickup.id });
     }
+  }
+
+  /** Taken level pickups and the other uncollected items (checkpoints). */
+  snapshot(): PickupsSnapshot {
+    const level = this.layout?.level.pickups ?? [];
+    const collected = level.filter((p) => !this.data.external.includes(p.item) && !this.isLying(p.id)).map((p) => p.id);
+    const extras = this.pickups
+      .filter((p) => !p.collected && !this.levelIds.has(p.id))
+      .map((p) => ({ item: p.item, position: [p.position.x, p.position.y, p.position.z] as [number, number, number], amount: p.amount ?? null }));
+    return { collected, extras };
+  }
+
+  /** Clears the floor and lays out the level pickups not taken in the snapshot and its other items. */
+  restore(snapshot: PickupsSnapshot): void {
+    for (const pickup of this.pickups) {
+      if (pickup.collected) continue;
+      this.lighting?.detach(pickup.meshes);
+      if (pickup instanceof KeyPickup) this.lighting?.removeLight(pickup.light);
+      pickup.dispose();
+    }
+    this.pickups.length = 0;
+    this.levelIds.clear();
+    if (this.layout !== null) this.spawnLevel(this.layout, snapshot.collected);
+    for (const extra of snapshot.extras) this.spawn(extra.item, Vector3.FromArray(extra.position), { amount: extra.amount ?? undefined });
   }
 
   /** Robot loot becomes pickups where the robot fell (phase 4 `Enemy.onDrop`). */
@@ -114,6 +148,10 @@ export class PickupField {
     this.game.scene.onBeforeRenderObservable.remove(this.frameObserver);
     for (const pickup of this.pickups) pickup.dispose();
     this.pickups.length = 0;
+  }
+
+  private isLying(id: string): boolean {
+    return this.pickups.some((p) => p.id === id && !p.collected);
   }
 
   private onDrop(drop: DropEvent): void {

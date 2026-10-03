@@ -14,7 +14,8 @@
       "yellow": "Potřebuješ žlutý klíč.",
       "blue": "Potřebuješ modrý klíč.",
       "exit": "Hlavní vchod je zamčený. Potřebuješ modrý klíč."
-    }
+    },
+    "blocked": "Ve dveřích stojí robot – takhle je nezavřeš."
   },
   "locks": { "red": "červený zámek", "yellow": "žlutý zámek", "blue": "modrý zámek", "exit": "hlavní vchod" },
   "keys": { "red": "červený klíč", "yellow": "žlutý klíč", "blue": "modrý klíč" },
@@ -60,5 +61,44 @@
     "rewardDropped": "Co se ti teď nevejde, leží u učitele na zemi.",
     "continue": "POKRAČOVAT (Enter)",
     "leave": "ODEJÍT (Esc)"
+  },
+  "intro": {
+    "//": "Fáze 16: úvodní obrazovka (příběh DESIGN §2, tón LEGACY §3). title + titleAccent = nadpis jako ve staré hře (druhé slovo zvýrazněné), lead = tučný první řádek, paragraphs = odstavce, controls = řádek ovládání, button = tlačítko (klik, Enter, mezerník nebo E).",
+    "kicker": "MALGYM 2066 · MALOSTRANSKÉ GYMNÁZIUM",
+    "title": "Poslední",
+    "titleAccent": "zvonění.",
+    "lead": "Rok 2066. Roboti obsadili školu. Ty máš vodní pistolku.",
+    "paragraphs": [
+      "Korporace Neuralith Dynamics pustila do světa první AGI. Za pár dní ovládla robotické továrny a teď obsazuje území bojovými roboty. Dnes ráno vtrhli i k nám na Malou Stranu.",
+      "Učitele zajali a drží je v kabinetech, pouta jim hlídá robotí past. Tebe zamkli v učebně ve druhém patře. Dostaň se dolů k hlavnímu vchodu a ven.",
+      "Učitele osvobodíš správnou odpovědí na otázku z jejich předmětu – špatná odpověď a past vybuchne. Kdo má klíč, dá ti ho: červený, žlutý, modrý. Ostatní přidají zbraň nebo něco na posilněnou. Voda a elektřina robotům škodí."
+    ],
+    "controls": "WASD pohyb · MYŠ míření · LEVÉ střelba · E učitel a dveře · STISK KOLEČKA dveře · 1–6 / KOLEČKO zbraně · R nabít · SHIFT sprint · ESC pauza",
+    "button": "JDEME VEN →"
+  },
+  "levelEnd": {
+    "//": "Fáze 16: obrazovka konce levelu po otevření hlavního vchodu. time = formát času ({minutes}, {seconds} dvoumístně), teachers = osvobození učitelé. difficulty = název obtížnosti, dokud ji nedodá fáze 17 (LEGACY §2, výchozí Záškoláček).",
+    "kicker": "KONEC LEVELU · HLAVNÍ VCHOD",
+    "title": "ZVONÍ!",
+    "titleAccent": "Jsi venku.",
+    "lead": "Malostranské gymnázium máš za sebou. Neuralith Dynamics o tobě ještě uslyší.",
+    "labels": {
+      "time": "Čas",
+      "kills": "Zničení roboti",
+      "right": "Správné odpovědi",
+      "wrong": "Špatné odpovědi",
+      "teachers": "Osvobození učitelé",
+      "deaths": "Návraty na checkpoint",
+      "difficulty": "Obtížnost"
+    },
+    "time": "{minutes}:{seconds}",
+    "teachers": "{freed} z {total}",
+    "difficulty": "Záškoláček",
+    "button": "HRÁT ZNOVU →"
+  },
+  "checkpoint": {
+    "//": "Fáze 16: toasty checkpointu (src/level/LevelProgress.ts).",
+    "saved": "Checkpoint uložen.",
+    "restored": "Zpátky u posledního checkpointu."
   }
 }

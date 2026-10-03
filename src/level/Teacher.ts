@@ -117,6 +117,18 @@ export class Teacher {
     this.model.setBound(false);
   }
 
+  /**
+   * Restores a checkpoint state at once (phase 16): `freed` = shackles off and standing, `bound` = seated in shackles
+   * with the trap armed again (a teacher freed after the checkpoint).
+   */
+  restore(state: TeacherState): void {
+    this.stateValue = state;
+    this.freedSeconds = 0;
+    this.model.setBound(state === "bound");
+    this.model.setStanding(state === "freed" ? 1 : 0);
+    this.placeNametag();
+  }
+
   /** Fixed step: getting up after being freed (smoothstep over `standTime` after `standDelay`). */
   update(dt: number): void {
     if (this.stateValue !== "freed" || this.model.standing >= 1) return;

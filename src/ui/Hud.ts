@@ -204,9 +204,11 @@ export class Hud {
     }
     const { capacity } = weapon.data.ammo;
     const magazine = Math.floor(weapon.magazine);
-    const reserve = Number.isFinite(weapon.reserve) ? String(Math.floor(weapon.reserve)) : this.data.infiniteSymbol;
+    // Weapons without a magazine show the reserve as the big number, and the hose's reserve is endless.
+    const amount = (value: number): string => (Number.isFinite(value) ? String(Math.floor(value)) : this.data.infiniteSymbol);
+    const reserve = amount(weapon.reserve);
     this.ammoName.textContent = `${this.data.labels.ammo} · ${weapon.data.name}`;
-    this.ammoValue.textContent = String(magazine);
+    this.ammoValue.textContent = amount(weapon.magazine);
     this.ammoRest.textContent = capacity > 0 ? `/ ${capacity} · ${reserve}` : "";
     const low = capacity > 0 && magazine <= capacity * this.data.ammoLowFraction;
     this.ammoValue.style.color = low ? Palette.hex(this.data.colors.ammoLow) : "";

@@ -18,6 +18,13 @@ import type { RoomLighting } from "./RoomLighting";
 
 const DEG_TO_RAD = Math.PI / 180;
 
+/** A body standing somewhere (feet, capsule radius and height) that a closing door must not trap. */
+export interface DoorOccupant {
+  feet: Vector3;
+  radius: number;
+  height: number;
+}
+
 /** What an attempt to open or close a door did, and the message the player saw. */
 export interface DoorResult {
   ok: boolean;
@@ -69,6 +76,8 @@ declare module "../core/TestHooks" {
 export class DoorSystem {
   readonly doors: Door[];
   readonly onMessage = new Observable<string>();
+  /** A door started opening (the exit door ends the level, phase 16). */
+  readonly onOpened = new Observable<Door>();
   private readonly data: DoorsData;
   private readonly texts: TextsData;
   private readonly removeSystem: () => void;
@@ -76,6 +85,7 @@ export class DoorSystem {
   private targetDoor: Door | null = null;
   private readonly log: string[] = [];
   private interactTaken: (() => boolean) | null = null;
+  private readonly occupantSources: (() => Iterable<DoorOccupant>)[] = [];
 
   private constructor(
     private readonly game: Game,
@@ -148,6 +158,24 @@ export class DoorSystem {
     this.interactTaken = taken;
   }
 
+  /** Besides the player, these bodies (level robots, phase 16) keep a door from closing while they stand in it. */
+  addOccupants(source: () => Iterable<DoorOccupant>): void {
+    this.occupantSources.push(source);
+  }
+
+  /** Ids of the open (or opening) doors (checkpoints, phase 16). */
+  openIds(): string[] {
+    return this.doors.filter((door) => door.isOpen).map((door) => door.id);
+  }
+
+  /** Forces exactly the doors in `open` open (leaves swung away from the player) and the others shut; no events. */
+  restore(open: readonly string[]): void {
+    for (const door of this.doors) {
+      if (open.includes(door.id)) door.open(this.player.controller.position, true);
+      else door.close(true);
+    }
+  }
+
   get(id: string): Door | undefined {
     return this.doors.find((door) => door.id === id);
   }
@@ -181,15 +209,18 @@ export class DoorSystem {
     const name = this.farSide(door).name;
     door.open(this.player.controller.position);
     sounds.play(this.data.sounds.open);
-    return { ok: true, message: this.say(Texts.format(t.opened, { name })) };
+    const message = this.say(Texts.format(t.opened, { name }));
+    this.onOpened.notifyObservers(door);
+    return { ok: true, message };
   }
 
-  /** Closes `door` as the player: refused while the player stands in the doorway. */
+  /** Closes `door` as the player: refused while the player (stepAway) or a robot (blocked) stands in the doorway. */
   tryClose(door: Door): DoorResult {
     const t = this.texts.doors;
     if (!door.isOpen) return { ok: true, message: null };
     const body = this.player.data.body;
     if (door.occupiedBy(this.player.controller.position, body.radius, body.height)) return { ok: false, message: this.say(t.stepAway) };
+    if (this.occupied(door)) return { ok: false, message: this.say(t.blocked) };
     door.close();
     SynthSounds.for(this.game).play(this.data.sounds.close);
     return { ok: true, message: this.say(Texts.format(t.closed, { name: this.farSide(door).name })) };
@@ -199,6 +230,7 @@ export class DoorSystem {
     this.removeSystem();
     for (const door of this.doors) door.dispose();
     this.onMessage.clear();
+    this.onOpened.clear();
   }
 
   private update(dt: number): void {
@@ -232,6 +264,14 @@ export class DoorSystem {
       bestDistance = distance;
     }
     return best;
+  }
+
+  /** Whether one of the other occupants (robots) stands in the doorway. */
+  private occupied(door: Door): boolean {
+    for (const source of this.occupantSources) {
+      for (const body of source()) if (door.occupiedBy(body.feet, body.radius, body.height)) return true;
+    }
+    return false;
   }
 
   /** The side of the door away from the player (where the door leads). */

@@ -185,6 +185,17 @@ export abstract class Weapon {
     return taken;
   }
 
+  /**
+   * Sets the magazine (tank) and reserve as saved in a checkpoint (phase 16), clamped to capacity / `reserveMax`; an
+   * endless reserve stays endless. Cancels a reload in progress.
+   */
+  setAmmo(magazine: number, reserve: number): void {
+    const { ammo } = this.data;
+    this.magazineAmmo = Math.min(ammo.capacity, Math.max(0, magazine));
+    if (!ammo.infiniteReserve) this.reserveAmmo = Math.min(ammo.reserveMax, Math.max(0, reserve));
+    this.reloadRemaining = 0;
+  }
+
   /** Fills the magazine (tank) to capacity from outside, e.g. a wall extinguisher (phase 13); returns the amount added. */
   refill(): number {
     const { capacity } = this.data.ammo;
