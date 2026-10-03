@@ -38,6 +38,9 @@ export class RailingBuilder {
       yaw,
       visible: false,
       collide: true,
+      // The navmesh ends at the flight's or shaft's edge by itself (a drop deeper than the agent climbs); the tilted
+      // slab would lean over the landing at the foot of a flight and pinch the walkway there (phase 10).
+      navigable: false,
     });
     this.sink.box({
       owner,

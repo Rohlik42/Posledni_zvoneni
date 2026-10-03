@@ -50,7 +50,13 @@ export interface GreyboxData {
   blockers: { materials: Record<BlockerKind, string> };
   decals: DecalData[];
   /** Multipliers of `level.json → lights` intensity and range (greybox brightness). */
-  lights: { intensityScale: number; rangeScale: number; fixtures: Record<LightKind, FixtureData> };
+  lights: {
+    intensityScale: number;
+    rangeScale: number;
+    /** A moving mesh belongs to the room whose floor is the highest at most this many m above it (`RoomLighting`). */
+    dynamicFloorTolerance: number;
+    fixtures: Record<LightKind, FixtureData>;
+  };
   teleport: { wallMargin: number; obstacleMargin: number; gridStep: number };
   /**
    * Z-fighting rules (`OverlapResolver`, `GeometryAudit`): fragments thinner than `minPiece` are dropped when visible
@@ -102,7 +108,7 @@ export class GreyboxConfig {
     }),
     blockers: Schema.object({ materials: Schema.object({ rubble: Schema.string(), "collapsed-ceiling": Schema.string() }) }),
     decals: Schema.array(Schema.object({ texture: Schema.string(), material: Schema.string(), room: Schema.string(), lift: LENGTH })),
-    lights: Schema.object({ intensityScale: POSITIVE, rangeScale: POSITIVE, fixtures: Schema.object({ fluorescent: FIXTURE, emergency: FIXTURE, fire: FIXTURE }) }),
+    lights: Schema.object({ intensityScale: POSITIVE, rangeScale: POSITIVE, dynamicFloorTolerance: POSITIVE, fixtures: Schema.object({ fluorescent: FIXTURE, emergency: FIXTURE, fire: FIXTURE }) }),
     teleport: Schema.object({ wallMargin: LENGTH, obstacleMargin: LENGTH, gridStep: POSITIVE }),
     audit: Schema.object({ minPiece: Schema.number({ min: 0.0001 }), planeTolerance: Schema.number({ min: 0.0001 }), minOverlapArea: Schema.number({ min: 0.000001 }) }),
   });

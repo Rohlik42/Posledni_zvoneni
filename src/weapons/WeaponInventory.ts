@@ -185,7 +185,7 @@ export class WeaponInventory {
     return this.owned.has(id);
   }
 
-  /** The owned weapon `id` (refill stations, pickups), or undefined. */
+  /** The owned weapon `id` (refill stations, phase 13; ammo pickups of the inventory, phase 10), or undefined. */
   weapon(id: string): Weapon | undefined {
     return this.owned.get(id);
   }

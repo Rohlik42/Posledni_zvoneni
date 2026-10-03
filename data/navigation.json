@@ -1,6 +1,11 @@
 {
-  "//": "Navmesh (src/level/NavMeshService.ts, recast přes @babylonjs/addons RecastNavigationJSPluginV2). 'agent' je v metrech a NavMeshService ho převede na voxely recastu (výška a šplh / cellHeight, poloměr / cellSize). cellSize a cellHeight = rozlišení voxelů v m. Pole 'recast' jsou parametry recastu v jeho jednotkách (maxEdgeLen ve voxelech, plochy regionů ve voxelech², detailSampleDist ve voxelech). tileSize 0 a maxObstacles 0 = jeden 'solo' navmesh; dveře fáze 10 mohou přepnout na tile cache (tileSize 32–64, maxObstacles > 0). queryExtent = poloviční rozměr boxu (m), ve kterém se hledá nejbližší bod navmeshe. path = vyhlazení cesty (computePathSmooth: stepSize m mezi body, slop m tolerance). debug = barva, průhlednost a zdvih ladicího vykreslení.",
-  "agent": { "radius": 0.4, "height": 1.9, "climb": 0.4, "slopeDeg": 46 },
+  "//": "Navmesh (src/level/NavMeshService.ts, recast přes @babylonjs/addons RecastNavigationJSPluginV2). 'agent' je v metrech a NavMeshService ho převede na voxely recastu (výška a šplh / cellHeight, poloměr / cellSize). cellSize a cellHeight = rozlišení voxelů v m. Pole 'recast' jsou parametry recastu v jeho jednotkách (maxEdgeLen ve voxelech, plochy regionů ve voxelech², detailSampleDist ve voxelech). tileSize 0 a maxObstacles 0 = jeden 'solo' navmesh (boxroom, aréna). 'tileCache' (fáze 10) použije scéna s dveřmi (NavMeshService.create(…, { obstacles: true })): navmesh po dlaždicích tileSize voxelů s nejvýš maxObstacles překážkami (zavřené dveře = box překážka), expectedLayersPerTile = kolik ploch nad sebou dlaždice čeká (3 patra + podesty schodišť); reachTolerance = cesta končící dál než tolik m od cíle je neúplná (cíl je nedosažitelný). queryExtent = poloviční rozměr boxu (m), ve kterém se hledá nejbližší bod navmeshe. path = vyhlazení cesty (computePathSmooth: stepSize m mezi body, slop m tolerance). debug = barva, průhlednost a zdvih ladicího vykreslení.",
+  "agent": {
+    "radius": 0.4,
+    "height": 1.9,
+    "climb": 0.4,
+    "slopeDeg": 46
+  },
   "cellSize": 0.15,
   "cellHeight": 0.1,
   "recast": {
@@ -14,7 +19,27 @@
     "tileSize": 0,
     "maxObstacles": 0
   },
-  "queryExtent": [1.5, 2.5, 1.5],
-  "path": { "maxSmoothPathPoints": 512, "stepSize": 0.4, "slop": 0.05, "maxPathPolys": 256 },
-  "debug": { "color": "neon.toxic", "alpha": 0.35, "lift": 0.04 }
+  "tileCache": {
+    "tileSize": 64,
+    "maxObstacles": 96,
+    "expectedLayersPerTile": 8,
+    "agentRadius": 0.3,
+    "reachTolerance": 0.5
+  },
+  "queryExtent": [
+    1.5,
+    2.5,
+    1.5
+  ],
+  "path": {
+    "maxSmoothPathPoints": 512,
+    "stepSize": 0.4,
+    "slop": 0.05,
+    "maxPathPolys": 256
+  },
+  "debug": {
+    "color": "neon.toxic",
+    "alpha": 0.35,
+    "lift": 0.04
+  }
 }

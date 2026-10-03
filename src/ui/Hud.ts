@@ -1,4 +1,4 @@
-import type { Observer } from "@babylonjs/core/Misc/observable";
+import type { Observable, Observer } from "@babylonjs/core/Misc/observable";
 import type { Scene } from "@babylonjs/core/scene";
 import type { Game } from "../core/Game";
 import { TestHooks } from "../core/TestHooks";
@@ -7,7 +7,12 @@ import { Palette } from "../utils/Palette";
 import { FeelConfig, type HudData } from "../weapons/FeelConfig";
 import type { ShotEvent } from "../weapons/Weapon";
 import type { WeaponInventory } from "../weapons/WeaponInventory";
+import type { Inventory } from "../player/Inventory";
 import { Crosshair } from "./Crosshair";
+import { HudConfig, type HudExtraData } from "./HudConfig";
+import { ItemsPanel } from "./ItemsPanel";
+import { Toasts } from "./Toasts";
+import { WeaponSlotsBar } from "./WeaponSlotsBar";
 
 const HUD_ID = "hud";
 /** Panel background opacity (hex alpha appended to the palette colour). */
@@ -17,6 +22,10 @@ const PANEL_RADIUS_PX = 3;
 const LABEL_LETTER_SPACING_EM = 0.14;
 const SMALL_TEXT_SHARE = 0.55;
 const PERCENT = 100;
+const HINT_ID = "hud-hint";
+const HINT_PADDING = "5px 12px";
+/** Hint panel opacity as a hex alpha (LEGACY §4 panels `…bf`). */
+const HINT_ALPHA_HEX = "bf";
 
 /** `window.__game.hud` — what the HUD shows (phase 5 minimum HUD; phase 10 extends it). */
 export interface HudTestApi {
@@ -27,6 +36,15 @@ export interface HudTestApi {
   readonly ammoText: string;
   readonly crosshair: boolean;
   hitmarker: () => { hits: number; kills: number; opacity: number; kill: boolean };
+  /** Weapon slots 1–6 as shown (phase 10). */
+  slots: () => { slot: number; name: string; owned: boolean; active: boolean }[];
+  /** Keys shown as held and active power-ups with seconds left (−1 = permanent); null without an inventory. */
+  items: () => { keys: string[]; powerUps: { id: string; label: string; seconds: number }[] } | null;
+  /** Toast texts on screen now, oldest first, and how many were shown in total. */
+  toasts: () => string[];
+  readonly toastCount: number;
+  /** Door hint under the crosshair, or null. */
+  readonly hint: string | null;
 }
 
 declare module "../core/TestHooks" {
@@ -36,12 +54,20 @@ declare module "../core/TestHooks" {
 }
 
 /**
- * Minimal HUD over the canvas (phase 5, the base phase 10 builds on): crosshair with hitmarker in the middle, health
- * (number + bar) bottom left, ammo of the active weapon bottom right. Plain DOM, pointer-events off. Hitmarker timers
- * run on simulated time (`Game.onAfterStep`), so tests stepping a paused game see the same thing a player does.
+ * The HUD over the canvas, plain DOM with pointer-events off (DECISIONS „Fáze 5“, „Fáze 10“). Phase 5: crosshair with
+ * hitmarker in the middle, health (number + bar) bottom left, ammo of the active weapon bottom right. Phase 10: weapon
+ * slots 1–6 bottom centre, keys above the health and power-ups with timers top right (`attachItems`), toasts in the
+ * upper middle (`toast`, `showMessages`) and the door hint under the crosshair (`setHintSource`). Timers run on
+ * simulated time (`Game.onAfterStep`), so tests stepping a paused game see the same thing a player does.
  */
 export class Hud {
   readonly crosshair: Crosshair;
+  readonly toasts: Toasts;
+  readonly slots: WeaponSlotsBar;
+  private items: ItemsPanel | null = null;
+  private hintSource: () => string | null = () => null;
+  private readonly hintElement: HTMLDivElement;
+  private readonly extra: HudExtraData;
   private readonly data: HudData;
   private readonly root: HTMLDivElement;
   private readonly healthValue: HTMLSpanElement;
@@ -98,11 +124,18 @@ export class Hud {
     this.root.append(health, ammo);
     parent.append(this.root);
     this.crosshair = new Crosshair(this.root, feel.crosshair, feel.hitmarker);
+    this.extra = HudConfig.load();
+    this.toasts = new Toasts(this.root, this.extra.toast, this.data.fontFamily);
+    this.slots = new WeaponSlotsBar(this.root, inventory, this.extra.slots, this.data.fontFamily);
+    this.hintElement = this.hint();
 
     this.shotObserver = inventory.onShot.add((shot) => {
       if (shot.hit?.target != null && shot.damageDealt > 0) this.crosshair.flash(!shot.hit.target.alive);
     });
-    this.stepObserver = game.onAfterStep.add((dt) => this.crosshair.update(dt));
+    this.stepObserver = game.onAfterStep.add((dt) => {
+      this.crosshair.update(dt);
+      this.toasts.update(dt);
+    });
     this.frameObserver = game.scene.onBeforeRenderObservable.add(() => this.refresh());
     this.refresh();
     this.registerTestHooks();
@@ -112,15 +145,51 @@ export class Hud {
     return new Hud(game, player, inventory);
   }
 
+  /** Shows keys and power-ups of `items` and its messages as toasts (phase 10). */
+  attachItems(items: Inventory): void {
+    this.items?.dispose();
+    const { colors } = this.data;
+    this.items = new ItemsPanel(this.root, items, this.extra.keys, this.extra.powerUps, {
+      fontFamily: this.data.fontFamily,
+      margin: this.data.margin,
+      panel: colors.panel,
+      label: colors.label,
+      text: colors.text,
+    });
+    this.showMessages(items.onMessage);
+  }
+
+  /** Every message of `source` becomes a toast (doors, pickups). */
+  showMessages(source: Observable<string>): void {
+    source.add((text) => this.toasts.show(text));
+  }
+
+  /** Where the hint under the crosshair comes from (the door in front of the player). */
+  setHintSource(source: () => string | null): void {
+    this.hintSource = source;
+  }
+
+  toast(text: string): void {
+    this.toasts.show(text);
+  }
+
   dispose(): void {
     this.inventory.onShot.remove(this.shotObserver);
     this.game.onAfterStep.remove(this.stepObserver);
     this.game.scene.onBeforeRenderObservable.remove(this.frameObserver);
     this.crosshair.dispose();
+    this.toasts.dispose();
+    this.slots.dispose();
+    this.items?.dispose();
     this.root.remove();
   }
 
   private refresh(): void {
+    this.slots.refresh();
+    this.items?.refresh();
+    const hint = this.hintSource();
+    this.hintElement.textContent = hint ?? "";
+    this.hintElement.style.display = hint === null ? "none" : "block";
     const { health } = this.player;
     const fraction = health.max > 0 ? Math.max(0, health.health / health.max) : 0;
     this.healthValue.textContent = String(Math.ceil(health.health));
@@ -141,6 +210,29 @@ export class Hud {
     this.ammoRest.textContent = capacity > 0 ? `/ ${capacity} · ${reserve}` : "";
     const low = capacity > 0 && magazine <= capacity * this.data.ammoLowFraction;
     this.ammoValue.style.color = low ? Palette.hex(this.data.colors.ammoLow) : "";
+  }
+
+  /** The door hint under the crosshair (hidden while empty). */
+  private hint(): HTMLDivElement {
+    const { hint } = this.extra;
+    const element = document.createElement("div");
+    element.id = HINT_ID;
+    Object.assign(element.style, {
+      position: "fixed",
+      left: "50%",
+      bottom: `${hint.bottom * PERCENT}%`,
+      transform: "translateX(-50%)",
+      padding: HINT_PADDING,
+      borderRadius: `${PANEL_RADIUS_PX}px`,
+      background: `${Palette.hex(hint.panel).slice(0, 7)}${HINT_ALPHA_HEX}`,
+      color: Palette.hex(hint.color),
+      fontSize: `${hint.fontSize}px`,
+      fontWeight: "700",
+      whiteSpace: "nowrap",
+      display: "none",
+    });
+    this.root.append(element);
+    return element;
   }
 
   private panel(side: "left" | "right"): HTMLDivElement {
@@ -195,6 +287,15 @@ export class Hud {
         return hud.crosshair.element.isConnected && hud.crosshair.element.style.display !== "none";
       },
       hitmarker: () => ({ hits: hud.crosshair.hits, kills: hud.crosshair.kills, opacity: hud.crosshair.markerOpacity, kill: hud.crosshair.showingKill }),
+      slots: () => hud.slots.state(),
+      items: () => hud.items?.state() ?? null,
+      toasts: () => hud.toasts.texts,
+      get toastCount() {
+        return hud.toasts.total;
+      },
+      get hint() {
+        return hud.hintElement.style.display === "none" ? null : hud.hintElement.textContent;
+      },
     });
   }
 }

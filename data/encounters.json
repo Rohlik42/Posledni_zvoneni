@@ -112,5 +112,11 @@
       {"id": "jumpBox15-north", "position": [1.2, 0, 9.15]},
       {"id": "alcove", "position": [6, 0, 12.6]}
     ]
+  },
+  "doorsAlcove": {
+    "//": "Dev scéna 'doors' (fáze 10): humanoid ve výklenku za zamčenými dveřmi boxroomu, otočený ke dveřím; zavřené dveře mu blokují cestu (navmesh překážka), výhled i výboje.",
+    "navExclude": ["ceiling", "alcoveCeiling"],
+    "enemies": [{ "id": "alcoveGuard", "type": "humanoid", "position": [6, 0, 12.6], "yaw": 3.1416, "patrol": [] }],
+    "coverPoints": []
   }
 }

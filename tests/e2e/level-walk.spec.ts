@@ -5,6 +5,8 @@ import type { LevelData, PlanPoint, Stair } from "../../src/level/LevelTypes";
 
 // Phase 9: the greybox school in the `level` dev scene. One page load for every check (the level is not rebuilt);
 // the simulation is paused and driven by `__game.step(ms)` so results do not depend on machine load.
+// Phase 10: the same scene now has the navmesh, doors (all forced open for the walks), the player's weapon, HUD and
+// pickups: navmesh paths between every pair of neighbouring rooms, a closed door cutting its path, the red lock.
 
 interface Vec {
   x: number;
@@ -13,6 +15,8 @@ interface Vec {
 }
 
 const level = JSON.parse(readFileSync("data/level.json", "utf8")) as LevelData;
+const texts = JSON.parse(readFileSync("data/texts.json", "utf8")) as { doors: { locked: Record<string, string> } };
+const pickupsData = JSON.parse(readFileSync("data/pickups.json", "utf8")) as { external: string[] };
 const player = JSON.parse(readFileSync("data/player.json", "utf8")) as { body: { eyeHeight: number } };
 
 const READY_TIMEOUT_MS = 60_000;
@@ -30,6 +34,13 @@ const MAX_CHUNKS_PER_WAYPOINT = 80;
 /** Start this far before the first step and stop this far past the last one (m). */
 const APPROACH_M = 1.0;
 const EXIT_M = 1.5;
+/** Plan: the level navmesh bakes in at most 3 s. */
+const NAVMESH_BUILD_LIMIT_MS = 3000;
+/** Path ends this far beyond the door passage on both sides (m). */
+const DOOR_PROBE_M = 1.0;
+/** A neighbour path may wind around furniture-free corners, but not around the building (× straight distance + slack). */
+const PATH_DETOUR_FACTOR = 3;
+const PATH_DETOUR_SLACK_M = 4;
 
 const world = (p: PlanPoint, y = 0): Vec => ({ x: p.x, y, z: -p.z });
 const floorY = (roomId: string): number => {
@@ -90,6 +101,119 @@ test.describe.serial("greybox level (dev scene `level`)", () => {
     await page.waitForFunction(() => window.__game?.ready === true || window.__game?.error != null, undefined, { timeout: READY_TIMEOUT_MS });
     expect(await page.evaluate(() => window.__game?.error ?? null)).toBeNull();
     await page.evaluate(() => window.__game!.setPaused(true));
+  });
+
+  test("the player has the crosshair, HUD and water pistol in the level (FEEDBACK 22:30) and the doors and pickups are there", async () => {
+    const state = await page.evaluate(() => {
+      const g = window.__game!;
+      return {
+        hud: { visible: g.hud!.visible, crosshair: g.hud!.crosshair, health: g.hud!.healthText, ammo: g.hud!.ammoText, slots: g.hud!.slots() },
+        weapon: g.weapons!.active,
+        viewmodel: g.weapons!.viewmodel()?.visible,
+        doors: g.doors!.list().map((d) => ({ id: d.id, lock: d.lock, state: d.state })),
+        pickups: g.pickups!.list().map((p) => p.id),
+        obstacles: g.navmesh!.obstacles,
+        lit: g.lighting!.rooms(),
+        start: g.player!.position,
+      };
+    });
+    expect(state.hud.visible).toBe(true);
+    expect(state.hud.crosshair).toBe(true);
+    expect(state.hud.health).not.toBe("");
+    expect(state.hud.ammo).not.toBe("");
+    expect(state.hud.slots.find((s) => s.active)?.slot).toBe(1);
+    expect(state.weapon).toBe("waterPistol");
+    expect(state.viewmodel).toBe(true);
+    const leafDoors = level.doors.filter((d) => d.kind === "door");
+    expect(state.doors.map((d) => d.id).sort()).toEqual(leafDoors.map((d) => d.id).sort());
+    expect(state.doors.every((d) => d.state === "closed")).toBe(true);
+    expect(state.obstacles).toBe(leafDoors.length);
+    expect(state.pickups.sort()).toEqual(level.pickups.filter((p) => !pickupsData.external.includes(p.item)).map((p) => p.id).sort());
+    // The weapon in hand is lit by the start room's lights (RoomLighting).
+    expect(state.lit).toContain(level.spawns.player.room);
+  });
+
+  test("door leaves and pickups are lit by their rooms' lights (includedOnlyMeshes)", async () => {
+    const lit = await page.evaluate(
+      ({ doors, pickups }) => {
+        const g = window.__game!;
+        return {
+          doors: doors.map((id) => g.lighting!.lightsOn(`door:${id}:`)),
+          pickups: pickups.map((id) => g.lighting!.lightsOn(`pickup:${id}:`)),
+        };
+      },
+      {
+        doors: level.doors.filter((d) => d.kind === "door").map((d) => d.id),
+        pickups: level.pickups.filter((p) => !pickupsData.external.includes(p.item)).map((p) => p.id),
+      },
+    );
+    lit.doors.forEach((count, i) => expect(count, `door ${i} lights`).toBeGreaterThan(0));
+    lit.pickups.forEach((count, i) => expect(count, `pickup ${i} lights`).toBeGreaterThan(0));
+  });
+
+  test("the navmesh bakes within 3 s and a closed door cuts its passage", async () => {
+    const door = level.doors.find((d) => d.id === "d-f4-u30")!;
+    const [a, b] = doorProbes(door);
+    const result = await page.evaluate(
+      ({ id, a, b }) => {
+        const g = window.__game!;
+        const closed = g.navmesh!.path(a, b);
+        g.doors!.setOpen(id, true);
+        const open = g.navmesh!.path(a, b);
+        g.doors!.setOpen(id, false);
+        const closedAgain = g.navmesh!.path(a, b);
+        return { build: g.navmesh!.buildTimeMs, closed: closed.complete, open: open.complete, openLength: open.length, closedAgain: closedAgain.complete };
+      },
+      { id: door.id, a, b },
+    );
+    expect(result.build).toBeLessThanOrEqual(NAVMESH_BUILD_LIMIT_MS);
+    expect(result.closed).toBe(false);
+    expect(result.open).toBe(true);
+    expect(result.closedAgain).toBe(false);
+  });
+
+  test("the red door stays shut without the red key („Potřebuješ červený klíč.“) and opens with it", async () => {
+    const result = await page.evaluate(() => {
+      const g = window.__game!;
+      const refused = g.doors!.tryOpen("d-f4-stair-mid");
+      const state = g.doors!.get("d-f4-stair-mid")!.state;
+      const given = g.give!("key-red");
+      const opened = g.doors!.tryOpen("d-f4-stair-mid");
+      return { refused, state, given, opened, keys: g.inventory!.keys, after: g.doors!.get("d-f4-stair-mid")!.state };
+    });
+    expect(result.refused.ok).toBe(false);
+    expect(result.refused.message).toBe(texts.doors.locked.red);
+    expect(result.state).toBe("closed");
+    expect(result.given.taken).toBe(true);
+    expect(result.keys).toEqual(["red"]);
+    expect(result.opened.ok).toBe(true);
+    expect(["opening", "open"]).toContain(result.after);
+  });
+
+  test("with the doors open there is a navmesh path between every pair of neighbouring rooms (doors and stairs)", async () => {
+    await page.evaluate((ids) => {
+      for (const id of ids) window.__game!.doors!.setOpen(id, true);
+    }, level.doors.filter((d) => d.kind === "door").map((d) => d.id));
+    const pairs = [
+      ...level.doors.map((door) => ({ name: `${door.id} (${door.rooms.join(" ↔ ")})`, ends: doorProbes(door) })),
+      ...level.stairs.map((stair) => {
+        const { start, waypoints } = stairWalk(stair);
+        // The walk's last waypoint is a plan point (y 0); the navmesh query needs the floor it is on.
+        const exit = { ...waypoints[waypoints.length - 1]!, y: stair.flights[stair.flights.length - 1]!.y1 };
+        return { name: `${stair.id} (${stair.bottomRoom} ↔ ${stair.topRoom})`, ends: [start, exit] as [Vec, Vec] };
+      }),
+    ];
+    const results = await page.evaluate(
+      (pairs) => pairs.map((pair) => ({ name: pair.name, ends: pair.ends, path: window.__game!.navmesh!.path(pair.ends[0], pair.ends[1]) })),
+      pairs,
+    );
+    for (const r of results) {
+      const [a, b] = r.ends;
+      const straight = Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+      expect(r.path.points.length, `${r.name}: no path`).toBeGreaterThan(0);
+      expect(r.path.complete, `${r.name}: path stops short`).toBe(true);
+      expect(r.path.length, `${r.name}: detour ${r.path.length.toFixed(1)} m for ${straight.toFixed(1)} m`).toBeLessThan(straight * PATH_DETOUR_FACTOR + PATH_DETOUR_SLACK_M);
+    }
   });
 
   test.afterAll(async () => {
@@ -182,6 +306,18 @@ test.describe.serial("greybox level (dev scene `level`)", () => {
     expect(lengths["f2-street"]).toBeGreaterThan(50);
   });
 });
+
+/** Points `DOOR_PROBE_M` beyond both ends of a door passage, on each room's floor. */
+function doorProbes(door: LevelData["doors"][number]): [Vec, Vec] {
+  return door.rooms.map((id) => {
+    const room = level.rooms.find((r) => r.id === id)!;
+    const cx = (room.rect.x0 + room.rect.x1) / 2;
+    const cz = (room.rect.z0 + room.rect.z1) / 2;
+    const offset = door.depth / 2 + DOOR_PROBE_M;
+    const p = door.along === "x" ? { x: door.x, z: door.z + Math.sign(cz - door.z) * offset } : { x: door.x + Math.sign(cx - door.x) * offset, z: door.z };
+    return world(p, floorY(id));
+  }) as [Vec, Vec];
+}
 
 /** The room a stair's last flight leads into (the top room is a shaft without a floor). */
 function roomPastTop(stair: Stair): string {

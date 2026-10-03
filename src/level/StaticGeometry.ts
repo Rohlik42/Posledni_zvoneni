@@ -17,6 +17,8 @@ const XYZ = 3;
 const QUAD_UVS = [0, 1, 1, 1, 1, 0, 0, 0];
 const QUAD_INDICES = [0, 1, 2, 0, 2, 3];
 const COLLIDERS = "colliders";
+/** Hidden colliders left out of the navmesh (railing slabs). */
+const NON_NAVIGABLE_COLLIDERS = "railing-colliders";
 
 /** Meshes of one owner (room id). */
 export interface OwnerMeshes {
@@ -44,20 +46,23 @@ export class StaticGeometry {
 
   static build(scene: Scene, physics: Physics, pieces: PieceList, material: (id: string) => Material): StaticGeometry {
     const geometry = new StaticGeometry(scene);
-    const groups = new Map<string, { owner: string; material: string; boxes: BoxPiece[]; quads: QuadPiece[]; visible: boolean; collide: boolean }>();
-    const group = (owner: string, mat: string, visible: boolean, collide: boolean) => {
-      const key = `${owner}|${visible ? mat : COLLIDERS}|${visible}|${collide}`;
+    type Group = { owner: string; material: string; boxes: BoxPiece[]; quads: QuadPiece[]; visible: boolean; collide: boolean; navigable: boolean };
+    const groups = new Map<string, Group>();
+    const group = (owner: string, mat: string, visible: boolean, collide: boolean, navigable: boolean) => {
+      const hidden = navigable ? COLLIDERS : NON_NAVIGABLE_COLLIDERS;
+      const key = `${owner}|${visible ? mat : hidden}|${visible}|${collide}`;
       let entry = groups.get(key);
       if (entry === undefined) {
-        entry = { owner, material: visible ? mat : COLLIDERS, boxes: [], quads: [], visible, collide };
+        entry = { owner, material: visible ? mat : hidden, boxes: [], quads: [], visible, collide, navigable };
         groups.set(key, entry);
       }
       return entry;
     };
     for (const box of pieces.boxes) {
-      if (box.visible || box.collide) group(box.owner, box.material, box.visible, box.collide).boxes.push(box);
+      // Colliders are navmesh input unless marked otherwise (railings); visible colliders do not exist after the resolver.
+      if (box.visible || box.collide) group(box.owner, box.material, box.visible, box.collide, box.visible || box.navigable !== false).boxes.push(box);
     }
-    for (const quad of pieces.quads) group(quad.owner, quad.material, true, false).quads.push(quad);
+    for (const quad of pieces.quads) group(quad.owner, quad.material, true, false, true).quads.push(quad);
 
     for (const entry of groups.values()) {
       const data = [...entry.boxes.map((b) => StaticGeometry.boxData(b)), ...entry.quads.map((q) => StaticGeometry.quadData(q))];
@@ -77,7 +82,7 @@ export class StaticGeometry {
         mesh.isPickable = false;
         owned.hidden.push(mesh);
       }
-      if (entry.collide) geometry.navigable.push(mesh);
+      if (entry.collide && entry.navigable) geometry.navigable.push(mesh);
     }
     geometry.colliders(physics, pieces.boxes.filter((b) => b.collide));
     return geometry;

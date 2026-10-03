@@ -1,0 +1,20 @@
+{
+  "//": "Dveře (src/level/Door.ts, DoorSystem.ts, models/DoorModel.ts; fáze 10). leaf = křídlo z primitiv: tloušťka, mezera u pantu a uprostřed dvoukřídlých dveří, od doubleLeafWidth m šířky má otvor dvě křídla; material = materiál z data/materials.json (textura door-wood), fallbackColor = barva palety, když scéna nemá MaterialLibrary (boxroom, galerie). handle = klika (size [š, v, h] m, výška nad podlahou, odsazení od volné hrany). lockStripe = svítící pruh v barvě zámku na obou stranách zamčeného křídla (lockColors podle zámku). motion: otevření/zavření trvá openTime s simulovaného času, křídlo se otočí o openAngleDeg od hráče (90° = leží podél ostění). interact: dveře jdou ovládat (E i stisk kolečka, LEGACY §3) do range m od očí, když jsou v kuželu coneDeg pohledu, nebo vždy do nearRange m. collider = Havok kvádr v otvoru, dokud jsou dveře zavřené (tloušťka m). navObstacle = box vyříznutý z navmeshe zavřenými dveřmi: přesah do místností (m, ≥ poloměr agenta, aby robot nestál v křídle) a kolik začíná pod podlahou. sounds = jména z data/sounds.json.",
+  "leaf": {
+    "thickness": 0.06,
+    "hingeGap": 0.012,
+    "centerGap": 0.008,
+    "topGap": 0.01,
+    "doubleLeafWidth": 1.6,
+    "material": "door-leaf",
+    "fallbackColor": "world.wood",
+    "handle": { "size": [0.12, 0.03, 0.045], "height": 1.0, "inset": 0.09, "color": "world.steel" },
+    "lockStripe": { "width": 0.07, "height": 0.9, "y": 1.35, "inset": 0.035, "depth": 0.008, "emissive": 1.6 }
+  },
+  "lockColors": { "red": "keys.red", "yellow": "keys.yellow", "blue": "keys.blue", "exit": "keys.blue" },
+  "motion": { "openTime": 0.45, "openAngleDeg": 90 },
+  "interact": { "range": 3.5, "coneDeg": 45, "nearRange": 1.2 },
+  "collider": { "thickness": 0.12 },
+  "navObstacle": { "padding": 0.45, "below": 0.4 },
+  "sounds": { "open": "doorOpen", "close": "doorClose", "locked": "doorLocked" }
+}

@@ -1,0 +1,26 @@
+{
+  "//": "Sbíratelné věci a power-upy (src/player/Inventory.ts, src/level/Pickup.ts, KeyPickup.ts, PickupField.ts; fáze 10, DESIGN §6). 'items' = id věci (stejné jako level.json → pickups[].item, enemies.json → drops[].item a odměny učitelů fáze 11) → druh: health (amount zdraví, při plném zdraví se nesebere), powerUp (id z 'powerUps'), weapon (id z data/weapons.json; když zbraň ještě není implementovaná, zapamatuje se), ammo (amount do zásoby zbraně; bez zbraně se schová do inventáře a předá se, až zbraň hráč dostane), key (barva). model = třída modelu z src/level/models/ (ModelRegistry), variant a scale volitelně; věc bez modelu jde jen předat (odměna učitele). 'external' = věci z level.json, které osazují jiné fáze (nástěnné hasičáky fáze 13/16, hydrant v tělocvičně). 'pickup' = vznášení (hover m nad podlahou, bob m, bobSpeed rad/s, spinSpeed rad/s), sebrání do collectRadius m vodorovně a collectHeight m svisle od chodidel. 'keyLight' = bodové světlo klíče v jeho barvě. 'powerUps': duration s (0 = trvale), speedMultiplier násobí rychlost chůze i sprintu, damageMultiplier násobí příchozí damage daného typu (gumáky: elektřina); color = barva ikony v HUD. 'sounds' = zvuk sebrání (data/sounds.json): věc, klíč, power-up.",
+  "pickup": { "hover": 0.35, "bobAmplitude": 0.06, "bobSpeed": 2.4, "spinSpeed": 1.6, "collectRadius": 0.9, "collectHeight": 1.7 },
+  "keyLight": { "intensity": 1.3, "range": 4.5, "height": 0.45 },
+  "sounds": { "item": "itemPickup", "key": "keyPickup", "powerUp": "powerUp" },
+  "items": {
+    "medkit": { "kind": "health", "amount": 50, "model": "MedkitModel", "scale": 1.3 },
+    "energy-drink": { "kind": "powerUp", "powerUp": "energyDrink", "model": "EnergyDrinkModel", "scale": 1.7 },
+    "rubber-boots": { "kind": "powerUp", "powerUp": "rubberBoots", "model": "RubberBootsModel", "scale": 1.4 },
+    "weapon-balloons": { "kind": "weapon", "weapon": "waterBalloons", "model": "BalloonPackModel", "scale": 1.5 },
+    "ammo-balloons": { "kind": "ammo", "weapon": "waterBalloons", "amount": 4, "model": "BalloonPackModel", "scale": 1.1 },
+    "ammo-railgun": { "kind": "ammo", "weapon": "railgun", "amount": 2, "model": "CapacitorModel", "scale": 1.3 },
+    "ammo-extinguisher": { "kind": "ammo", "weapon": "extinguisher", "amount": 40, "model": "CanisterModel", "scale": 1.3 },
+    "weapon-extinguisher": { "kind": "weapon", "weapon": "extinguisher" },
+    "weapon-taser": { "kind": "weapon", "weapon": "taser" },
+    "weapon-railgun": { "kind": "weapon", "weapon": "railgun" },
+    "key-red": { "kind": "key", "key": "red", "model": "KeyModel", "variant": "red", "scale": 1.6 },
+    "key-yellow": { "kind": "key", "key": "yellow", "model": "KeyModel", "variant": "yellow", "scale": 1.6 },
+    "key-blue": { "kind": "key", "key": "blue", "model": "KeyModel", "variant": "blue", "scale": 1.6 }
+  },
+  "external": ["extinguisher-refill", "weapon-hose"],
+  "powerUps": {
+    "energyDrink": { "duration": 30, "speedMultiplier": 1.3, "color": "neon.toxic" },
+    "rubberBoots": { "duration": 0, "damageMultiplier": { "electric": 0.4 }, "color": "neon.warning" }
+  }
+}

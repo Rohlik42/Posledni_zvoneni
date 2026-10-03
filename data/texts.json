@@ -1,0 +1,42 @@
+{
+  "//": "Texty rozhraní (src/utils/Texts.ts, fáze 10): hlášky dveří, toasty sebraných věcí a popisky HUD, styl a tón LEGACY §3. {jméno} se nahradí hodnotou (Texts.format). Jména místností jsou v data/level.json, jména zbraní v data/weapons.json.",
+  "doors": {
+    "controls": "E / KOLEČKO",
+    "hintOpen": "{controls} — otevřít: {name}",
+    "hintClose": "{controls} — zavřít: {name}",
+    "hintLocked": "{controls} — zamčeno: {lock}",
+    "opened": "Otevřeno: {name}",
+    "closed": "Zavřeno: {name}",
+    "stepAway": "Ustup od dveří, než je zavřeš.",
+    "unlocked": "Odemčeno: {lock}",
+    "locked": {
+      "red": "Potřebuješ červený klíč.",
+      "yellow": "Potřebuješ žlutý klíč.",
+      "blue": "Potřebuješ modrý klíč.",
+      "exit": "Hlavní vchod je zamčený. Potřebuješ modrý klíč."
+    }
+  },
+  "locks": { "red": "červený zámek", "yellow": "žlutý zámek", "blue": "modrý zámek", "exit": "hlavní vchod" },
+  "keys": { "red": "červený klíč", "yellow": "žlutý klíč", "blue": "modrý klíč" },
+  "items": {
+    "medkit": "Lékárnička: +{amount} zdraví",
+    "energy-drink": "Energeťák! Rychlost +{percent} % na {seconds} s",
+    "rubber-boots": "Gumáky! Elektřina ti ubere o {percent} % méně",
+    "weapon-balloons": "Vodní balónky! (zbraň 3)",
+    "ammo-balloons": "Vodní balónky +{amount}",
+    "ammo-railgun": "Kondenzátory do railgunu +{amount}",
+    "ammo-extinguisher": "Náplň do hasičáku +{amount}",
+    "weapon-extinguisher": "Hasicí přístroj! (zbraň 2)",
+    "weapon-taser": "Paralyzér! (zbraň 4)",
+    "weapon-railgun": "Školní railgun! (zbraň 5)",
+    "key-red": "Máš červený klíč!",
+    "key-yellow": "Máš žlutý klíč!",
+    "key-blue": "Máš modrý klíč!"
+  },
+  "fullHealth": "Máš plné zdraví. Lékárničku si nech na potom.",
+  "hud": {
+    "keys": "KLÍČE",
+    "seconds": "{seconds} s",
+    "powerUps": { "energyDrink": "ENERGEŤÁK", "rubberBoots": "GUMÁKY" }
+  }
+}

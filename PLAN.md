@@ -243,7 +243,7 @@ Detaily, suť a oheň (fáze 19). Ruční pozice v kódu.
 1. `src/level/Door.ts`: otevírání (E nebo prostřední tlačítko, LEGACY §3), zamčené barvou, zavřené blokují pohyb, střely i výhled AI. Navmesh se upraví přes obstacles nebo off-mesh. Hlášky „Potřebuješ červený klíč“ z `data/texts.json`.
 2. `src/level/KeyPickup.ts` (modely klíčů z primitiv, rotace, světlo v barvě klíče), `src/player/Inventory.ts` (klíče, munice, power-upy).
 3. Power-upy (DESIGN §6) v `data/pickups.json`: lékárnička, gumáky (odolnost vůči `electric`; tahle fáze to vlastní i pro budoucí typy robotů: snížení je v `PlayerHealth`), energetický drink (rychlost 30 s). Doplňování hasičáku vlastní fáze 13.
-4. `src/ui/Hud.ts` (Babylon GUI): zdraví, munice, aktivní zbraň (sloty 1–6), klíče, ikony power-upů s časovačem, toasty (styl LEGACY §4), zaměřovač a hitmarker z fáze 5.
+4. `src/ui/Hud.ts` (DOM vrstva nad canvasem z fáze 5, ne Babylon GUI — DECISIONS „Fáze 5“): zdraví, munice, aktivní zbraň (sloty 1–6), klíče, ikony power-upů s časovačem, toasty (styl LEGACY §4), zaměřovač a hitmarker z fáze 5.
 5. `__game.inventory`, `__game.give(item)`, `__game.doors` (stav, `tryOpen(id)`).
 
 **Verification**
@@ -251,6 +251,8 @@ Quick gate: `tests/e2e/doors-keys.spec.ts`, `tests/e2e/level-walk.spec.ts`. Pro 
 
 **Do not**
 Kvíz (fáze 11). Ukládání (fáze 16).
+
+**Done 2026-10-04** (handoff `handoff/phase-10.md`). `/` i `?scene=level` startují přes `LevelGameplay` (level, navmesh, hráč, pistolka, HUD se zaměřovačem, inventář, 17 dveří, 13 pickupů z level.json); dev scéna `?scene=doors` (boxroom, zamčené dveře do výklenku s robotem, klíč, power-upy). Quick gate zelený: typecheck, `npm run test:data` 81/81, Playwright 26/26 (6 smoke + 8 `doors-keys` + 12 `level-walk`). Odchylky od litery: HUD je DOM (bod 4 opraven), nové parametry HUD v `data/hud.json`, texty v `data/texts.json`, dveře v `data/doors.json`; navmesh levelu je tile cache (box překážky za zavřené dveře, upeče se za ~60 ms) s lomenými cestami místo vyhlazených a poloměrem agenta 0,3 m, kolizní desky zábradlí nejsou vstup navmeshe; dveře jsou přepínací (E i kolečko), roboti je neotevírají; dropy v `enemies.json` přejmenované na id z `pickups.json`; zbraně fáze 13 a munice do nich se v inventáři schovají, dokud zbraň neexistuje; navíc `RoomLighting` (dveře, pickupy, zbraň v ruce a roboti svítí světly své místnosti) a `?enemies=` v dev scéně levelu (osazení robotů zůstává fázi 16). Nástěnné hasičáky a hadice z `level.json → pickups` osadí fáze 13/16.
 
 ## Phase 11 — Učitelé a kvízový systém
 

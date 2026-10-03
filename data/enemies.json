@@ -7,8 +7,8 @@
     "health": 60,
     "resistances": { "water": 1.5, "electric": 2, "kinetic": 0.6, "explosion": 1, "quiz": 0 },
     "drops": [
-      { "item": "ammo.waterBalloons", "chance": 0.3, "amount": 2 },
-      { "item": "ammo.extinguisher", "chance": 0.25, "amount": 20 }
+      { "item": "ammo-balloons", "chance": 0.3, "amount": 2 },
+      { "item": "ammo-extinguisher", "chance": 0.25, "amount": 20 }
     ],
     "statusResistance": { "slow": 1, "stun": 1 },
     "body": {
@@ -123,8 +123,8 @@
     "health": 45,
     "resistances": {"water": 1.5, "electric": 2, "kinetic": 0.6, "explosion": 1, "quiz": 0},
     "drops": [
-      {"item": "ammo.extinguisher", "chance": 0.3, "amount": 15},
-      {"item": "ammo.waterBalloons", "chance": 0.15, "amount": 1}
+      {"item": "ammo-extinguisher", "chance": 0.3, "amount": 15},
+      {"item": "ammo-balloons", "chance": 0.15, "amount": 1}
     ],
     "statusResistance": {"slow": 1, "stun": 0.8},
     "body": {
@@ -214,7 +214,7 @@
     "variant": "scout",
     "health": 22,
     "resistances": {"water": 1.5, "electric": 2.5, "kinetic": 1, "explosion": 1.5, "quiz": 0},
-    "drops": [{"item": "ammo.waterBalloons", "chance": 0.25, "amount": 1}],
+    "drops": [{"item": "ammo-balloons", "chance": 0.25, "amount": 1}],
     "statusResistance": {"slow": 1, "stun": 1.25},
     "body": {
       "//": "radius = poloměr těla (odstup od zdí); height = výška těla; eyeHeight a aimHeight se měří od středu dronu (0 = střed).",
