@@ -1,8 +1,8 @@
 import { Observable } from "@babylonjs/core/Misc/observable";
+import type { DamageType } from "../core/DamageTypes";
 
-/** Damage categories shared with weapons and enemies (water and electricity hurt robots more, DESIGN §4). */
-export const DAMAGE_TYPES = ["water", "electric", "kinetic", "explosion", "quiz"] as const;
-export type DamageType = (typeof DAMAGE_TYPES)[number];
+// The damage categories moved to src/core/DamageTypes.ts (shared with weapons and enemies); re-exported for callers.
+export { DAMAGE_TYPES, type DamageType } from "../core/DamageTypes";
 
 export interface DamageEvent {
   amount: number;

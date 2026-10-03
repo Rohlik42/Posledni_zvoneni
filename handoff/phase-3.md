@@ -10,3 +10,8 @@ Plan: `src/weapons/{Weapon,WeaponInventory,WeaponConfig,WaterPistol,WeaponFactor
 only the pistol enabled), `data/targets.json`, dev scenes `weapon` (boxroom + pistol + targets) and `models`
 (all registered models, used by `tests/smoke/model-budget.spec.ts`), `tests/e2e/weapon.spec.ts`.
 Quick gate: `npm run typecheck`; `npm run test:data && npx playwright test tests/smoke tests/e2e/weapon.spec.ts`.
+
+## Milestone 2/5 — implemented (not yet tested)
+Weapon framework, pistol, targets, synth sounds, model registry, dev scenes `weapon` and `models` implemented;
+probe on :5301: 3 shots in 350 ms of held fire, target 60 → 42 (6 per shot), viewmodel 400 tris in rendering group 1,
+0 console warnings, audio unlocked after a click. Tests and handoff details follow.

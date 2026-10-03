@@ -13,6 +13,7 @@ export const INPUT_ACTIONS = [
   "interact",
   "fire",
   "altFire",
+  "reload",
   "door",
   "weapon1",
   "weapon2",
