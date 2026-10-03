@@ -71,6 +71,12 @@ export class WaterEffects {
     }
   }
 
+  /** A splash without a jet (a bursting water balloon, phase 13): full spray at `point`, a wet spot on the hit surface. */
+  burst(point: Vector3, normal: Vector3, hit: HitResult | null): void {
+    this.spray(point, normal, this.data.splashFullDistance);
+    if (hit !== null) this.wetSpots.add(hit.mesh, hit.point, hit.normal);
+  }
+
   update(dt: number): void {
     this.wetSpots.update(dt);
   }

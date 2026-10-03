@@ -80,6 +80,28 @@ export interface StreamData {
   tankGlowEmpty: number;
 }
 
+/** Look of a weapon effect (phase 13): extinguisher foam, taser arc, railgun beam. Colours are palette keys. */
+export interface EffectData {
+  color: string;
+  colorEnd: string;
+  /** Colour multiplier of the particles (above 1 reaches the bloom threshold). */
+  glow: number;
+  /** Particles per shot (foam puffs, impact sparks, sparks along the beam). */
+  particles: number;
+  size: Range2;
+  life: Range2;
+  speed: Range2;
+  gravity: number;
+  /** How long a beam or arc stays lit (s). */
+  time?: number;
+  /** Arc: length of one glowing stroke (m) and the sideways jitter of its kinks (m). */
+  segment?: number;
+  jitter?: number;
+  /** Beam or arc thickness (m); the beam's outer glow is `glowWidth` times wider. */
+  width?: number;
+  glowWidth?: number;
+}
+
 export interface WeaponData {
   id: string;
   slot: number;
@@ -98,6 +120,7 @@ export interface WeaponData {
   sounds: Record<WeaponSound, string>;
   viewmodel: ViewmodelData;
   stream?: StreamData;
+  effect?: EffectData;
   params: Record<string, number>;
 }
 
@@ -106,6 +129,8 @@ export interface WeaponsData {
   viewmodelRenderingGroup: number;
   aimRandomSeed: number;
   startingWeapons: string[];
+  /** Collectable ammo (phase 13) and the refill sound of wall extinguishers. */
+  ammoPickup: { radius: number; spinDegPerSecond: number; bobHeight: number; bobHz: number; sound: string };
   weapons: WeaponData[];
 }
 
@@ -121,6 +146,13 @@ export class WeaponConfig {
     viewmodelRenderingGroup: Schema.integer({ min: 1, max: 3 }),
     aimRandomSeed: Schema.integer({ min: 0 }),
     startingWeapons: Schema.array(Schema.string()),
+    ammoPickup: Schema.object({
+      radius: Schema.number({ min: 0.1 }),
+      spinDegPerSecond: positive(),
+      bobHeight: positive(),
+      bobHz: positive(),
+      sound: Schema.string(),
+    }),
     weapons: Schema.array(
       Schema.object(
         {
@@ -197,9 +229,27 @@ export class WeaponConfig {
             maxWetSpots: Schema.integer({ min: 0 }),
             tankGlowEmpty: positive(),
           }),
+          effect: Schema.object(
+            {
+              color: Schema.paletteRef(),
+              colorEnd: Schema.paletteRef(),
+              glow: positive(),
+              particles: Schema.integer({ min: 0 }),
+              size: range2(),
+              life: range2(),
+              speed: range2(),
+              gravity: positive(),
+              time: Schema.number({ min: 0.01 }),
+              segment: Schema.number({ min: 0.01 }),
+              jitter: positive(),
+              width: Schema.number({ min: 0.001 }),
+              glowWidth: Schema.number({ min: 1 }),
+            },
+            ["time", "segment", "jitter", "width", "glowWidth"],
+          ),
           params: Schema.record(Schema.number()),
         },
-        ["stream"],
+        ["stream", "effect"],
       ),
       1,
     ),
@@ -214,6 +264,25 @@ export class WeaponConfig {
       WeaponConfig.cached = data;
     }
     return WeaponConfig.cached;
+  }
+
+  /** A number from the weapon's `params`; throws a readable error when the data lacks it. */
+  static param(weapon: WeaponData, name: string): number {
+    const value = weapon.params[name];
+    if (value === undefined) throw new Error(`${WeaponConfig.file}: ${weapon.id}.params needs "${name}"`);
+    return value;
+  }
+
+  /** The weapon's `effect` block; throws when the data lacks it. */
+  static effect(weapon: WeaponData): EffectData {
+    if (weapon.effect === undefined) throw new Error(`${WeaponConfig.file}: ${weapon.id} needs an "effect" block`);
+    return weapon.effect;
+  }
+
+  /** The weapon's `stream` block (water look); throws when the data lacks it. */
+  static stream(weapon: WeaponData): StreamData {
+    if (weapon.stream === undefined) throw new Error(`${WeaponConfig.file}: ${weapon.id} needs a "stream" block`);
+    return weapon.stream;
   }
 
   static weapon(id: string): WeaponData {

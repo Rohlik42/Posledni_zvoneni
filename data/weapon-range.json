@@ -1,0 +1,29 @@
+{
+  "//": "Dev scéna 'weapons' (fáze 13, dev/scenes/WeaponsScene.ts): krabicová místnost se všemi šesti zbraněmi, roboty, nástěnným hasičákem, hydrantem s hadicí a kbelíkem balónků. Pozice v metrech boxroomu (data/boxroom.json, vnitřek x,z ∈ ⟨−10, 10⟩). give = zbraně, které hráč dostane hned (hadici dává hydrant), select = slot v ruce na startu, bonusAmmo = munice navíc k reserveStart. encounter = roboti ve stejném formátu jako data/encounters.json (stojí na stráži čelem k hráči). waveDelay = za kolik sekund se po zničení všech robotů objeví znovu. stations: refills = nástěnné hasičáky (doplní zbraň 2), hydrants = hydranty (E vezme hadici, zbraň 6), ammoPickups = sbíratelná munice (weapon, amount, model z ModelRegistry, respawnSeconds). yaw 1.5708 = čelem k +x (od západní zdi do místnosti).",
+  "give": ["extinguisher", "waterBalloons", "taser", "railgun"],
+  "select": 2,
+  "bonusAmmo": { "waterBalloons": 8, "railgun": 7 },
+  "waveDelay": 4,
+  "encounter": {
+    "navExclude": ["ceiling", "alcoveCeiling"],
+    "enemies": [
+      { "id": "range1", "type": "humanoid", "position": [-2, 0, 1.5], "yaw": 3.14, "patrol": [] },
+      { "id": "range2", "type": "humanoid", "position": [0, 0, 2.2], "yaw": 3.14, "patrol": [] },
+      { "id": "range3", "type": "humanoid", "position": [2, 0, 1.5], "yaw": 3.14, "patrol": [] },
+      { "id": "range4", "type": "humanoid", "position": [-6.5, 0, 6], "yaw": 3.14, "patrol": [] },
+      { "id": "range5", "type": "humanoid", "position": [6.5, 0, 6], "yaw": 3.14, "patrol": [] }
+    ],
+    "coverPoints": []
+  },
+  "stations": {
+    "refills": [
+      { "id": "refillWest", "position": [-9.95, 0, -7], "yaw": 1.5708 }
+    ],
+    "hydrants": [
+      { "id": "hydrantWest", "position": [-9.95, 0, 7], "yaw": 1.5708 }
+    ],
+    "ammoPickups": [
+      { "id": "balloonBucket", "weapon": "waterBalloons", "amount": 3, "model": "WaterBalloonPackModel", "position": [3, 0, -6.5], "yaw": 0, "respawnSeconds": 8 }
+    ]
+  }
+}

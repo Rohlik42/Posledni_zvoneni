@@ -69,6 +69,194 @@
         { "name": "bull", "shape": "cylinder", "size": [0.1, 0.012, 0.1], "tessellation": 8, "position": [0, 1.35, -0.052], "rotationDeg": [90, 0, 0], "color": "bull", "emissive": 0.5, "group": "board" }
       ]
     },
+    "extinguisher": {
+      "//": "Hasicí přístroj (zbraň 2, fáze 13): červená tlaková láhev, ventil s pákou a manometrem, hadička a černá hubice mířící dopředu (+z). Počátek = ventil (úchop), láhev visí dolů.",
+      "category": "weapon",
+      "defaultVariant": "default",
+      "variants": {
+        "default": { "body": "accent.red", "band": "base.white", "metal": "world.steel", "dark": "base.ash", "gauge": "neon.toxic", "trim": "neon.warning" }
+      },
+      "anchors": { "muzzle": [0, 0.06, 0.4] },
+      "parts": [
+        { "name": "body", "shape": "cylinder", "size": [0.13, 0.36, 0.13], "tessellation": 10, "position": [0, -0.2, 0], "color": "body" },
+        { "name": "bottom", "shape": "cylinder", "size": [0.135, 0.025, 0.135], "tessellation": 10, "position": [0, -0.385, 0], "color": "dark" },
+        { "name": "band", "shape": "cylinder", "size": [0.134, 0.07, 0.134], "tessellation": 10, "position": [0, -0.17, 0], "color": "band", "emissive": 0.15 },
+        { "name": "bandMark", "shape": "box", "size": [0.05, 0.035, 0.01], "position": [0, -0.17, 0.068], "color": "body", "emissive": 0.4 },
+        { "name": "shoulder", "shape": "cylinder", "size": [0.07, 0.05, 0.13], "tessellation": 10, "position": [0, -0.005, 0], "color": "body" },
+        { "name": "valve", "shape": "box", "size": [0.045, 0.05, 0.06], "position": [0, 0.045, 0], "color": "metal" },
+        { "name": "handle", "shape": "box", "size": [0.032, 0.014, 0.15], "position": [0, 0.07, -0.05], "rotationDeg": [-6, 0, 0], "color": "dark" },
+        { "name": "lever", "shape": "box", "size": [0.03, 0.014, 0.14], "position": [0, 0.095, -0.04], "rotationDeg": [10, 0, 0], "color": "dark" },
+        { "name": "pin", "shape": "cylinder", "size": [0.02, 0.008, 0.02], "tessellation": 6, "position": [0.03, 0.06, 0.0], "rotationDeg": [0, 0, 90], "color": "trim", "emissive": 0.6 },
+        { "name": "gauge", "shape": "cylinder", "size": [0.036, 0.012, 0.036], "tessellation": 8, "position": [-0.03, 0.04, 0.01], "rotationDeg": [0, 0, 90], "color": "gauge", "emissive": 0.8 },
+        { "name": "hose", "shape": "cylinder", "size": [0.022, 0.3, 0.022], "tessellation": 6, "position": [0, 0.055, 0.17], "rotationDeg": [92, 0, 0], "color": "dark" },
+        { "name": "hornBase", "shape": "cylinder", "size": [0.035, 0.04, 0.03], "tessellation": 8, "position": [0, 0.06, 0.32], "rotationDeg": [90, 0, 0], "color": "metal" },
+        { "name": "horn", "shape": "cylinder", "size": [0.075, 0.08, 0.035], "tessellation": 8, "position": [0, 0.06, 0.375], "rotationDeg": [90, 0, 0], "color": "dark" },
+        { "name": "hornRim", "shape": "cylinder", "size": [0.08, 0.01, 0.08], "tessellation": 8, "position": [0, 0.06, 0.415], "rotationDeg": [90, 0, 0], "color": "trim", "emissive": 0.5 }
+      ]
+    },
+    "waterBalloon": {
+      "//": "Vodní balónek (zbraň 3, fáze 13): kapka z komolých válců s uzlíkem v rukavici. Skupina 'balloon' (pivot ve středu balónku) se po hodu znovu nafoukne, skupina 'hand' je rukavice viewmodelu (letící balónek ji skryje). Počátek = střed balónku.",
+      "category": "weapon",
+      "defaultVariant": "blue",
+      "variants": {
+        "blue": { "balloon": "neon.water", "knot": "neon.waterDeep", "glove": "base.ash", "cuff": "accent.orange" },
+        "red": { "balloon": "accent.red", "knot": "neon.robot", "glove": "base.ash", "cuff": "accent.orange" },
+        "lime": { "balloon": "accent.lime", "knot": "neon.toxic", "glove": "base.ash", "cuff": "accent.orange" }
+      },
+      "groups": { "balloon": [0, 0, 0], "hand": [0, -0.08, -0.02] },
+      "parts": [
+        { "name": "lower", "shape": "cylinder", "size": [0.13, 0.06, 0.06], "tessellation": 10, "position": [0, -0.035, 0], "color": "balloon", "emissive": 0.45, "alpha": 0.9, "group": "balloon" },
+        { "name": "middle", "shape": "cylinder", "size": [0.135, 0.03, 0.13], "tessellation": 10, "position": [0, 0.01, 0], "color": "balloon", "emissive": 0.45, "alpha": 0.9, "group": "balloon" },
+        { "name": "upper", "shape": "cylinder", "size": [0.06, 0.07, 0.135], "tessellation": 10, "position": [0, 0.06, 0], "color": "balloon", "emissive": 0.45, "alpha": 0.9, "group": "balloon" },
+        { "name": "neck", "shape": "cylinder", "size": [0.016, 0.03, 0.03], "tessellation": 6, "position": [0, 0.108, 0], "color": "knot", "emissive": 0.3, "group": "balloon" },
+        { "name": "knot", "shape": "box", "size": [0.03, 0.016, 0.026], "position": [0, 0.128, 0], "color": "knot", "emissive": 0.3, "group": "balloon" },
+        { "name": "palm", "shape": "box", "size": [0.1, 0.035, 0.11], "position": [0, -0.08, -0.02], "rotationDeg": [-10, 0, 0], "color": "glove", "group": "hand" },
+        { "name": "fingers", "shape": "box", "size": [0.095, 0.06, 0.03], "position": [0, -0.05, 0.05], "rotationDeg": [-25, 0, 0], "color": "glove", "group": "hand" },
+        { "name": "thumb", "shape": "box", "size": [0.028, 0.06, 0.03], "position": [-0.06, -0.04, 0.0], "rotationDeg": [0, 0, 25], "color": "glove", "group": "hand" },
+        { "name": "cuff", "shape": "box", "size": [0.105, 0.05, 0.06], "position": [0, -0.1, -0.1], "rotationDeg": [-10, 0, 0], "color": "cuff", "emissive": 0.2, "group": "hand" }
+      ]
+    },
+    "taser": {
+      "//": "Paralyzér (zbraň 4, fáze 13): hranaté žluto-černé tělo s rukojetí, dva kovové hroty vpředu a svítící ukazatel nabití na boku ('chargeBar', jeho záře sleduje nabití). Osa = +z, počátek u spouště.",
+      "category": "weapon",
+      "defaultVariant": "default",
+      "variants": {
+        "default": { "body": "neon.warning", "dark": "base.smoke", "metal": "world.steel", "charge": "neon.electric", "stripe": "base.void" }
+      },
+      "anchors": { "muzzle": [0, 0.005, 0.205] },
+      "parts": [
+        { "name": "body", "shape": "box", "size": [0.062, 0.07, 0.17], "position": [0, 0, 0.045], "color": "body" },
+        { "name": "stripe1", "shape": "box", "size": [0.064, 0.014, 0.03], "position": [0, 0.02, 0.0], "rotationDeg": [0, 0, 0], "color": "stripe" },
+        { "name": "stripe2", "shape": "box", "size": [0.064, 0.014, 0.03], "position": [0, 0.02, 0.06], "color": "stripe" },
+        { "name": "grip", "shape": "box", "size": [0.052, 0.13, 0.065], "position": [0, -0.09, -0.04], "rotationDeg": [-14, 0, 0], "color": "dark" },
+        { "name": "gripCap", "shape": "box", "size": [0.058, 0.018, 0.075], "position": [0, -0.157, -0.057], "rotationDeg": [-14, 0, 0], "color": "body" },
+        { "name": "triggerGuard", "shape": "box", "size": [0.014, 0.012, 0.07], "position": [0, -0.068, 0.02], "color": "dark" },
+        { "name": "trigger", "shape": "box", "size": [0.016, 0.03, 0.014], "position": [0, -0.05, 0.02], "rotationDeg": [12, 0, 0], "color": "body" },
+        { "name": "head", "shape": "box", "size": [0.074, 0.054, 0.045], "position": [0, 0.005, 0.15], "color": "dark" },
+        { "name": "prongL", "shape": "box", "size": [0.008, 0.008, 0.045], "position": [-0.024, 0.005, 0.19], "color": "metal" },
+        { "name": "prongR", "shape": "box", "size": [0.008, 0.008, 0.045], "position": [0.024, 0.005, 0.19], "color": "metal" },
+        { "name": "tipL", "shape": "box", "size": [0.012, 0.012, 0.01], "position": [-0.024, 0.005, 0.214], "color": "charge", "emissive": 1.5 },
+        { "name": "tipR", "shape": "box", "size": [0.012, 0.012, 0.01], "position": [0.024, 0.005, 0.214], "color": "charge", "emissive": 1.5 },
+        { "name": "chargeBar", "shape": "box", "size": [0.006, 0.014, 0.11], "position": [0.032, 0.012, 0.04], "color": "charge", "emissive": 1.2 },
+        { "name": "chargeFrame", "shape": "box", "size": [0.004, 0.024, 0.12], "position": [0.031, 0.012, 0.04], "color": "stripe" },
+        { "name": "lanyard", "shape": "cylinder", "size": [0.026, 0.008, 0.026], "tessellation": 8, "position": [0, -0.15, -0.09], "rotationDeg": [0, 0, 90], "color": "metal" }
+      ]
+    },
+    "railgun": {
+      "//": "Školní railgun (zbraň 5, fáze 13): kondenzátor z kabinetu fyziky — dvě měděné kolejnice, čtyři cívky ('coil1'–'coil4'), dva kondenzátory ('cell1', 'cell2') a skleněná trubice nabití ('chargeTube'); jejich záře roste s nabitím. Osa = +z, počátek u spouště.",
+      "category": "weapon",
+      "defaultVariant": "default",
+      "variants": {
+        "default": { "body": "world.metal", "dark": "base.ash", "rail": "accent.copper", "coil": "accent.copper", "cell": "accent.violet", "glow": "neon.electric", "trim": "neon.warning" }
+      },
+      "anchors": { "muzzle": [0, 0.005, 0.62] },
+      "parts": [
+        { "name": "body", "shape": "box", "size": [0.08, 0.09, 0.3], "position": [0, -0.005, -0.04], "color": "body" },
+        { "name": "stock", "shape": "box", "size": [0.06, 0.07, 0.12], "position": [0, -0.02, -0.24], "rotationDeg": [6, 0, 0], "color": "dark" },
+        { "name": "grip", "shape": "box", "size": [0.05, 0.13, 0.065], "position": [0, -0.1, -0.06], "rotationDeg": [-14, 0, 0], "color": "dark" },
+        { "name": "triggerGuard", "shape": "box", "size": [0.014, 0.012, 0.07], "position": [0, -0.066, 0.0], "color": "dark" },
+        { "name": "spine", "shape": "box", "size": [0.014, 0.05, 0.5], "position": [0, 0.005, 0.35], "color": "dark" },
+        { "name": "railTop", "shape": "box", "size": [0.024, 0.016, 0.52], "position": [0, 0.038, 0.35], "color": "rail", "emissive": 0.2 },
+        { "name": "railBottom", "shape": "box", "size": [0.024, 0.016, 0.52], "position": [0, -0.028, 0.35], "color": "rail", "emissive": 0.2 },
+        { "name": "coil1", "shape": "cylinder", "size": [0.08, 0.035, 0.08], "tessellation": 8, "position": [0, 0.005, 0.18], "rotationDeg": [90, 0, 0], "color": "coil", "emissive": 0.25 },
+        { "name": "coil2", "shape": "cylinder", "size": [0.075, 0.035, 0.075], "tessellation": 8, "position": [0, 0.005, 0.3], "rotationDeg": [90, 0, 0], "color": "coil", "emissive": 0.25 },
+        { "name": "coil3", "shape": "cylinder", "size": [0.07, 0.035, 0.07], "tessellation": 8, "position": [0, 0.005, 0.42], "rotationDeg": [90, 0, 0], "color": "coil", "emissive": 0.25 },
+        { "name": "coil4", "shape": "cylinder", "size": [0.065, 0.035, 0.065], "tessellation": 8, "position": [0, 0.005, 0.54], "rotationDeg": [90, 0, 0], "color": "coil", "emissive": 0.25 },
+        { "name": "muzzleRing", "shape": "cylinder", "size": [0.06, 0.02, 0.06], "tessellation": 8, "position": [0, 0.005, 0.61], "rotationDeg": [90, 0, 0], "color": "trim", "emissive": 0.6 },
+        { "name": "cell1", "shape": "cylinder", "size": [0.045, 0.14, 0.045], "tessellation": 8, "position": [-0.06, -0.01, -0.03], "rotationDeg": [90, 0, 0], "color": "cell", "emissive": 0.3 },
+        { "name": "cell2", "shape": "cylinder", "size": [0.045, 0.14, 0.045], "tessellation": 8, "position": [0.06, -0.01, -0.03], "rotationDeg": [90, 0, 0], "color": "cell", "emissive": 0.3 },
+        { "name": "chargeTube", "shape": "cylinder", "size": [0.03, 0.2, 0.03], "tessellation": 8, "position": [0, 0.065, -0.03], "rotationDeg": [90, 0, 0], "color": "glow", "emissive": 0.3, "alpha": 0.85 },
+        { "name": "tubeCapBack", "shape": "box", "size": [0.04, 0.04, 0.02], "position": [0, 0.065, -0.135], "color": "dark" },
+        { "name": "tubeCapFront", "shape": "box", "size": [0.04, 0.04, 0.02], "position": [0, 0.065, 0.075], "color": "dark" },
+        { "name": "warning", "shape": "box", "size": [0.004, 0.03, 0.06], "position": [0.042, 0.0, -0.06], "color": "trim", "emissive": 0.6 }
+      ]
+    },
+    "hose": {
+      "//": "Hadice (zbraň 6, fáze 13): mosazná proudnice s pákou a gumovým úchopem, za ní červená hadice ohnutá dolů z obrazu (k hydrantu). Osa = +z, počátek = úchop.",
+      "category": "weapon",
+      "defaultVariant": "default",
+      "variants": {
+        "default": { "brass": "accent.gold", "rubber": "base.ash", "hose": "accent.red", "lever": "keys.red", "metal": "world.steel" }
+      },
+      "anchors": { "muzzle": [0, 0, 0.24] },
+      "parts": [
+        { "name": "grip", "shape": "cylinder", "size": [0.068, 0.07, 0.068], "tessellation": 10, "position": [0, 0, 0.0], "rotationDeg": [90, 0, 0], "color": "rubber" },
+        { "name": "body", "shape": "cylinder", "size": [0.045, 0.12, 0.06], "tessellation": 10, "position": [0, 0, 0.095], "rotationDeg": [90, 0, 0], "color": "brass", "emissive": 0.15 },
+        { "name": "tip", "shape": "cylinder", "size": [0.028, 0.06, 0.042], "tessellation": 8, "position": [0, 0, 0.185], "rotationDeg": [90, 0, 0], "color": "brass", "emissive": 0.15 },
+        { "name": "tipRing", "shape": "cylinder", "size": [0.034, 0.012, 0.034], "tessellation": 8, "position": [0, 0, 0.21], "rotationDeg": [90, 0, 0], "color": "metal" },
+        { "name": "lever", "shape": "box", "size": [0.014, 0.075, 0.014], "position": [0, 0.045, 0.06], "rotationDeg": [-35, 0, 0], "color": "lever", "emissive": 0.3 },
+        { "name": "leverBar", "shape": "box", "size": [0.07, 0.012, 0.014], "position": [0, 0.075, 0.08], "color": "lever", "emissive": 0.3 },
+        { "name": "coupling", "shape": "cylinder", "size": [0.062, 0.04, 0.062], "tessellation": 10, "position": [0, 0, -0.055], "rotationDeg": [90, 0, 0], "color": "metal" },
+        { "name": "hose1", "shape": "cylinder", "size": [0.048, 0.24, 0.048], "tessellation": 8, "position": [0, -0.055, -0.155], "rotationDeg": [58, 0, 0], "color": "hose" },
+        { "name": "hose2", "shape": "cylinder", "size": [0.048, 0.28, 0.048], "tessellation": 8, "position": [0, -0.24, -0.255], "rotationDeg": [18, 0, 0], "color": "hose" }
+      ]
+    },
+    "hydrant": {
+      "//": "Nástěnný hydrant v tělocvičně (fáze 13, stanice hadice): červená skříň na zdi s navinutou hadicí na bubnu, ventilové kolo na stoupačce a cedulka. Proudnice ('nozzle') visí na skříni, dokud ji hráč nevezme. Počátek = podlaha u zdi, skříň hledí k +z.",
+      "category": "prop",
+      "defaultVariant": "default",
+      "variants": {
+        "default": { "cabinet": "accent.red", "frame": "base.ash", "hose": "accent.rust", "metal": "world.steel", "valve": "neon.warning", "sign": "base.white", "brass": "accent.gold" }
+      },
+      "groups": { "nozzle": [-0.25, 0.92, 0.25] },
+      "anchors": { "outlet": [-0.25, 0.92, 0.3] },
+      "parts": [
+        { "name": "back", "shape": "box", "size": [0.74, 0.84, 0.04], "position": [0, 1.3, 0.02], "color": "cabinet" },
+        { "name": "sideL", "shape": "box", "size": [0.04, 0.84, 0.24], "position": [-0.35, 1.3, 0.12], "color": "cabinet" },
+        { "name": "sideR", "shape": "box", "size": [0.04, 0.84, 0.24], "position": [0.35, 1.3, 0.12], "color": "cabinet" },
+        { "name": "top", "shape": "box", "size": [0.74, 0.04, 0.24], "position": [0, 1.7, 0.12], "color": "cabinet" },
+        { "name": "bottom", "shape": "box", "size": [0.74, 0.04, 0.24], "position": [0, 0.9, 0.12], "color": "cabinet" },
+        { "name": "frame", "shape": "box", "size": [0.76, 0.03, 0.02], "position": [0, 1.73, 0.245], "color": "frame" },
+        { "name": "reel", "shape": "cylinder", "size": [0.5, 0.14, 0.5], "tessellation": 14, "position": [0, 1.3, 0.12], "rotationDeg": [90, 0, 0], "color": "hose" },
+        { "name": "reelFace", "shape": "cylinder", "size": [0.54, 0.012, 0.54], "tessellation": 14, "position": [0, 1.3, 0.195], "rotationDeg": [90, 0, 0], "color": "frame" },
+        { "name": "hub", "shape": "cylinder", "size": [0.14, 0.05, 0.14], "tessellation": 8, "position": [0, 1.3, 0.22], "rotationDeg": [90, 0, 0], "color": "metal" },
+        { "name": "riser", "shape": "cylinder", "size": [0.07, 0.9, 0.07], "tessellation": 8, "position": [0.24, 0.45, 0.08], "color": "metal" },
+        { "name": "valveWheel", "shape": "cylinder", "size": [0.16, 0.025, 0.16], "tessellation": 10, "position": [0.24, 0.72, 0.15], "rotationDeg": [90, 0, 0], "color": "valve", "emissive": 0.4 },
+        { "name": "valveStem", "shape": "cylinder", "size": [0.025, 0.07, 0.025], "tessellation": 6, "position": [0.24, 0.72, 0.11], "rotationDeg": [90, 0, 0], "color": "metal" },
+        { "name": "sign", "shape": "box", "size": [0.34, 0.12, 0.012], "position": [0, 1.86, 0.03], "color": "sign", "emissive": 0.7 },
+        { "name": "signMark", "shape": "box", "size": [0.08, 0.08, 0.014], "position": [-0.1, 1.86, 0.035], "color": "cabinet", "emissive": 0.5 },
+        { "name": "hoseDrop", "shape": "cylinder", "size": [0.045, 0.36, 0.045], "tessellation": 8, "position": [-0.25, 1.1, 0.25], "color": "hose" },
+        { "name": "nozzleGrip", "shape": "cylinder", "size": [0.06, 0.07, 0.06], "tessellation": 8, "position": [-0.25, 0.92, 0.25], "color": "frame", "group": "nozzle" },
+        { "name": "nozzleBody", "shape": "cylinder", "size": [0.03, 0.14, 0.05], "tessellation": 8, "position": [-0.25, 0.8, 0.25], "color": "brass", "emissive": 0.2, "group": "nozzle" }
+      ]
+    },
+    "extinguisherCabinet": {
+      "//": "Nástěnný držák s hasicím přístrojem (fáze 13, doplnění hasičáku): deska, červená značka hasicího přístroje a láhev v držáku ('bottle'; zmizí, když se skříňka vyčerpá). Počátek = podlaha u zdi, hledí k +z.",
+      "category": "prop",
+      "defaultVariant": "default",
+      "variants": {
+        "default": { "plate": "base.white", "sign": "keys.red", "metal": "world.steel", "body": "accent.red", "dark": "base.ash", "band": "base.white" }
+      },
+      "groups": { "bottle": [0, 1.1, 0.12] },
+      "parts": [
+        { "name": "plate", "shape": "box", "size": [0.34, 0.66, 0.02], "position": [0, 1.2, 0.01], "color": "plate", "emissive": 0.15 },
+        { "name": "sign", "shape": "box", "size": [0.22, 0.22, 0.012], "position": [0, 1.75, 0.012], "color": "sign", "emissive": 0.9 },
+        { "name": "signIcon", "shape": "box", "size": [0.06, 0.12, 0.014], "position": [0, 1.74, 0.015], "color": "plate", "emissive": 0.6 },
+        { "name": "bracket", "shape": "box", "size": [0.18, 0.04, 0.1], "position": [0, 1.36, 0.06], "color": "metal" },
+        { "name": "strap", "shape": "box", "size": [0.18, 0.03, 0.02], "position": [0, 1.0, 0.2], "color": "metal" },
+        { "name": "bottleBody", "shape": "cylinder", "size": [0.15, 0.4, 0.15], "tessellation": 10, "position": [0, 1.1, 0.12], "color": "body", "group": "bottle" },
+        { "name": "bottleBand", "shape": "cylinder", "size": [0.154, 0.07, 0.154], "tessellation": 10, "position": [0, 1.12, 0.12], "color": "band", "emissive": 0.2, "group": "bottle" },
+        { "name": "bottleTop", "shape": "cylinder", "size": [0.07, 0.05, 0.15], "tessellation": 10, "position": [0, 1.325, 0.12], "color": "body", "group": "bottle" },
+        { "name": "bottleValve", "shape": "box", "size": [0.04, 0.05, 0.05], "position": [0, 1.37, 0.12], "color": "metal", "group": "bottle" },
+        { "name": "bottleHandle", "shape": "box", "size": [0.03, 0.012, 0.12], "position": [0, 1.4, 0.09], "color": "dark", "group": "bottle" },
+        { "name": "bottleHorn", "shape": "cylinder", "size": [0.06, 0.08, 0.03], "tessellation": 8, "position": [0.1, 1.0, 0.16], "color": "dark", "group": "bottle" }
+      ]
+    },
+    "waterBalloonPack": {
+      "//": "Sbíratelné vodní balónky (fáze 13, pickup munice zbraně 3): kbelík se třemi balónky. Počátek = dno kbelíku na zemi.",
+      "category": "pickup",
+      "defaultVariant": "default",
+      "variants": {
+        "default": { "bucket": "accent.teal", "rim": "base.white", "a": "neon.water", "b": "accent.red", "c": "accent.lime" }
+      },
+      "parts": [
+        { "name": "bucket", "shape": "cylinder", "size": [0.34, 0.26, 0.26], "tessellation": 10, "position": [0, 0.13, 0], "color": "bucket" },
+        { "name": "rim", "shape": "cylinder", "size": [0.36, 0.025, 0.36], "tessellation": 10, "position": [0, 0.27, 0], "color": "rim", "emissive": 0.3 },
+        { "name": "balloonA", "shape": "cylinder", "size": [0.08, 0.16, 0.13], "tessellation": 8, "position": [-0.07, 0.32, 0.03], "rotationDeg": [0, 0, 18], "color": "a", "emissive": 0.6 },
+        { "name": "balloonB", "shape": "cylinder", "size": [0.08, 0.16, 0.13], "tessellation": 8, "position": [0.07, 0.33, 0.02], "rotationDeg": [10, 0, -15], "color": "b", "emissive": 0.6 },
+        { "name": "balloonC", "shape": "cylinder", "size": [0.08, 0.16, 0.13], "tessellation": 8, "position": [0, 0.34, -0.08], "rotationDeg": [-20, 0, 0], "color": "c", "emissive": 0.6 }
+      ]
+    },
     "humanoidRobot": {
       "//": "Humanoidní robot (src/enemies/models/HumanoidRobotModel.ts): hranatý bojový stroj z kvádrů a válců, ~1,95 m. Počátek = mezi chodidly na zemi, robot hledí k +z, +x je jeho pravá strana. Klouby jsou vnořené skupiny (groupParents): boky → trup → hlava a ramena → předloktí, boky → stehna → holeně. Pivot skupiny = bod otáčení kloubu. Pravé předloktí nese elektrický kanón, 'muzzle' je jeho ústí (pohybuje se s předloktím, anchorParents). 'eye' svítí (oko), 'core' je jádro na hrudi, 'glow' jsou průduchy a ústí kanónu; emissive drží robota čitelného ve tmě.",
       "category": "robot",
