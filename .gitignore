@@ -1,0 +1,13 @@
+node_modules/
+dist/
+test-results/
+playwright-report/
+.DS_Store
+*.log
+# nightshift runtime state
+handoff/STATE.json
+handoff/STOP
+handoff/nightshift.log
+handoff/NEXT_SESSION
+handoff/shift-loop.log
+handoff.txt
