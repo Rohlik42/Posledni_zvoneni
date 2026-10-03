@@ -100,6 +100,8 @@ Quick gate: výchozí. `npm run build` bez varování. Přidej smoke test, kter�
 **Do not**
 Neimplementuj hráče ani fyziku (fáze 2). Nepřidávej herní konstanty do kódu. Neimportuj celý `@babylonjs/core` index.
 
+**Done 2026-10-03** (handoff `handoff/phase-1.md`). Odchylky od litery: obsah testovací scény s krabicemi je samostatná dev scéna `pipeline` (data v `data/dev-scenes.json`), `empty` je opravdu prázdná; `?off=bloom,ssao` v dev scénách vypíná části pipeline. Navíc `data/game.json` (pevný krok, výchozí kamera, ambient) a `data/input.json` (mapování kláves). Boot smoke test už nepřepisuje `screenshots/00-boot.png`. Snímky dělá `tools/screenshot.ts`.
+
 ## Phase 2 — Player: FPS pohyb v krabicové místnosti
 
 **Implement**
@@ -267,6 +269,8 @@ Quick gate: výchozí. Test zelený. Vypiš 3 náhodné otázky na předmět do 
 
 **Do not**
 Otázky odkazující na skutečné osoby ze školy. Anglické otázky mimo předmět Angličtina.
+
+**Done 2026-10-03** (směna 1, handoff `handoff/phase-12.md`). `data/quiz.json`: 72 otázek (7–9 na předmět), správné odpovědi A/B/C/D 18/18/18/18 a vyvážené i uvnitř každého předmětu. `tests/data/quiz.test.ts` navíc hlídá horní mez 10 otázek na předmět, žádné neznámé předměty a jen klíče `wrongAnswerDamage` + `subjects`. Odchylky od litery: žádné. Fáze vytváří adresář `data/`, který na main chyběl.
 
 ## Phase 13 — Zbývající zbraně
 

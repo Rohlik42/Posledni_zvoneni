@@ -1,0 +1,110 @@
+{
+  "//": "Low-poly punk paleta MALGYM 2066. Tmavé podklady (base, world), výrazné akcenty (accent, neon). Kód odkazuje barvy klíčem 'skupina.jméno' (např. 'neon.water'). Zdroj LEGACY §4, doplněný neon pro roboty, vodu a elektřinu.",
+  "base": {
+    "void": "#07080c",
+    "night": "#10141c",
+    "smoke": "#1b1f29",
+    "ash": "#2a2c33",
+    "soot": "#15120f",
+    "black": "#000000",
+    "white": "#fff6dc"
+  },
+  "world": {
+    "plaster": "#8a8270",
+    "plasterDark": "#4f4a40",
+    "plinth": "#2f5a57",
+    "floorTile": "#5c6660",
+    "floorTileDark": "#1f2422",
+    "parquet": "#7a5634",
+    "ceiling": "#6d6a60",
+    "wood": "#9c7448",
+    "woodDark": "#4a3322",
+    "metal": "#536975",
+    "steel": "#a9b6bd",
+    "rust": "#7b3f22",
+    "concrete": "#55565a",
+    "rubble": "#3d3934",
+    "chalkboard": "#1d3f3a",
+    "chalk": "#e6e8c6",
+    "glass": "#b7e8f4",
+    "paper": "#fff6dc"
+  },
+  "accent": {
+    "red": "#ed5564",
+    "gold": "#dfb857",
+    "teal": "#65a8a3",
+    "lime": "#bcf274",
+    "rust": "#c66d54",
+    "copper": "#e1a36f",
+    "violet": "#8373bc",
+    "orange": "#d38d64",
+    "sea": "#5b9990",
+    "pencil": "#f2bf48",
+    "pen": "#65a8ee"
+  },
+  "neon": {
+    "robot": "#ff2a3d",
+    "robotEye": "#ff4d1a",
+    "robotCore": "#ff1f8e",
+    "water": "#2fd5ff",
+    "waterDeep": "#1a7cff",
+    "electric": "#9af6ff",
+    "spark": "#f4ff6a",
+    "fire": "#ff7a1a",
+    "ember": "#ff3b0f",
+    "toxic": "#8dff3a",
+    "warning": "#ffd21f"
+  },
+  "keys": {
+    "red": "#ff3348",
+    "yellow": "#ffe348",
+    "blue": "#3d8bff"
+  },
+  "teacher": {
+    "jacketViolet": "#8373bc",
+    "jacketOrange": "#d38d64",
+    "jacketSea": "#5b9990",
+    "skin": "#f2c59e",
+    "hair": "#57433c",
+    "shirt": "#fff6dc",
+    "tie": "#dfb857",
+    "trousers": "#344c66",
+    "shoes": "#26313c",
+    "glasses": "#536975",
+    "book": "#ed5564"
+  },
+  "light": {
+    "lamp": "#ffd9a0",
+    "fire": "#ff8a3a",
+    "moon": "#7f9cc7",
+    "emergency": "#ff3040",
+    "ambientSky": "#2a3242",
+    "ambientGround": "#0e0c0b"
+  },
+  "fog": {
+    "night": "#10141c",
+    "smoke": "#1d1c1f"
+  },
+  "ui": {
+    "background": "#182b36",
+    "panel": "#142d38",
+    "hpOk": "#a5ed63",
+    "hpLow": "#ff7580",
+    "slotActive": "#bcf274",
+    "slotActiveBg": "#314438",
+    "toast": "#e3ffb9",
+    "damage": "#ff283c",
+    "crosshair": "#ffffffaa",
+    "crosshairHit": "#baff6c",
+    "button": "#baf17a",
+    "buttonText": "#203528",
+    "buttonShadow": "#688e44",
+    "label": "#d8b17b",
+    "highlight": "#e1a36f",
+    "text": "#c5d6dd",
+    "textDim": "#9db5bf",
+    "difficultyFrame": "#644332",
+    "difficultyName": "#c66d54",
+    "difficultySelected": "#ffe2a0"
+  }
+}

@@ -1,0 +1,410 @@
+{
+  "wrongAnswerDamage": 20,
+  "subjects": [
+    {
+      "subject": "Matematika",
+      "questions": [
+        {
+          "q": "Humanoid z Neuralith Dynamics ujde 3 m za sekundu. Kolik metrů ujde za 2 minuty?",
+          "options": ["180 m", "600 m", "360 m", "36 m"],
+          "correct": 2
+        },
+        {
+          "q": "Ze 80 robotů ve škole jich 15 % zrezivělo od vodní pistolky. Kolik to je robotů?",
+          "options": ["15", "8", "12", "10"],
+          "correct": 2
+        },
+        {
+          "q": "Robotí past se odemkne správným x. Řeš rovnici 3x − 7 = 11.",
+          "options": ["x = 6", "x = 4", "x = 18", "x = 7"],
+          "correct": 0
+        },
+        {
+          "q": "Odvěsny pravoúhlého trojúhelníku mají 6 cm a 8 cm. Jak dlouhá je přepona?",
+          "options": ["14 cm", "12 cm", "48 cm", "10 cm"],
+          "correct": 3
+        },
+        {
+          "q": "Neuralith Dynamics má 2 na desátou serverů. Kolik to je?",
+          "options": ["512", "2048", "1000", "1024"],
+          "correct": 3
+        },
+        {
+          "q": "Jaký vzorec platí pro obsah kruhu s poloměrem r?",
+          "options": ["πr²", "2πr", "2πr²", "πr"],
+          "correct": 0
+        },
+        {
+          "q": "Jaký je součet vnitřních úhlů šestiúhelníku?",
+          "options": ["360°", "720°", "540°", "1080°"],
+          "correct": 1
+        },
+        {
+          "q": "Kolik prvočísel leží mezi 1 a 20?",
+          "options": ["7", "8", "9", "10"],
+          "correct": 1
+        }
+      ]
+    },
+    {
+      "subject": "Čeština",
+      "questions": [
+        {
+          "q": "Které z těchto slov patří mezi vyjmenovaná slova po B?",
+          "options": ["bič", "bitva", "bydlit", "bizon"],
+          "correct": 2
+        },
+        {
+          "q": "„Roboti se blíží rychle.“ Jaký slovní druh je slovo „rychle“?",
+          "options": ["přídavné jméno", "příslovce", "sloveso", "předložka"],
+          "correct": 1
+        },
+        {
+          "q": "Kdo napsal Babičku?",
+          "options": ["Karel Čapek", "Jan Neruda", "Karel Jaromír Erben", "Božena Němcová"],
+          "correct": 3
+        },
+        {
+          "q": "Slovo „robot“ se poprvé objevilo ve hře…",
+          "options": ["Bílá nemoc", "R.U.R.", "Matka", "Loupežník"],
+          "correct": 1
+        },
+        {
+          "q": "Na otázku „komu? čemu?“ odpovídá…",
+          "options": ["2. pád", "4. pád", "6. pád", "3. pád"],
+          "correct": 3
+        },
+        {
+          "q": "Doplň správný tvar: „Studenti … před roboty do sklepa.“",
+          "options": ["utíkali", "utíkaly", "utíkala", "utíkalo"],
+          "correct": 0
+        },
+        {
+          "q": "Slovo se stejným nebo podobným významem se nazývá…",
+          "options": ["synonymum", "antonymum", "homonymum", "citoslovce"],
+          "correct": 0
+        },
+        {
+          "q": "Kdo je autorem básnické sbírky Kytice?",
+          "options": ["Karel Hynek Mácha", "Jan Neruda", "Karel Jaromír Erben", "Vítězslav Hálek"],
+          "correct": 2
+        }
+      ]
+    },
+    {
+      "subject": "Angličtina",
+      "questions": [
+        {
+          "q": "What is the past simple of „run“?",
+          "options": ["runned", "runs", "running", "ran"],
+          "correct": 3
+        },
+        {
+          "q": "Choose the correct sentence.",
+          "options": ["The robot don't like water.", "The robot doesn't like water.", "The robot not likes water.", "The robot doesn't likes water."],
+          "correct": 1
+        },
+        {
+          "q": "What is the opposite of „dangerous“?",
+          "options": ["risky", "hungry", "safe", "loud"],
+          "correct": 2
+        },
+        {
+          "q": "Co česky znamená „fire extinguisher“?",
+          "options": ["požární hydrant", "hasicí přístroj", "kouřový hlásič", "nouzový východ"],
+          "correct": 1
+        },
+        {
+          "q": "What is the plural of „mouse“?",
+          "options": ["mouses", "mices", "mice", "meese"],
+          "correct": 2
+        },
+        {
+          "q": "Complete: „If it rains, the robots … rust.“",
+          "options": ["will", "would", "had", "were"],
+          "correct": 0
+        },
+        {
+          "q": "Which question is correct?",
+          "options": ["Where is the keys?", "Where the keys are?", "Where keys are they?", "Where are the keys?"],
+          "correct": 3
+        },
+        {
+          "q": "Complete: „I have been hiding here … two hours.“",
+          "options": ["for", "since", "from", "during"],
+          "correct": 0
+        }
+      ]
+    },
+    {
+      "subject": "Zeměpis",
+      "questions": [
+        {
+          "q": "Jaké je hlavní město Austrálie?",
+          "options": ["Sydney", "Melbourne", "Perth", "Canberra"],
+          "correct": 3
+        },
+        {
+          "q": "Kterou řekou protéká Praha?",
+          "options": ["Labe", "Morava", "Vltava", "Odra"],
+          "correct": 2
+        },
+        {
+          "q": "Jak se jmenuje nejvyšší hora Česka?",
+          "options": ["Praděd", "Sněžka", "Lysá hora", "Klínovec"],
+          "correct": 1
+        },
+        {
+          "q": "Ve kterém oceánu leží Mariánský příkop, nejhlubší místo na Zemi?",
+          "options": ["v Atlantském", "v Indickém", "v Severním ledovém", "v Tichém"],
+          "correct": 3
+        },
+        {
+          "q": "Kolik krajů má Česko včetně hlavního města Prahy?",
+          "options": ["14", "13", "8", "16"],
+          "correct": 0
+        },
+        {
+          "q": "Ve kterém pohoří leží Mount Everest?",
+          "options": ["v Andách", "v Himálaji", "v Alpách", "na Kavkaze"],
+          "correct": 1
+        },
+        {
+          "q": "Jakou zeměpisnou šířku má rovník?",
+          "options": ["90°", "180°", "0°", "23,5°"],
+          "correct": 2
+        },
+        {
+          "q": "Na kterém břehu Vltavy leží Malá Strana?",
+          "options": ["na levém", "na pravém", "na obou stejně", "na žádném, je to ostrov"],
+          "correct": 0
+        }
+      ]
+    },
+    {
+      "subject": "Tělocvik",
+      "questions": [
+        {
+          "q": "Kolik hráčů jednoho týmu je současně na hřišti ve volejbale?",
+          "options": ["5", "7", "9", "6"],
+          "correct": 3
+        },
+        {
+          "q": "Jak dlouhé je jedno kolo standardní atletické dráhy (po vnitřní dráze)?",
+          "options": ["200 m", "400 m", "300 m", "500 m"],
+          "correct": 1
+        },
+        {
+          "q": "Kolik hráčů jednoho týmu je současně na hřišti v basketbalu?",
+          "options": ["6", "4", "5", "7"],
+          "correct": 2
+        },
+        {
+          "q": "Kolik měří maratonský běh?",
+          "options": ["42,195 km", "21,0975 km", "40 km", "50 km"],
+          "correct": 0
+        },
+        {
+          "q": "V jaké výšce nad zemí visí basketbalová obroučka?",
+          "options": ["250 cm", "275 cm", "350 cm", "305 cm"],
+          "correct": 3
+        },
+        {
+          "q": "Po kolika letech se pravidelně konají letní olympijské hry?",
+          "options": ["po 4 letech", "po 2 letech", "po 3 letech", "po 5 letech"],
+          "correct": 0
+        },
+        {
+          "q": "Ve kterém sportu se hraje s pukem?",
+          "options": ["florbal", "pozemní hokej", "lední hokej", "curling"],
+          "correct": 2
+        },
+        {
+          "q": "Co má předcházet sprintu před robotem (i před každým jiným výkonem)?",
+          "options": ["vydatný oběd", "rozcvička", "dlouhý spánek", "protahování až po výkonu"],
+          "correct": 1
+        }
+      ]
+    },
+    {
+      "subject": "Dějepis",
+      "questions": [
+        {
+          "q": "Ve kterém roce vzniklo samostatné Československo?",
+          "options": ["1914", "1938", "1945", "1918"],
+          "correct": 3
+        },
+        {
+          "q": "Kdo byl prvním prezidentem Československa?",
+          "options": ["Edvard Beneš", "Tomáš Garrigue Masaryk", "Václav Havel", "Emil Hácha"],
+          "correct": 1
+        },
+        {
+          "q": "Který panovník založil Karlův most?",
+          "options": ["Rudolf II.", "Přemysl Otakar II.", "Karel IV.", "Josef II."],
+          "correct": 2
+        },
+        {
+          "q": "Ve kterém roce začala první světová válka?",
+          "options": ["1918", "1914", "1905", "1939"],
+          "correct": 1
+        },
+        {
+          "q": "Ve kterém roce proběhla bitva na Bílé hoře?",
+          "options": ["1620", "1415", "1648", "1526"],
+          "correct": 0
+        },
+        {
+          "q": "Ve kterém roce přistál člověk poprvé na Měsíci?",
+          "options": ["1969", "1957", "1961", "1975"],
+          "correct": 0
+        },
+        {
+          "q": "Ve které zemi začala průmyslová revoluce?",
+          "options": ["ve Francii", "v Rusku", "ve Velké Británii", "v Japonsku"],
+          "correct": 2
+        },
+        {
+          "q": "Luddité na začátku 19. století z protestu ničili…",
+          "options": ["okna kostelů", "železniční mosty", "tiskárny peněz", "stroje v továrnách"],
+          "correct": 3
+        }
+      ]
+    },
+    {
+      "subject": "Hudebka",
+      "questions": [
+        {
+          "q": "Kolik linek má notová osnova?",
+          "options": ["4", "6", "7", "5"],
+          "correct": 3
+        },
+        {
+          "q": "Kdo složil cyklus symfonických básní Má vlast?",
+          "options": ["Antonín Dvořák", "Leoš Janáček", "Bedřich Smetana", "Bohuslav Martinů"],
+          "correct": 2
+        },
+        {
+          "q": "Kdo složil symfonii Z Nového světa?",
+          "options": ["Bedřich Smetana", "Antonín Dvořák", "Ludwig van Beethoven", "Zdeněk Fibich"],
+          "correct": 1
+        },
+        {
+          "q": "Kolik dob trvá celá nota ve 4/4 taktu?",
+          "options": ["2", "1", "4", "8"],
+          "correct": 2
+        },
+        {
+          "q": "Co v notách znamená „forte“?",
+          "options": ["slabě, potichu", "silně, hlasitě", "rychle", "pomalu"],
+          "correct": 1
+        },
+        {
+          "q": "Kolik strun má běžná klasická kytara?",
+          "options": ["6", "4", "5", "12"],
+          "correct": 0
+        },
+        {
+          "q": "Jak se jinak říká houslovému klíči?",
+          "options": ["G klíč", "F klíč", "C klíč", "A klíč"],
+          "correct": 0
+        },
+        {
+          "q": "Ve kterém městě se narodil Wolfgang Amadeus Mozart?",
+          "options": ["ve Vídni", "v Praze", "v Berlíně", "v Salcburku"],
+          "correct": 3
+        }
+      ]
+    },
+    {
+      "subject": "Výtvarka",
+      "questions": [
+        {
+          "q": "Jakou barvu dostaneš smícháním modré a žluté temperové barvy?",
+          "options": ["fialovou", "oranžovou", "zelenou", "hnědou"],
+          "correct": 2
+        },
+        {
+          "q": "Robotí oko svítí RGB diodou. Které barvy znamená zkratka RGB?",
+          "options": ["červená, šedá, bílá", "růžová, zlatá, modrá", "červená, žlutá, modrá", "červená, zelená, modrá"],
+          "correct": 3
+        },
+        {
+          "q": "Kdo namaloval Monu Lisu?",
+          "options": ["Michelangelo Buonarroti", "Leonardo da Vinci", "Rafael Santi", "Sandro Botticelli"],
+          "correct": 1
+        },
+        {
+          "q": "Alfons Mucha je slavný představitel…",
+          "options": ["kubismu", "baroka", "secese", "impresionismu"],
+          "correct": 2
+        },
+        {
+          "q": "Kdo namaloval obraz Hvězdná noc?",
+          "options": ["Vincent van Gogh", "Claude Monet", "Paul Cézanne", "Edvard Munch"],
+          "correct": 0
+        },
+        {
+          "q": "Jak se nazývá malba na čerstvou vlhkou omítku?",
+          "options": ["freska", "mozaika", "akvarel", "koláž"],
+          "correct": 0
+        },
+        {
+          "q": "Se kterým malířem je nejvíc spojen kubismus?",
+          "options": ["Claude Monet", "Pablo Picasso", "Salvador Dalí", "Rembrandt van Rijn"],
+          "correct": 1
+        }
+      ]
+    },
+    {
+      "subject": "Fyzika",
+      "questions": [
+        {
+          "q": "Proč voda z kohoutku vede elektrický proud a dělá robotům zkrat?",
+          "options": ["obsahuje rozpuštěné ionty solí", "molekuly vody jsou kovové", "obsahuje volné elektrony jako měď", "voda je supravodič"],
+          "correct": 0
+        },
+        {
+          "q": "Jak vede elektrický proud destilovaná voda ve srovnání s mořskou?",
+          "options": ["mnohem lépe", "úplně stejně", "lépe, ale jen v létě", "mnohem hůř"],
+          "correct": 3
+        },
+        {
+          "q": "Jaký proud teče rezistorem 20 Ω, když je na něm napětí 10 V?",
+          "options": ["0,5 A", "2 A", "200 A", "30 A"],
+          "correct": 0
+        },
+        {
+          "q": "Ve kterých jednotkách se měří elektrický odpor?",
+          "options": ["ve voltech", "v ohmech", "v ampérech", "ve wattech"],
+          "correct": 1
+        },
+        {
+          "q": "Motor robota bere z 12V baterie proud 2 A. Jaký má příkon?",
+          "options": ["6 W", "14 W", "10 W", "24 W"],
+          "correct": 3
+        },
+        {
+          "q": "Jak rychle se šíří světlo ve vakuu (přibližně)?",
+          "options": ["300 000 km/h", "300 000 km/s", "30 000 km/s", "3 000 km/s"],
+          "correct": 1
+        },
+        {
+          "q": "Při jaké teplotě vře čistá voda za normálního atmosférického tlaku?",
+          "options": ["90 °C", "80 °C", "100 °C", "120 °C"],
+          "correct": 2
+        },
+        {
+          "q": "Jaká je přibližná hustota vody?",
+          "options": ["100 kg/m³", "10 kg/m³", "1 000 kg/m³", "10 000 kg/m³"],
+          "correct": 2
+        },
+        {
+          "q": "Školní railgun urychluje projektil pomocí…",
+          "options": ["stlačeného vzduchu", "střelného prachu", "zemské gravitace", "elektromagnetické (Lorentzovy) síly"],
+          "correct": 3
+        }
+      ]
+    }
+  ]
+}
