@@ -8,6 +8,7 @@ import type { Game } from "../core/Game";
 import type { Player } from "../player/Player";
 import type { Random } from "../utils/Random";
 import type { HitResult, Hitscan } from "./Hitscan";
+import type { FeelData } from "./FeelConfig";
 import type { WeaponData, WeaponsData } from "./WeaponConfig";
 
 const DEG_TO_RAD = Math.PI / 180;
@@ -28,6 +29,8 @@ export interface WeaponContext {
   sounds: SynthSounds;
   hitscan: Hitscan;
   config: WeaponsData;
+  /** Shared feel settings (data/feel.json): impact sounds per surface, hit effects. */
+  feel: FeelData;
   /** Shared seeded RNG for aim spread (deterministic shots in tests). */
   aimRandom: Random;
 }
@@ -82,6 +85,12 @@ export abstract class Weapon {
   private sinceShot = Number.POSITIVE_INFINITY;
   private recoil = 0;
   private readonly sway = Vector3.Zero();
+  /** Lag against the walk in view space (x right, y up, z forward). */
+  private readonly moveSway = Vector3.Zero();
+  private strafeRoll = 0;
+  /** Sign of the next shot's roll kick (alternates, so automatic fire wobbles instead of drifting). */
+  private recoilRollSign = 1;
+  private recoilRoll = 0;
   private bobPhase = 0;
   private bobWeight = 0;
   private lastYaw: number;
@@ -184,6 +193,8 @@ export abstract class Weapon {
     this.sinceShot = 0;
     this.shotCount++;
     this.recoil += 1;
+    this.recoilRoll += this.recoilRollSign;
+    this.recoilRollSign = -this.recoilRollSign;
     this.context.sounds.play(this.data.sounds.fire);
     this.shoot(this.aim());
   }
@@ -211,6 +222,22 @@ export abstract class Weapon {
       this.sway.y += (targetY - this.sway.y) * follow;
     }
 
+    // Walk sway: the gun lags behind the body's motion (view-space velocity) and rolls a little into a strafe.
+    const velocity = player.controller.currentVelocity;
+    const right = velocity.x * Math.cos(yaw) - velocity.z * Math.sin(yaw);
+    const forward = velocity.x * Math.sin(yaw) + velocity.z * Math.cos(yaw);
+    if (dt > 0) {
+      const follow = Math.min(1, vm.swayReturn * dt);
+      const lagX = Weapon.clamp(-right * vm.moveSwayPerMps, vm.moveSwayMax);
+      const lagY = Weapon.clamp(-velocity.y * vm.moveSwayPerMps, vm.moveSwayMax);
+      const lagZ = Weapon.clamp(-forward * vm.moveSwayPerMps, vm.moveSwayMax);
+      this.moveSway.x += (lagX - this.moveSway.x) * follow;
+      this.moveSway.y += (lagY - this.moveSway.y) * follow;
+      this.moveSway.z += (lagZ - this.moveSway.z) * follow;
+      const rollTarget = Weapon.clamp(right / player.controller.walkSpeed, 1) * vm.strafeRollDeg;
+      this.strafeRoll += (rollTarget - this.strafeRoll) * follow;
+    }
+
     // Walk bob, weighted by speed while grounded.
     const speed = player.controller.speed;
     const moving = player.controller.isGrounded && speed > 0;
@@ -218,7 +245,9 @@ export abstract class Weapon {
     this.bobWeight += (targetWeight - this.bobWeight) * Math.min(1, vm.swayReturn * dt);
     if (moving) this.bobPhase = (this.bobPhase + (speed * dt * vm.bobStepsPerMeter * TWO_PI) / STEPS_PER_BOB_CYCLE) % TWO_PI;
 
-    this.recoil *= Math.exp(-vm.recoilReturn * dt);
+    const recoilDecay = Math.exp(-vm.recoilReturn * dt);
+    this.recoil *= recoilDecay;
+    this.recoilRoll *= recoilDecay;
     this.animate(dt);
     this.applyPose();
   }
@@ -237,6 +266,21 @@ export abstract class Weapon {
   /** What one shot does: rays, projectiles, effects. Ammo, sound and recoil are already handled. */
   protected abstract shoot(aim: { origin: Vector3; direction: Vector3 }): void;
 
+  /** Recoil left from recent shots: +1 per shot, decays with `recoilReturn` (subclasses animate with it). */
+  protected get recoilAmount(): number {
+    return this.recoil;
+  }
+
+  /** Viewmodel offset from its rest position (m, view space) and roll in degrees (tests, HUD). */
+  get viewmodelPose(): { offset: { x: number; y: number; z: number }; rollDeg: number } {
+    const vm = this.data.viewmodel;
+    const p = this.pivot.position;
+    return {
+      offset: { x: p.x - vm.position[0], y: p.y - vm.position[1], z: p.z - vm.position[2] },
+      rollDeg: this.pivot.rotation.z / DEG_TO_RAD - vm.rotationDeg[2],
+    };
+  }
+
   /** Extra per-frame animation (pump, charge glow…). */
   protected animate(_dt: number): void {}
 
@@ -244,6 +288,12 @@ export abstract class Weapon {
   protected damage(hit: HitResult | null): number {
     if (hit?.target == null || !hit.target.alive) return 0;
     return hit.target.takeDamage(this.data.damage, this.data.damageType);
+  }
+
+  /** Impact sound by surface: robots (`metal`) clank, anything else plays the weapon's own impact sound. */
+  protected playImpact(hit: HitResult | null): void {
+    if (hit === null) return;
+    this.context.sounds.play(hit.target?.surface === "metal" ? this.context.feel.impact.metal : this.data.sounds.impact);
   }
 
   protected startReload(): void {
@@ -291,14 +341,14 @@ export abstract class Weapon {
     const bobX = Math.sin(this.bobPhase) * vm.bobAmplitude * this.bobWeight;
     const bobY = -Math.abs(Math.cos(this.bobPhase)) * vm.bobAmplitude * this.bobWeight;
     this.pivot.position.set(
-      vm.position[0] + this.sway.x + bobX,
-      vm.position[1] + this.sway.y + bobY - vm.switchDrop * this.holsterAmount,
-      vm.position[2] - vm.recoilKick * this.recoil,
+      vm.position[0] + this.sway.x + this.moveSway.x + bobX,
+      vm.position[1] + this.sway.y + this.moveSway.y + bobY - vm.switchDrop * this.holsterAmount,
+      vm.position[2] + this.moveSway.z - vm.recoilKick * this.recoil,
     );
     this.pivot.rotation.set(
       (vm.rotationDeg[0] - vm.recoilPitchDeg * this.recoil) * DEG_TO_RAD,
       vm.rotationDeg[1] * DEG_TO_RAD,
-      vm.rotationDeg[2] * DEG_TO_RAD,
+      (vm.rotationDeg[2] - this.strafeRoll + vm.recoilRollDeg * this.recoilRoll) * DEG_TO_RAD,
     );
     this.pivot.scaling.setAll(vm.scale);
   }

@@ -1,4 +1,5 @@
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
+import { Observable } from "@babylonjs/core/Misc/observable";
 import type { DamageType } from "../core/DamageTypes";
 import type { Game } from "../core/Game";
 import { NoiseEvents } from "../core/NoiseEvents";
@@ -81,6 +82,8 @@ declare module "../core/TestHooks" {
  */
 export class EnemyManager {
   readonly enemies: Humanoid[] = [];
+  /** A robot was destroyed (screen shake, crunch, wave logic). */
+  readonly onEnemyDeath = new Observable<Humanoid>();
   readonly projectiles: EnemyProjectiles;
   readonly debris: RobotDebris;
   readonly cover: CoverPoints;
@@ -128,7 +131,11 @@ export class EnemyManager {
         now: () => game.simulatedTimeMs,
       },
     };
-    for (const spawn of encounter.enemies) this.enemies.push(new Humanoid(spawn, this.data.humanoid, context));
+    for (const spawn of encounter.enemies) {
+      const enemy = new Humanoid(spawn, this.data.humanoid, context);
+      enemy.onDeath.add(() => this.onEnemyDeath.notifyObservers(enemy));
+      this.enemies.push(enemy);
+    }
     this.removeSystem = game.addSystem({ update: (dt) => this.update(dt) });
     game.input.onAction.add(({ action, pressed }) => {
       if (action === "debugNavmesh" && pressed) navmesh.setDebugVisible(!navmesh.debugVisible);
@@ -150,7 +157,13 @@ export class EnemyManager {
     for (const enemy of this.enemies) enemy.respawn();
   }
 
+  /** Robots still standing. */
+  get aliveCount(): number {
+    return this.enemies.filter((e) => e.alive).length;
+  }
+
   dispose(): void {
+    this.onEnemyDeath.clear();
     this.removeSystem();
     for (const enemy of this.enemies) enemy.dispose();
     this.projectiles.dispose();

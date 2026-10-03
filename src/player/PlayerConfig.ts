@@ -43,6 +43,8 @@ export interface PlayerCameraData {
   };
   landing: { dipPerSpeed: number; minImpactSpeed: number; maxDip: number; stiffness: number; damping: number };
   hitShake: { amplitude: number; frequency: number; duration: number };
+  /** Cap of the summed camera shake offset in metres (phase 5: never more than 0.3 m). */
+  maxShakeOffset: number;
 }
 
 export interface DamageOverlayData {
@@ -115,6 +117,7 @@ export class PlayerConfig {
         damping: positive(),
       }),
       hitShake: Schema.object({ amplitude: positive(), frequency: positive(), duration: positive() }),
+      maxShakeOffset: Schema.number({ min: 0, max: 0.3 }),
     }),
     health: Schema.object({ max: Schema.number({ min: 1 }) }),
     damageOverlay: Schema.object({

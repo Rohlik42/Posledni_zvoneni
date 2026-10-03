@@ -3,6 +3,7 @@ import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import type { Scene } from "@babylonjs/core/scene";
 import type { LookDelta } from "../core/Input";
 import type { PlayerCameraData } from "./PlayerConfig";
+import { ScreenShake, type ShakeProfile } from "./ScreenShake";
 
 const TWO_PI = Math.PI * 2;
 /** One head-bob cycle is two steps (left foot, right foot). */
@@ -37,8 +38,8 @@ export class PlayerCamera {
   private bobWeight = 0;
   private landingOffset = 0;
   private landingVelocity = 0;
-  private shakeTime = Number.POSITIVE_INFINITY;
-  private shakeStrength = 0;
+  /** Hit shake and other shakes (robot death, phase 5), capped at `maxShakeOffset`. */
+  readonly shake: ScreenShake;
 
   constructor(
     scene: Scene,
@@ -50,6 +51,7 @@ export class PlayerCamera {
     this.camera.maxZ = data.maxZ;
     this.camera.inputs.clear();
     this.camera.rotation.set(0, 0, 0);
+    this.shake = new ScreenShake(data.maxShakeOffset);
   }
 
   /** Heading in radians, 0 = +z, positive turns right. */
@@ -91,13 +93,17 @@ export class PlayerCamera {
 
   /** Short sideways shake, `strength` 0–1. */
   hit(strength: number): void {
-    this.shakeTime = 0;
-    this.shakeStrength = Math.min(1, Math.max(this.shakeStrength * this.shakeFade(), strength));
+    this.shake.kick("hit", this.data.hitShake, strength);
+  }
+
+  /** Any other shake (`name` = its channel, e.g. "robotDeath"), translation only, `strength` 0–1. */
+  kick(name: string, profile: ShakeProfile, strength: number): void {
+    this.shake.kick(name, profile, strength);
   }
 
   /** Per rendered frame: places the camera at the eye and applies bob, landing dip, shake and FOV. */
   update(rawFrameDt: number, body: CameraBodyState): void {
-    const { headBob, landing, hitShake } = this.data;
+    const { headBob, landing } = this.data;
     const frameDt = Math.min(Math.max(rawFrameDt, 0), MAX_FRAME_DT);
 
     // Head bob: phase advances with distance walked, fades in and out with ground contact and speed.
@@ -115,17 +121,15 @@ export class PlayerCamera {
     this.landingOffset += this.landingVelocity * frameDt;
     this.landingOffset = Math.max(-landing.maxDip, Math.min(landing.maxDip, this.landingOffset));
 
-    // Hit shake: decaying sideways oscillation.
-    if (this.shakeTime < hitShake.duration) {
-      this.shakeTime += frameDt;
-      side += Math.sin(this.shakeTime * hitShake.frequency * TWO_PI) * hitShake.amplitude * this.shakeStrength * this.shakeFade();
-    }
+    // Shakes (hit, robot death): decaying sideways / vertical oscillation, never a tilt.
+    this.shake.update(frameDt);
+    side += this.shake.side;
 
     const rightX = Math.cos(this.yawAngle);
     const rightZ = -Math.sin(this.yawAngle);
     this.camera.position.set(
       body.feet.x + rightX * side,
-      body.feet.y + body.eyeHeight + bobUp + this.landingOffset,
+      body.feet.y + body.eyeHeight + bobUp + this.landingOffset + this.shake.up,
       body.feet.z + rightZ * side,
     );
     this.camera.rotation.set(this.pitchAngle, this.yawAngle, 0);
@@ -136,9 +140,5 @@ export class PlayerCamera {
 
   dispose(): void {
     this.camera.dispose();
-  }
-
-  private shakeFade(): number {
-    return Math.max(0, 1 - this.shakeTime / this.data.hitShake.duration);
   }
 }

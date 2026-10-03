@@ -41,6 +41,15 @@ export interface ViewmodelData {
   bobStepsPerMeter: number;
   switchDrop: number;
   pumpTravel: number;
+  /** Lag of the gun against the walk (m per m/s of view-space velocity), capped at `moveSwayMax`. */
+  moveSwayPerMps: number;
+  moveSwayMax: number;
+  /** Roll of the gun (never the camera) while strafing at walk speed. */
+  strafeRollDeg: number;
+  /** Roll kick per shot, alternating left and right. */
+  recoilRollDeg: number;
+  /** Pump twitch back on every shot (m), on top of the reload pump. */
+  pumpShotTravel: number;
 }
 
 /** Water jet look (pistol, later the hose). */
@@ -156,6 +165,11 @@ export class WeaponConfig {
             bobStepsPerMeter: positive(),
             switchDrop: positive(),
             pumpTravel: positive(),
+            moveSwayPerMps: positive(),
+            moveSwayMax: positive(),
+            strafeRollDeg: positive(),
+            recoilRollDeg: positive(),
+            pumpShotTravel: positive(),
           }),
           stream: Schema.object({
             color: Schema.paletteRef(),

@@ -58,7 +58,7 @@ export class WaterPistol extends Weapon {
   protected shoot(aim: { origin: Vector3; direction: Vector3 }): void {
     const hit = this.context.hitscan.cast(aim.origin, aim.direction, this.data.range);
     const damageDealt = this.damage(hit);
-    if (hit !== null) this.context.sounds.play(this.data.sounds.impact);
+    this.playImpact(hit);
     const end = hit?.point ?? aim.origin.add(aim.direction.scale(this.data.range));
     this.pistol.muzzle.computeWorldMatrix(true);
     this.muzzleWorld.copyFrom(this.pistol.muzzle.getAbsolutePosition());
@@ -68,9 +68,10 @@ export class WaterPistol extends Weapon {
   }
 
   protected override animate(): void {
-    // Pump: pull back and push forward once over the reload.
-    const travel = this.data.viewmodel.pumpTravel;
-    this.pistol.pump.position.z = this.pistol.pumpRestZ - travel * Math.sin(HALF_TURN * this.reloadProgress);
+    // Pump: pull back and push forward once over the reload, and twitch back a little on every shot.
+    const { pumpTravel, pumpShotTravel } = this.data.viewmodel;
+    const shotTwitch = pumpShotTravel * Math.min(1, this.recoilAmount);
+    this.pistol.pump.position.z = this.pistol.pumpRestZ - pumpTravel * Math.sin(HALF_TURN * this.reloadProgress) - shotTwitch;
     this.updateTank();
   }
 

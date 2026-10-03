@@ -5,19 +5,20 @@ import { EnemyManager } from "../../src/enemies/EnemyManager";
 import { NavMeshService } from "../../src/level/NavMeshService";
 import { Player } from "../../src/player/Player";
 import { Hud } from "../../src/ui/Hud";
+import { FeelConfig } from "../../src/weapons/FeelConfig";
 import { WeaponInventory } from "../../src/weapons/WeaponInventory";
+import { ArenaWaves } from "../ArenaWaves";
 import { BoxRoom } from "../BoxRoom";
 
-const ENCOUNTER = "boxroomEnemy";
-
-export const id = "boxroom-enemy";
-export const title = "Humanoidní robot v krabicové místnosti: hlídka, slyší výstřely, pronásleduje po navmeshi, kryje se, střílí výboje; N = navmesh";
+export const id = "arena";
+export const title = "Aréna: vlna 4 humanoidů v krabicové místnosti s vodní pistolkou a HUD (ladění feelu zbraní, po vyčištění další vlna)";
 
 export async function create(game: Game): Promise<void> {
-  const encounter = EncounterConfig.get(ENCOUNTER);
+  const feel = FeelConfig.load();
+  const encounter = EncounterConfig.get(feel.arena.encounter);
   const physics = await Physics.create(game);
   const room = BoxRoom.build(game, physics);
-  // The navmesh is baked from what the player collides with (floors, walls, boxes, the stair slab), minus ceilings.
+  // Same navmesh as boxroom-enemy: everything the player collides with, minus the ceilings.
   const navigable = room.meshes.filter((mesh) => mesh.physicsBody != null && !encounter.navExclude.includes(mesh.name));
   const navmesh = await NavMeshService.create(game.scene, navigable);
   const player = Player.create(game, physics, room.spawn);
@@ -25,11 +26,12 @@ export async function create(game: Game): Promise<void> {
   Hud.create(game, player, inventory);
   const enemies = EnemyManager.create(game, player, navmesh, encounter);
   enemies.onEnemyDeath.add((enemy) => inventory.feedback.robotDestroyed(enemy.position));
+  const waves = new ArenaWaves(game, enemies, feel.arena.waveDelay);
 
   player.health.onDeath.add(() => {
     window.setTimeout(() => {
       player.respawn(room.spawn);
-      enemies.respawnAll();
+      waves.restart();
     }, room.layout.respawnDelayMs);
   });
 }
