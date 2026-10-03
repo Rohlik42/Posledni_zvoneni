@@ -26,6 +26,24 @@ export interface DevNeon {
   emissive: number;
 }
 
+/** A door of a dev scene (world space, like `DoorSpec` but with names only). */
+export interface DevDoor {
+  id: string;
+  center: Vec3Tuple;
+  along: "x" | "z";
+  width: number;
+  height: number;
+  depth: number;
+  lock: "none" | "red" | "yellow" | "blue" | "exit";
+  sides: [string, string];
+}
+
+export interface DevPickup {
+  id: string;
+  item: string;
+  position: Vec3Tuple;
+}
+
 export interface DevScenesData {
   pipeline: {
     floor: { size: number; color: string };
@@ -34,6 +52,7 @@ export interface DevScenesData {
     lights: DevLight[];
     neon: DevNeon[];
   };
+  doors: { door: DevDoor; encounter: string; pickups: DevPickup[] };
 }
 
 const box = Schema.object(
@@ -63,6 +82,20 @@ export class DevSceneData {
       neon: Schema.array(
         Schema.object({ position: Schema.vec3(), size: Schema.vec3(), color: Schema.paletteRef(), emissive: Schema.number({ min: 0 }) }),
       ),
+    }),
+    doors: Schema.object({
+      door: Schema.object({
+        id: Schema.string(),
+        center: Schema.vec3(),
+        along: Schema.enumOf(["x", "z"]),
+        width: Schema.number({ min: 0.1 }),
+        height: Schema.number({ min: 0.1 }),
+        depth: Schema.number({ min: 0 }),
+        lock: Schema.enumOf(["none", "red", "yellow", "blue", "exit"]),
+        sides: Schema.array(Schema.string(), 2, 2),
+      }),
+      encounter: Schema.string(),
+      pickups: Schema.array(Schema.object({ id: Schema.string(), item: Schema.string(), position: Schema.vec3() })),
     }),
   });
 

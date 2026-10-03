@@ -32,8 +32,8 @@ export interface LevelGameplayOptions {
 /** `window.__game.lighting` — which room the tracked things (weapon in hand, robots) are lit by. */
 export interface LightingTestApi {
   rooms: () => (string | null)[];
-  /** Level lights that include a mesh with this name. */
-  lightsOn: (meshName: string) => number;
+  /** Level lights that include a mesh whose name starts with `prefix` (`door:<id>:`, `pickup:<id>:`). */
+  lightsOn: (prefix: string) => number;
 }
 
 declare module "../core/TestHooks" {
@@ -142,7 +142,7 @@ export class LevelGameplay {
     const level = this.level;
     TestHooks.register("lighting", {
       rooms: () => lighting.trackedRooms(),
-      lightsOn: (meshName) => level.lights.filter((light) => light.includedOnlyMeshes.some((mesh) => mesh.name === meshName)).length,
+      lightsOn: (prefix) => level.lights.filter((light) => light.includedOnlyMeshes.some((mesh) => mesh.name.startsWith(prefix))).length,
     });
   }
 }

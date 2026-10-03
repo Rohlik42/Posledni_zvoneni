@@ -22,5 +22,17 @@
       { "position": [1.0, 3.2, 6.75], "size": [3.2, 0.14, 0.14], "color": "neon.water", "emissive": 2.2 },
       { "position": [-6.75, 2.2, 3.0], "size": [0.14, 0.14, 2.4], "color": "neon.robot", "emissive": 2.2 }
     ]
+  },
+  "doors": {
+    "//": "Dev scéna 'doors' (dev/scenes/DoorsScene.ts, fáze 10): krabicová místnost, ve dveřním otvoru zamčené dveře (zámek red, otvor x 5,4–6,6, z 10,2, zeď 0,4 m) do výklenku s robotem (encounter v data/encounters.json), na zemi červený klíč a power-upy. Pozice jsou body na podlaze ve světě (m); door.sides = jména místností na straně −z a +z.",
+    "door": { "id": "boxroom-door", "center": [6, 0, 10.2], "along": "x", "width": 1.2, "height": 2.2, "depth": 0.4, "lock": "red", "sides": ["Krabicová místnost", "Výklenek"] },
+    "encounter": "doorsAlcove",
+    "pickups": [
+      { "id": "key", "item": "key-red", "position": [-6.5, 0, 7.5] },
+      { "id": "medkit", "item": "medkit", "position": [0, 0, -6] },
+      { "id": "drink", "item": "energy-drink", "position": [-2, 0, -4.5] },
+      { "id": "boots", "item": "rubber-boots", "position": [2, 0, -4.5] },
+      { "id": "balloons", "item": "ammo-balloons", "position": [-6.5, 0, -2] }
+    ]
   }
 }
