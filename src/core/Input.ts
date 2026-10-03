@@ -26,6 +26,8 @@ export interface InputTestApi {
    * `key` is a `KeyboardEvent.code` from data/input.json (`"KeyW"`, `"Space"`) or an action name (`"forward"`).
    */
   simulate: (key: string, ms: number) => number;
+  /** Adds mouse movement in pixels as if the mouse moved; the player turns on the next rendered frame (phase 18). */
+  look: (x: number, y: number) => void;
 }
 
 declare module "./TestHooks" {
@@ -85,6 +87,7 @@ export class Input {
       lookMode: () => this.mode,
       actions: () => INPUT_ACTIONS,
       simulate: (key, ms) => this.simulate(key, ms),
+      look: (x, y) => this.addLook(x, y),
     });
   }
 

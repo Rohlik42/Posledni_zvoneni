@@ -1,0 +1,128 @@
+{
+  "//": "Fáze 18: hlavní menu, pauza, obrazovka smrti, nastavení (src/core/GameFlow.ts, src/ui/MenuOverlay.ts, src/ui/MenuPages.ts, src/core/Settings.ts). Vzhled panelu bere progression.json → screen (písma, barvy, blur) a doplňuje ho 'layout' (px). settings = rozsahy a výchozí hodnoty nastavení (localStorage pod settings.storageKey): mouseSensitivity = násobič player.json → camera.mouseSensitivity, volume = násobič sounds.json → masterVolume (0–1), quality = předvolba z qualityOptions (auto = automatická volba; předvolby zapíná fáze 21). legacyUrl = odkaz na starou hru (na GitHub Pages leží pod /legacy/). texts = všechny texty menu; {value}, {label} a {count} jsou zástupné hodnoty.",
+  "settings": {
+    "storageKey": "malgym2066.settings",
+    "version": 1,
+    "mouseSensitivity": { "default": 1, "min": 0.25, "max": 3, "step": 0.05 },
+    "volume": { "default": 0.8, "min": 0, "max": 1, "step": 0.05 },
+    "invertY": false,
+    "quality": "auto"
+  },
+  "qualityOptions": ["auto", "low", "medium", "high"],
+  "legacyUrl": "legacy/index.html",
+  "layout": {
+    "width": 620,
+    "wideWidth": 900,
+    "itemSize": 26,
+    "itemGap": 8,
+    "noteSize": 14,
+    "rowSize": 16,
+    "tableSize": 12,
+    "tableHeight": 200,
+    "sliderWidth": 240,
+    "selectedMarker": "◆",
+    "focusMarker": "▶"
+  },
+  "texts": {
+    "loading": "Načítám školu…",
+    "back": "← ZPĚT",
+    "main": {
+      "kicker": "MALGYM 2066 · MALOSTRANSKÉ GYMNÁZIUM",
+      "title": "Poslední",
+      "titleAccent": "zvonění.",
+      "lead": "Rok 2066. Roboti obsadili školu. Ty máš vodní pistolku a cestu ven.",
+      "items": {
+        "newGame": "NOVÁ HRA",
+        "continue": "POKRAČOVAT",
+        "settings": "NASTAVENÍ",
+        "quality": "KVALITA",
+        "controls": "OVLÁDÁNÍ",
+        "credits": "ZDROJE"
+      },
+      "continueFrom": "od checkpointu: {label}",
+      "noCheckpoint": "zatím žádný checkpoint",
+      "checkpointLabels": { "start": "start", "red": "červený klíč", "yellow": "žlutý klíč", "blue": "modrý klíč" }
+    },
+    "pause": {
+      "kicker": "PAUZA",
+      "title": "Přestávka.",
+      "lead": "Tvoje hra je pozastavená.",
+      "items": {
+        "resume": "ZPÁTKY DO HRY →",
+        "settings": "NASTAVENÍ",
+        "controls": "OVLÁDÁNÍ",
+        "mainMenu": "HLAVNÍ MENU"
+      },
+      "note": "Z hlavního menu se pokračuje od posledního checkpointu."
+    },
+    "death": {
+      "kicker": "KONEC VYUČOVÁNÍ",
+      "title": "Tohle",
+      "titleAccent": "nevyšlo.",
+      "lead": "Roboti tě dostali. Zkus to znovu od posledního checkpointu.",
+      "labels": { "checkpoint": "Checkpoint", "time": "Čas", "deaths": "Návraty na checkpoint" },
+      "button": "ZKUSIT ZNOVU →"
+    },
+    "settings": {
+      "kicker": "MYŠ A ZVUK",
+      "title": "Nastavení",
+      "lead": "Ukládá se v tomto prohlížeči a platí hned.",
+      "labels": { "mouseSensitivity": "Citlivost myši", "volume": "Hlasitost", "invertY": "Obrácená osa Y" },
+      "sensitivityValue": "{value}×",
+      "volumeValue": "{value} %",
+      "on": "ZAPNUTO",
+      "off": "VYPNUTO"
+    },
+    "quality": {
+      "kicker": "PŘEDVOLBY GRAFIKY",
+      "title": "Kvalita",
+      "titleAccent": "obrazu",
+      "lead": "Automaticky vybere předvolbu podle grafické karty a prvních vteřin hry. Volba se uloží.",
+      "options": {
+        "auto": "AUTOMATICKY",
+        "low": "NÍZKÉ",
+        "medium": "STŘEDNÍ",
+        "high": "VYSOKÉ"
+      },
+      "details": {
+        "auto": "podle výkonu tohoto počítače",
+        "low": "bez SSAO a bloomu, hustší mlha, nižší rozlišení",
+        "medium": "bloom a mlha, méně stínů a částic",
+        "high": "všechno zapnuté, stíny, částice v plném počtu"
+      }
+    },
+    "controls": {
+      "kicker": "KLÁVESNICE A MYŠ",
+      "title": "Jak se",
+      "titleAccent": "to hraje",
+      "rows": [
+        { "keys": "W A S D", "action": "Chůze dopředu, doleva, dozadu a doprava" },
+        { "keys": "Myš", "action": "Rozhlížení a míření" },
+        { "keys": "Shift", "action": "Sprint" },
+        { "keys": "Mezerník", "action": "Skok" },
+        { "keys": "Levé tlačítko", "action": "Střelba (railgun: podrž a nabij)" },
+        { "keys": "R", "action": "Nabít" },
+        { "keys": "1–6 / kolečko", "action": "Výběr zbraně" },
+        { "keys": "E", "action": "Osvobodit učitele, otevřít nebo zavřít dveře" },
+        { "keys": "Stisk kolečka", "action": "Otevřít nebo zavřít dveře" },
+        { "keys": "1–4", "action": "Odpověď v kvízu" },
+        { "keys": "Esc", "action": "Pauza a uvolnění kurzoru" },
+        { "keys": "M", "action": "Zvuk zapnout nebo vypnout" }
+      ],
+      "note": "Hra je pro počítač s klávesnicí a myší. Pokud prohlížeč neuzamkne kurzor, rozhlížej se běžným pohybem myši; pro neomezené otáčení otevři hru v samostatné kartě."
+    },
+    "credits": {
+      "kicker": "ASSETS.MD · LICENCE",
+      "title": "Zdroje",
+      "titleAccent": "a díky.",
+      "lead": "Budova, roboti, učitelé, zbraně i zvuky vznikají v kódu. Všechno převzaté je v tabulce (ASSETS.md).",
+      "thanks": [
+        "Díky Malostranskému gymnáziu za 3D prohlídku školy, ze které je půdorys, textury i výhled na Prahu.",
+        "Textury doplňuje Poly Haven (CC0). Hra stojí na Babylon.js (Apache-2.0), Havoku (MIT), Recast Navigation (MIT) a Yuce (MIT)."
+      ],
+      "columns": { "file": "Soubor", "source": "Zdroj", "license": "Licence" },
+      "count": "{count} položek",
+      "legacy": "STARÁ VERZE „POSLEDNÍ ZVONĚNÍ“ →"
+    }
+  }
+}

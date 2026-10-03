@@ -47,6 +47,8 @@ export interface LevelGameplayOptions {
   intro?: boolean;
   /** Continue from the stored checkpoint (`?continue=1`, the menu's „Pokračovat“). */
   resume?: boolean;
+  /** The main menu decides how the run starts (phase 18): `LevelProgress` waits for `begin` / `continueStored`. */
+  deferStart?: boolean;
   /** Robot count delta of the difficulty (phase 17); default `data/progression.json → countDelta`. */
   countDelta?: number;
   /** Name of the difficulty for the level-end screen (phase 17); default `texts.json → levelEnd.difficulty`. */
@@ -214,7 +216,7 @@ export class LevelGameplay {
     const progress = new LevelProgress(
       game,
       { player, inventory, weapons, hud, doors, pickups, teachers, quiz, enemies: robots, stations },
-      { intro: options.intro === true, resume: options.resume === true },
+      { intro: options.intro === true, resume: options.resume === true, deferred: options.deferStart === true },
       options.difficultyName ?? null,
     );
     return { ...furniture, quiz, teachers, stations, progress };

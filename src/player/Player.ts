@@ -3,6 +3,7 @@ import type { Observer } from "@babylonjs/core/Misc/observable";
 import type { Scene } from "@babylonjs/core/scene";
 import type { Game } from "../core/Game";
 import type { Physics } from "../core/Physics";
+import { Settings, type SettingsValues } from "../core/Settings";
 import { TestHooks } from "../core/TestHooks";
 import { DamageOverlay } from "../ui/DamageOverlay";
 import { PlayerCamera } from "./PlayerCamera";
@@ -73,6 +74,7 @@ export class Player {
 
   private readonly removeSystem: () => void;
   private readonly frameObserver: Observer<Scene>;
+  private readonly settingsObserver: Observer<SettingsValues>;
   private readonly interpolatedFeet = Vector3.Zero();
   private deathCount = 0;
 
@@ -94,6 +96,10 @@ export class Player {
       this.overlay.flash(amount);
     });
     this.health.onDeath.add(() => this.deathCount++);
+    // Mouse sensitivity and invert Y from the menu settings (phase 18), also when they change mid-game.
+    const settings = Settings.shared();
+    this.applySettings(settings.values);
+    this.settingsObserver = settings.onChanged.add((values) => this.applySettings(values));
 
     this.removeSystem = game.addSystem(this.controller);
     this.frameObserver = game.scene.onBeforeRenderObservable.add(() => this.frame());
@@ -132,10 +138,16 @@ export class Player {
   dispose(): void {
     this.removeSystem();
     this.game.scene.onBeforeRenderObservable.remove(this.frameObserver);
+    Settings.shared().onChanged.remove(this.settingsObserver);
     this.controller.dispose();
     this.camera.dispose();
     this.health.dispose();
     this.overlay.dispose();
+  }
+
+  private applySettings(values: SettingsValues): void {
+    this.camera.lookScale = values.mouseSensitivity;
+    this.camera.invertY = values.invertY;
   }
 
   private frame(): void {

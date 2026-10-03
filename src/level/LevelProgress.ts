@@ -43,6 +43,11 @@ export interface ProgressOptions {
   intro: boolean;
   /** Continue from the stored checkpoint (the menu's „Pokračovat“, `?continue=1`); without one it starts anew. */
   resume: boolean;
+  /**
+   * Wait for the menu (phase 18): no start checkpoint, no story screen and no clock until `begin()` or
+   * `continueStored()`, so opening the main page never overwrites the stored checkpoint.
+   */
+  deferred?: boolean;
 }
 
 /** `window.__game.progress` — checkpoints, statistics, the story and level-end screens. */
@@ -61,6 +66,8 @@ export interface ProgressTestApi {
   readonly ended: boolean;
   /** Level started from a stored checkpoint. */
   readonly resumed: boolean;
+  /** The run has started (false while the main menu waits in front of a fresh level, phase 18). */
+  readonly begun: boolean;
   intro: { readonly visible: boolean; view: () => Record<string, string>; dismiss: () => void };
   end: { readonly visible: boolean; view: () => Record<string, string> };
 }
@@ -91,6 +98,11 @@ export class LevelProgress {
   private restoreCount = 0;
   private endedFlag = false;
   private resumedFlag = false;
+  private begunFlag = false;
+  /** Replaces the automatic restore after death (the death screen, phase 18). */
+  private deathHandler: (() => void) | null = null;
+  /** Replaces the reload behind „HRÁT ZNOVU“ on the end screen (the menu flow, phase 18). */
+  private playAgainHandler: (() => void) | null = null;
 
   constructor(
     private readonly game: Game,
@@ -120,17 +132,67 @@ export class LevelProgress {
     parts.doors.onOpened.add((door) => this.onDoorOpened(door));
     this.removeSystem = game.addSystem({ update: (dt) => this.update(dt) });
 
-    const stored = options.resume ? this.checkpoint.load() : null;
-    if (stored !== null) {
-      this.apply(stored);
-      this.stats.resume(stored.stats, stored.stats.timeSeconds, stored.stats.deaths);
-      this.checkpoint.save(stored);
-      this.resumedFlag = true;
-    } else {
-      this.save(START_LABEL);
+    if (options.deferred !== true) {
+      if (!(options.resume && this.continueStored())) this.begin(options.intro);
+      else if (options.intro) this.showIntro();
     }
-    if (options.intro) this.showIntro();
     this.registerTestHooks();
+  }
+
+  /** The run has started (`begin` or `continueStored`). */
+  get begun(): boolean {
+    return this.begunFlag;
+  }
+
+  /** The story screen is open. */
+  get introVisible(): boolean {
+    return this.introScreen.visible;
+  }
+
+  /** The level-end screen is open. */
+  get endVisible(): boolean {
+    return this.endScreen.visible;
+  }
+
+  /** Label of the stored checkpoint (`start`, `red`, …), or null (the menu's „Pokračovat“). */
+  get storedLabel(): string | null {
+    return this.checkpoint.load()?.label ?? null;
+  }
+
+  /** A new run on this (fresh) level: start checkpoint, optionally the story screen. */
+  begin(intro: boolean): void {
+    this.begunFlag = true;
+    this.save(START_LABEL);
+    if (intro) this.showIntro();
+  }
+
+  /** Continues from the stored checkpoint (in place); false when there is none. */
+  continueStored(): boolean {
+    const stored = this.checkpoint.load();
+    if (stored === null) return false;
+    this.restoreTimer = null;
+    this.introScreen.hide();
+    this.apply(stored);
+    this.stats.resume(stored.stats, stored.stats.timeSeconds, stored.stats.deaths);
+    this.checkpoint.save(stored);
+    this.resumedFlag = true;
+    this.begunFlag = true;
+    return true;
+  }
+
+  /** Called when the restore after death is due instead of restoring at once (the death screen calls `restore`). */
+  setDeathHandler(handler: (() => void) | null): void {
+    this.deathHandler = handler;
+  }
+
+  /** Called by „HRÁT ZNOVU“ on the end screen (after it closes) instead of reloading the page. */
+  setPlayAgainHandler(handler: (() => void) | null): void {
+    this.playAgainHandler = handler;
+  }
+
+  /** The current checkpoint's label (in memory or stored), or null. */
+  get checkpointLabel(): string | null {
+    return this.checkpoint.current?.label ?? null;
   }
 
   get ended(): boolean {
@@ -164,11 +226,17 @@ export class LevelProgress {
   }
 
   private update(dt: number): void {
-    if (this.endedFlag) return;
+    if (this.endedFlag || !this.begunFlag) return;
     this.stats.tick(dt);
     if (this.restoreTimer !== null) {
       this.restoreTimer -= dt;
-      if (this.restoreTimer <= 0) this.restore();
+      if (this.restoreTimer > 0) return;
+      if (this.deathHandler === null) {
+        this.restore();
+      } else {
+        this.restoreTimer = null;
+        this.deathHandler();
+      }
       return;
     }
     // After a key: saved on the next step, once every reward of the teacher is in the inventory.
@@ -264,8 +332,13 @@ export class LevelProgress {
     if (trusted) void this.game.input.requestPointerLock();
   }
 
-  /** A new game from the start (the menu, phase 18, will take over). */
+  /** A new game from the start: the menu flow when there is one (phase 18), else the page without `?continue`. */
   private playAgain(): void {
+    if (this.playAgainHandler !== null) {
+      this.endScreen.hide();
+      this.playAgainHandler();
+      return;
+    }
     const url = new URL(window.location.href);
     url.searchParams.delete("continue");
     window.location.assign(url.toString());
@@ -298,6 +371,9 @@ export class LevelProgress {
       },
       get resumed() {
         return progress.resumedFlag;
+      },
+      get begun() {
+        return progress.begunFlag;
       },
       intro: {
         get visible() {

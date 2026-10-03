@@ -38,6 +38,10 @@ export class PlayerCamera {
   private bobWeight = 0;
   private landingOffset = 0;
   private landingVelocity = 0;
+  /** Player setting (phase 18): multiplies `mouseSensitivity`. */
+  lookScale = 1;
+  /** Player setting (phase 18): moving the mouse up looks down. */
+  invertY = false;
   /** Hit shake and other shakes (robot death, phase 5), capped at `maxShakeOffset`. */
   readonly shake: ScreenShake;
 
@@ -66,7 +70,9 @@ export class PlayerCamera {
 
   /** Applies mouse movement in pixels. */
   look(delta: LookDelta): void {
-    this.setAngles(this.yawAngle + delta.x * this.data.mouseSensitivity, this.pitchAngle + delta.y * this.data.mouseSensitivity);
+    const sensitivity = this.data.mouseSensitivity * this.lookScale;
+    const vertical = this.invertY ? -delta.y : delta.y;
+    this.setAngles(this.yawAngle + delta.x * sensitivity, this.pitchAngle + vertical * sensitivity);
   }
 
   setAngles(yaw: number, pitch: number): void {
