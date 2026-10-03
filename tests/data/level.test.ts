@@ -22,7 +22,7 @@ interface Landmark {
   id: string;
   floor: number;
   px: [number, number];
-  ref: { stair?: string; room?: string; door?: string; corner?: "min" | "max" };
+  ref: { stair?: string; room?: string; door?: string; corner?: "min" | "max"; side?: "x0" | "x1" | "z0" | "z1" };
 }
 const landmarks = JSON.parse(readFileSync("tools/level-landmarks.json", "utf8")) as { toleranceM: number; landmarks: Landmark[] };
 
@@ -260,6 +260,15 @@ test("landmarks measured in floorplan pixels match level.json", () => {
     const x = lm.px[0] / ppm;
     const z = lm.px[1] / ppm;
     let actual: { x: number; z: number };
+    if (lm.ref.side) {
+      // A single wall line: compare only the coordinate across the wall.
+      const side = lm.ref.side;
+      const wall = roomOf(lm.ref.room!).rect[side];
+      const measured = side === "x0" || side === "x1" ? x : z;
+      const error = Math.abs(wall - measured);
+      assert.ok(error <= landmarks.toleranceM, `${lm.id}: ${lm.ref.room} ${side} is ${error.toFixed(2)} m off (plan ${measured.toFixed(2)}, data ${wall})`);
+      continue;
+    }
     if (lm.ref.door) {
       const door = q.door(lm.ref.door)!;
       actual = { x: door.x, z: door.z };
