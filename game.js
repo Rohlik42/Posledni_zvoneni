@@ -135,17 +135,21 @@ textSign('← VCHOD   |   JÍDELNA →',4.5,.45,[64,3.1,32.4]);
 // Batch fixed geometry by material to keep the enlarged school inexpensive to draw.
 const staticGroups=new Map();for(const m of scene.meshes.slice()){if(m.parent||!m.material)continue;const key=m.material.uniqueId+':'+!!m.metadata?.solid;const group=staticGroups.get(key)||[];group.push(m);staticGroups.set(key,group);}
 for(const group of staticGroups.values())if(group.length>1){const solid=!!group[0].metadata?.solid;group.forEach(m=>m.computeWorldMatrix(true));const merged=B.Mesh.MergeMeshes(group,true,true);if(merged){merged.name='school static geometry';merged.isPickable=solid;merged.metadata=solid?{solid:true}:null;merged.receiveShadows=true;merged.freezeWorldMatrix();}}
-const studentTypes={
- normal:{name:'Normální žák',damage:1,speed:1,color:'#65a8ee'},
- troublemaker:{name:'Školní zlobivec',damage:1.25,speed:.8,color:'#ed7864'},
- nerd:{name:'Šprt',damage:.8,speed:1.5,color:'#b596e5'}
+const difficulties={
+ baby:{name:'Mimino',incoming:.5,health:.65,speed:.65,pace:1.5,extra:-1,food:5,drink:4,foundFood:8,foundDrink:6},
+ schoolkid:{name:'Školáček',incoming:.75,health:.85,speed:.8,pace:1.2,extra:0,food:4,drink:3,foundFood:7,foundDrink:5},
+ truant:{name:'Záškoláček',incoming:1,health:1,speed:1,pace:1,extra:0,food:3,drink:2,foundFood:6,foundDrink:4},
+ rascal:{name:'Raubíř',incoming:1.3,health:1.25,speed:1.2,pace:.8,extra:2,food:2,drink:1,foundFood:4,foundDrink:3},
+ ultra:{name:'Ultrašprt',incoming:1.65,health:1.5,speed:1.4,pace:.65,extra:4,food:1,drink:1,foundFood:2,foundDrink:2}
 };
-let studentChoice='normal';
-const studentClothes=material('student clothes',studentTypes.normal.color);
-function currentStudent(){return studentTypes[started&&!dead?player.student:studentChoice]}
-function weaponDamage(w){return Math.round(w.damage*currentStudent().damage)}
-function updateStudentChoice(){ $('#student-choice').disabled=started&&!dead; }
-for(const input of document.querySelectorAll('input[name="student"]'))input.addEventListener('change',()=>{if(started&&!dead)return;studentChoice=input.value;hud()});
+let difficultyChoice='truant';
+const studentClothes=material('player clothes','#65a8ee');
+function currentDifficulty(){return difficulties[started&&!dead?player.difficulty:difficultyChoice]}
+function weaponDamage(w){return w.damage}
+function incomingDamage(amount){return Math.round(amount*currentDifficulty().incoming)}
+function teacherHealth(){return Math.round((65+day*10)*currentDifficulty().health)}
+function updateDifficultyChoice(){ $('#difficulty-choice').disabled=started&&!dead; }
+for(const input of document.querySelectorAll('input[name="difficulty"]'))input.addEventListener('change',()=>{if(started&&!dead)return;difficultyChoice=input.value;hud()});
 const weapons=[{name:'Tužka',damage:18,delay:.25,range:25,desc:'HOD • 18 DMG'},{name:'Pero',damage:32,delay:.48,range:30,desc:'HOD • 32 DMG'},{name:'Nůžky',damage:55,delay:.65,range:3.1,desc:'ZBLÍZKA • 55 DMG'},{name:'Kružítko',damage:42,delay:.7,range:20,desc:'HOD • 42 DMG'}];
 $('#weapons').innerHTML=weapons.map((w,i)=>`<div class="slot" id="slot${i}">${i+1}<strong>${w.name}</strong><small>${w.desc}</small></div>`).join('');
 const hand=new B.TransformNode('hand',scene);hand.parent=camera;hand.position.set(.36,-.32,.65);
@@ -166,7 +170,7 @@ const body=new B.TransformNode('player body',scene),legs=[];box('your shirt',[.4
 for(const side of [-1,1]){const leg=new B.TransformNode('your leg',scene);leg.parent=body;leg.position.set(side*.13,.75,-.1);box('trousers',[.18,.61,.18],[0,-.305,0],mat.pants,leg);box('shoe',[.21,.14,.36],[0,-.68,.09],mat.shoe,leg);legs.push(leg);}
 let player,teachers=[],shots=[],pickups=[],hp=150,food=3,drink=2,day=1,kills=0,selected=0,active=false,started=false,fallback=false,dead=false,cooldown=0,swing=0,hit=0,flash=0,notice=0,nextDay=0,time=0;
 function toast(text){$('#toast').textContent=text;notice=2.6}
-function hud(){ updateStudentChoice();$('#student-active').textContent=currentStudent().name; $('#hpText').textContent=`${Math.ceil(hp)} / 150`;$('#hp').style.width=hp/150*100+'%';$('#hp').style.background=hp<50?'#ff7580':'#a5ed63';$('#food').textContent=food;$('#drink').textContent=drink;$('#day').textContent=String(day).padStart(2,'0');$('#wave').textContent=`UČITELÉ: ${teachers.filter(t=>t.hp>0).length} • PŘEŽIJ VYUČOVÁNÍ`;weapons.forEach((w,i)=>{$('#slot'+i).classList.toggle('active',i===selected);weaponModels[i].setEnabled(i===selected);$('#slot'+i+' small').textContent=w.desc.replace(/\d+ DMG/,weaponDamage(w)+' DMG')})}
+function hud(){ updateDifficultyChoice();$('#difficulty-active').textContent='Obtížnost: '+currentDifficulty().name;$('#note-damage').textContent='! POZNÁMKA · '+incomingDamage(100)+' DMG'; $('#hpText').textContent=`${Math.ceil(hp)} / 150`;$('#hp').style.width=hp/150*100+'%';$('#hp').style.background=hp<50?'#ff7580':'#a5ed63';$('#food').textContent=food;$('#drink').textContent=drink;$('#day').textContent=String(day).padStart(2,'0');$('#wave').textContent=`UČITELÉ: ${teachers.filter(t=>t.hp>0).length} • PŘEŽIJ VYUČOVÁNÍ`;weapons.forEach((w,i)=>{$('#slot'+i).classList.toggle('active',i===selected);weaponModels[i].setEnabled(i===selected);$('#slot'+i+' small').textContent=w.desc.replace(/\d+ DMG/,weaponDamage(w)+' DMG')})}
 function blocked(x,z,r=.28){for(const dx of [-r,r])for(const dz of [-r,r])if(map[Math.floor((z+dz)/CELL)]?.[Math.floor((x+dx)/CELL)]!=='0')return true;return obstacles.some(o=>Math.abs(x-o.x)<o.rx+r&&Math.abs(z-o.z)<o.rz+r)||doors.some(d=>!d.open&&Math.abs(x-d.x)<(d.vertical?.1:1.1)+r&&Math.abs(z-d.z)<(d.vertical?1.1:.1)+r)}
 function move(o,dx,dz){if(!blocked(o.x+dx,o.z))o.x+=dx;if(!blocked(o.x,o.z+dz))o.z+=dz}
 function visible(from,to){const delta=to.subtract(from),d=delta.length();return !scene.pickWithRay(new B.Ray(from,delta.normalize(),d),m=>m.isEnabled()&&!!m.metadata?.solid).hit}
@@ -202,7 +206,7 @@ function teacherNameplate(profile){
 function createTeacher(x,z,index){
  const root=new B.TransformNode('teacher',scene),jacket=material('jacket '+index,['#8373bc','#d38d64','#5b9990'][index%3]);root.position.set(x,0,z);
  const profile=teacherRoster[index%teacherRoster.length];
- const t={root,x,z,profile,nameplate:teacherNameplate(profile),hp:65+day*10,max:65+day*10,cool:2+Math.random()*2,wind:0,grade:1,pathTime:0,walk:0};
+ const t={root,x,z,profile,nameplate:teacherNameplate(profile),hp:teacherHealth(),max:teacherHealth(),cool:(2+Math.random()*2)*currentDifficulty().pace,wind:0,grade:1,pathTime:0,walk:0};
  const target=mesh=>{mesh.isPickable=true;mesh.metadata={teacher:t};shadows.addShadowCaster(mesh);return mesh};
  target(box('jacket',[.65,.7,.34],[0,1.05,0],jacket,root));target(sphere('head',.48,[0,1.7,0],mat.skin,root));sphere('hair',.48,[0,1.8,-.035],mat.hair,root);
  box('shirt',[.19,.45,.025],[0,1.17,.182],mat.white,root);box('tie',[.07,.38,.03],[0,1.12,.2],mat.trim,root);
@@ -230,16 +234,16 @@ function updateGhost(t,dt){
 function spawnPickup(x,z,type){const root=new B.TransformNode('supply',scene);root.position.set(x,.5,z);if(type==='food'){box('bread',[.45,.12,.3],[0,0,0],mat.bread,root);box('filling',[.49,.04,.32],[0,.08,0],mat.lettuce,root);box('bread',[.45,.12,.3],[0,.15,0],mat.bread,root)}else{cylinder('bottle',.42,.2,[0,.15,0],mat.water,root);cylinder('cap',.06,.12,[0,.4,0],mat.blue,root)}return {root,x,z,type};}
 function clearEntities(){for(const item of [...teachers,...shots,...pickups]){item.root.dispose();item.nameplate?.dispose();}teachers=[];shots=[];pickups=[];}
 function spawnDay(){
- clearEntities();for(let i=0;i<Math.min(3+day,12);i++){
+ clearEntities();for(let i=0;i<Math.max(2,Math.min(3+day+currentDifficulty().extra,12));i++){
  const profile=teacherRoster[i%teacherRoster.length],room=rooms.find(r=>r.subject===profile.subject);
  const x=(room.doorX+.5)*CELL+(i>=8?.9:0),z=room.z1===1?(room.z2+.1)*CELL:(room.z1+1.3)*CELL;
  const t=createTeacher(x,z,i);t.home=room;teachers.push(t);
  }
- pickups=[];for(let i=0;i<6;i++)pickups.push(spawnPickup(cafeteria.x1*CELL+6+i*3,(cafeteria.z2+1)*CELL-3.3,'food'));
- for(let i=0;i<4;i++)pickups.push(spawnPickup(cafeteria.x1*CELL+25+i*2,(cafeteria.z2+1)*CELL-3.3,'drink'));
+ pickups=[];for(let i=0;i<currentDifficulty().foundFood;i++)pickups.push(spawnPickup(cafeteria.x1*CELL+6+i*3,(cafeteria.z2+1)*CELL-3.3,'food'));
+ for(let i=0;i<currentDifficulty().foundDrink;i++)pickups.push(spawnPickup(cafeteria.x1*CELL+25+i*2,(cafeteria.z2+1)*CELL-3.3,'drink'));
  toast('DEN '+day+' — prohledej učebny, zásoby jsou v jídelně.');hud();
 }
-function reset(){for(const d of doors){d.open=false;d.angle=0;d.leaf.metadata.solid=true;}updateDoors(1);player={x:6.25,z:30,y:0,vy:0,yaw:Math.PI/2,pitch:0,student:studentChoice};studentClothes.diffuseColor=B.Color3.FromHexString(studentTypes[studentChoice].color);hp=150;food=3;drink=2;day=1;kills=0;selected=0;cooldown=swing=hit=flash=nextDay=0;dead=false;spawnDay();syncView()}
+function reset(){for(const d of doors){d.open=false;d.angle=0;d.leaf.metadata.solid=true;}updateDoors(1);player={x:6.25,z:30,y:0,vy:0,yaw:Math.PI/2,pitch:0,difficulty:difficultyChoice};hp=150;food=difficulties[difficultyChoice].food;drink=difficulties[difficultyChoice].drink;day=1;kills=0;selected=0;cooldown=swing=hit=flash=nextDay=0;dead=false;spawnDay();syncView()}
 function hitTeacher(t,amount){
  if(t.hp<=0)return;t.hp-=amount;t.bar.scaling.x=Math.max(.001,t.hp/t.max);flash=.15;sound.play('impact');
  if(t.hp<=0){becomeGhost(t);kills++;toast('Duch učitele odlétá ke sborovně!');hud();}
@@ -262,26 +266,26 @@ function orientThrown(shot){
  shot.root.rotationQuaternion.copyFrom(flight.multiply(B.Quaternion.RotationAxis(B.Axis.X,spin)));
 }
 function useSupply(){if(!active)return;if(hp>=150){toast('Máš plné životy. Zásoby si schovej!');return}const type=150-hp>30?(food?'food':'drink'):(drink?'drink':'food');if((type==='food'?food:drink)<=0){toast('Zásoby došly! Prohledej školu.');return}const amount=Math.min(150-hp,type==='food'?50:30);if(type==='food')food--;else drink--;hp+=amount;sound.play(type);toast((type==='food'?'CHŘUP CHŘUP! Svačina':'GLO GLO GLO! Pití')+` +${amount} životů`);hud()}
-function damage(amount){sound.play('hurt');hp=Math.max(0,hp-amount);hit=.45;hud();if(hp===0){dead=true;active=false;updateStudentChoice();document.exitPointerLock?.();$('#overlay').style.display='flex';$('#intro').textContent=`Dokončené dny: ${day-1}. Učitelé ve sborovně: ${kills}.`;$('#start').textContent='ZKUSIT ZNOVU →'}}
+function damage(amount){sound.play('hurt');hp=Math.max(0,hp-incomingDamage(amount));hit=.45;hud();if(hp===0){dead=true;active=false;updateDifficultyChoice();document.exitPointerLock?.();$('#overlay').style.display='flex';$('#intro').textContent=`Dokončené dny: ${day-1}. Učitelé ve sborovně: ${kills}.`;$('#start').textContent='ZKUSIT ZNOVU →'}}
 // One flat, camera-facing visual per projectile: no intersecting paper or spinning parent.
 const gradeMaterials=new Map();
 const gradeColors={2:'#ffe348',3:'#ff9e32',4:'#ff652e',5:'#ff3348'};
 function gradeMaterial(grade){
- if(gradeMaterials.has(grade))return gradeMaterials.get(grade);
+ const key=grade+':'+currentDifficulty().incoming;if(gradeMaterials.has(key))return gradeMaterials.get(key);
  const note=grade===100,texture=new B.DynamicTexture('attack '+grade,{width:note?768:512,height:512},scene,true),c=texture.getContext();
  c.clearRect(0,0,note?768:512,512);c.textAlign='center';c.textBaseline='middle';
  if(note){
   c.fillStyle='#681b45';c.strokeStyle='#ffe18a';c.lineWidth=16;c.beginPath();c.roundRect(14,30,740,452,42);c.fill();c.stroke();
   c.fillStyle='#ffe18a';c.font='900 170px Arial';c.fillText('!',384,140);
   c.fillStyle='#ffffff';c.font='900 76px Arial';c.fillText('POZNÁMKA',384,285);
-  c.fillStyle='#ffe18a';c.font='bold 58px Arial';c.fillText('100 DMG',384,393);
+  c.fillStyle='#ffe18a';c.font='bold 58px Arial';c.fillText(incomingDamage(100)+' DMG',384,393);
  }else{
   c.font='900 420px Arial';c.lineJoin='round';c.lineWidth=28;c.strokeStyle='#392937';c.strokeText(String(grade),256,276);
   c.fillStyle=gradeColors[grade];c.fillText(String(grade),256,276);
  }
  texture.hasAlpha=true;texture.update();
  const m=new B.StandardMaterial('attack material '+grade,scene);m.diffuseTexture=texture;m.emissiveTexture=texture;m.diffuseColor=B.Color3.Black();m.emissiveColor=B.Color3.White();m.disableLighting=true;m.useAlphaFromDiffuseTexture=true;m.backFaceCulling=false;m.specularColor=B.Color3.Black();
- gradeMaterials.set(grade,m);return m;
+ gradeMaterials.set(key,m);return m;
 }
 function fireGrade(t){
  if(!visible(new B.Vector3(t.x,1.15,t.z),new B.Vector3(player.x,1+player.y,player.z)))return;
@@ -292,10 +296,10 @@ function fireGrade(t){
 }
 function update(dt){time+=dt;updateDoors(dt);cooldown=Math.max(0,cooldown-dt);swing=Math.max(0,swing-dt*5);hit=Math.max(0,hit-dt);flash=Math.max(0,flash-dt);notice-=dt;if(notice<0)$('#toast').textContent='';
  if(player.y>0||player.vy>0){player.vy-=12*dt;player.y=Math.max(0,player.y+player.vy*dt);if(player.y===0)player.vy=0}
- const f=Number(keys.has('KeyW'))-Number(keys.has('KeyS')),s=Number(keys.has('KeyD'))-Number(keys.has('KeyA')),len=Math.hypot(f,s)||1,speed=(keys.has('ShiftLeft')||keys.has('ShiftRight')?6.5:4)*currentStudent().speed*dt;
+ const f=Number(keys.has('KeyW'))-Number(keys.has('KeyS')),s=Number(keys.has('KeyD'))-Number(keys.has('KeyA')),len=Math.hypot(f,s)||1,speed=(keys.has('ShiftLeft')||keys.has('ShiftRight')?6.5:4)*dt;
  move(player,(Math.sin(player.yaw)*f+Math.cos(player.yaw)*s)/len*speed,(Math.cos(player.yaw)*f-Math.sin(player.yaw)*s)/len*speed);
- for(const t of teachers){if(t.hp<=0){if(t.ghost)updateGhost(t,dt);continue;}const d=Math.hypot(t.x-player.x,t.z-player.z),los=visible(new B.Vector3(t.x,1.4,t.z),new B.Vector3(player.x,1.4+player.y,player.z));t.pathTime-=dt;if(t.pathTime<=0){t.path=route(t);t.pathTime=.55}if(d>5){const aim=los?player:t.path,dx=aim.x-t.x,dz=aim.z-t.z,l=Math.hypot(dx,dz)||1,v=(1.3+Math.min(day,12)*.09)*dt;move(t,dx/l*v,dz/l*v);t.walk+=dt*6}t.root.position.set(t.x,Math.sin(t.walk)*.018,t.z);t.root.rotation.y=Math.atan2(player.x-t.x,player.z-t.z);t.cool-=dt;
-  if(t.wind>0){t.wind-=dt;if(t.wind<=0){if(los)fireGrade(t);t.label.setEnabled(false);t.cool=2.2+Math.random()*1.8}}else if(t.cool<=0&&los&&d<28){t.grade=Math.random()<.16?100:2+Math.floor(Math.random()*4);t.wind=t.grade===100?1.4:.65;t.label.setEnabled(true);if(t.grade===100)toast('POZOR! Učitel píše poznámku!')}
+ for(const t of teachers){if(t.hp<=0){if(t.ghost)updateGhost(t,dt);continue;}const d=Math.hypot(t.x-player.x,t.z-player.z),los=visible(new B.Vector3(t.x,1.4,t.z),new B.Vector3(player.x,1.4+player.y,player.z));t.pathTime-=dt;if(t.pathTime<=0){t.path=route(t);t.pathTime=.55}if(d>5){const aim=los?player:t.path,dx=aim.x-t.x,dz=aim.z-t.z,l=Math.hypot(dx,dz)||1,v=(1.3+Math.min(day,12)*.09)*currentDifficulty().speed*dt;move(t,dx/l*v,dz/l*v);t.walk+=dt*6}t.root.position.set(t.x,Math.sin(t.walk)*.018,t.z);t.root.rotation.y=Math.atan2(player.x-t.x,player.z-t.z);t.cool-=dt;
+  if(t.wind>0){t.wind-=dt;if(t.wind<=0){if(los)fireGrade(t);t.label.setEnabled(false);t.cool=(2.2+Math.random()*1.8)*currentDifficulty().pace}}else if(t.cool<=0&&los&&d<28){t.grade=Math.random()<.16?100:2+Math.floor(Math.random()*4);t.wind=(t.grade===100?1.4:.65)*currentDifficulty().pace;t.label.setEnabled(true);if(t.grade===100)toast('POZOR! Učitel píše poznámku!')}
  }
  for(const shot of shots){
  shot.life-=dt;const pos=shot.root.position;

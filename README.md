@@ -10,7 +10,7 @@ Spuštění: `node server.cjs`, potom http://127.0.0.1:4173. Lze také otevřít
 - Mezerník: skok. Levý nebo pravý Shift: sprint. Stisk kolečka myši: otevřít/zavřít blízké dveře. Escape: pauza.
 - Pokud prohlížeč odmítne uzamčení kurzoru, hra přejde na rozhlížení pohybem běžného kurzoru. Pro neomezené otáčení použij samostatnou kartu v Chrome nebo Edge.
 
-Hráč má maximálně 150 životů. Známky 2–5 způsobují 20–50 poškození. Dvojka je žlutá, trojka oranžová, čtyřka oranžovočervená a pětka červená. Letí jako velká čitelná čísla. Poznámka je samostatný fialový odznak s vykřičníkem a textem POZNÁMKA / 100 DMG. Jedničky učitelé nehází. Učitelé útok oznámí vykřičníkem; poznámku také textovým upozorněním. Horizont zůstává vodorovný při každém směru pohledu. Zásah krátce posune kameru do stran bez jejího naklánění a zčervená okraje obrazovky.
+Hráč má maximálně 150 životů. Známky 2–5 způsobují základních 20–50 poškození, které násobí zvolená obtížnost. Dvojka je žlutá, trojka oranžová, čtyřka oranžovočervená a pětka červená. Letí jako velká čitelná čísla. Poznámka je samostatný fialový odznak s vykřičníkem a textem POZNÁMKA a aktuálním poškozením (základ je 100 DMG). Jedničky učitelé nehází. Učitelé útok oznámí vykřičníkem; poznámku také textovým upozorněním. Horizont zůstává vodorovný při každém směru pohledu. Zásah krátce posune kameru do stran bez jejího naklánění a zčervená okraje obrazovky.
 
 Po odeslání všech učitelů do sborovny začíná další den. Učitelé postupně sílí a přibývají. Další zásoby najdeš pouze v jídelně; při přechodu dne se v jídelně obnoví, do inventáře se samy nepřidávají. Učitelé hledají cestu mezi místnostmi po mřížce, na složitější obcházení nábytku lze jejich AI dále rozšířit.
 
@@ -24,9 +24,19 @@ Spusť `node update-assets.cjs` po změně souborů a commitni také aktualizova
 
 Samotné HTML může zůstat krátce v cache GitHub Pages. Pro okamžité načtení po dokončeném deployi použij Ctrl+F5 nebo otevři stránku s novým parametrem, například `?release=<commit>`. Již otevřená hra se během hraní sama nepřenačítá. Lokální server používá `Cache-Control: no-store`; na GitHub Pages tento lokální server neběží.
 
-## Typy žáků
+## Obtížnosti
 
-Před startem vybereš normálního žáka (síla i rychlost 100 %), školního zlobivce (poškození +25 %, rychlost −20 %) nebo šprta (poškození −20 %, rychlost +50 %). Všichni mají 150 životů a stejné zásoby. Bonus síly se vztahuje na všechny čtyři zbraně; výsledné poškození se zaokrouhluje na celé číslo a ukazuje ve zbraňových slotech. Rychlost mění chůzi i sprint na Shiftu. Výběr zůstává po celý pokus, během pauzy jej nelze měnit; po prohře lze vybrat jiného žáka. Typ žáka se zobrazuje ve hře a ovlivní také barvu rukávu a trička.
+Před startem vybíráš jednu z pěti obtížností v nabídce inspirované klasickými akčními hrami. Každá má vlastní původní SVG portrét a motto podle autorova návrhu; Ultrašprt místo motta ukazuje časově závislou Schrödingerovu rovnici. Výběr platí po celý pokus a po prohře jej lze změnit. Hráč má vždy 150 životů, stejnou rychlost i poškození zbraní.
+
+| Obtížnost | Příchozí poškození | Odolnost učitelů | Rychlost učitelů | Prodlevy útoků | Učitelé navíc | Počáteční svačiny / pití | Denní nálezy v jídelně |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Mimino | 50 % | 65 % | 65 % | 150 % | −1 | 5 / 4 | 8 / 6 |
+| Školáček | 75 % | 85 % | 80 % | 120 % | 0 | 4 / 3 | 7 / 5 |
+| Záškoláček | 100 % | 100 % | 100 % | 100 % | 0 | 3 / 2 | 6 / 4 |
+| Raubíř | 130 % | 125 % | 120 % | 80 % | +2 | 2 / 1 | 4 / 3 |
+| Ultrašprt | 165 % | 150 % | 140 % | 65 % | +4 | 1 / 1 | 2 / 2 |
+
+Záškoláček je výchozí obtížnost a zachovává původní vyvážení hry. Poškození se zaokrouhluje na celé životy. Odznak poznámky i legenda ukazují aktuální poškození podle obtížnosti.
 
 ## Zvuky, duchové a nové křídlo
 
@@ -36,7 +46,7 @@ Poražený učitel se promění v průsvitného ducha s očima a vlnícím se po
 
 Škola nyní zabírá 142,5 × 62,5 metru. Na severní straně hlavní chodby jsou učebny 101 Matematika, 102 Čeština, 103 Angličtina, 104 Zeměpis, 105 Dějepis, 106 Knihovna a sborovna. Na jižní straně jsou 201 Hudebka, 202 Výtvarka, 203 Tělocvična, velká jídelna se dvěma vstupy, 204 Fyzika a informatika, WC kluci a WC holky. Chodbu lemují skříňky mimo dveřní otvory.
 
-Jídelna má 37,5 × 25 metrů, jídelní stoly, lavičky a výdejní pult. Je jediným místem nálezů jídla a pití. Každý den je zde šest svačin a čtyři lahve; hráč nadále začíná se třemi svačinami a dvěma lahvemi. Učitelé se objevují pouze v učebně odpovídající svému předmětu; z otevřené učebny mohou hráče pronásledovat.
+Jídelna má 37,5 × 25 metrů, jídelní stoly, lavičky a výdejní pult. Je jediným místem nálezů jídla a pití. Počet denních nálezů a počátečních zásob určuje obtížnost podle tabulky výše. Učitelé se objevují pouze v učebně odpovídající svému předmětu; z otevřené učebny mohou hráče pronásledovat.
 
 Dveře ovládá stisk kolečka myši z blízkosti do 3,5 metru a obrazovka ukazuje název místnosti i nápovědu. Zavřené dveře blokují chůzi, výhled pro útok a oba typy střel. Při novém pokusu jsou opět zavřené. Vstupní dveře jsou na západním konci hlavní chodby. Okna jsou skutečné otvory se sklem na severní a jižní vnější stěně, za nimi jsou školní pozemky a stromy; sklo zastaví střely. Učitelé ověřují přímou viditelnost při přípravě i provedení útoku, letící známky kontrolují celý úsek pohybu proti překážkám. Zdi, zavřené dveře i nábytek je zastaví. Pevná geometrie je sloučena podle materiálu pro rychlejší vykreslení.
 
