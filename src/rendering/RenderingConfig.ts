@@ -25,7 +25,8 @@ export interface RenderingData {
     maxZ: number;
     base: number;
   };
-  fog: { enabled: boolean; mode: (typeof FOG_MODES)[number]; density: number; color: string };
+  /** `density` drives the exp/exp2 modes; `start`/`end` (m from the camera) the linear mode. */
+  fog: { enabled: boolean; mode: (typeof FOG_MODES)[number]; density: number; start: number; end: number; color: string };
 }
 
 const enabled = Schema.boolean();
@@ -56,12 +57,13 @@ export class RenderingConfig {
       maxZ: positive,
       base: unit,
     }),
-    fog: Schema.object({ enabled, mode: Schema.enumOf(FOG_MODES), density: positive, color: Schema.paletteRef() }),
+    fog: Schema.object({ enabled, mode: Schema.enumOf(FOG_MODES), density: positive, start: positive, end: positive, color: Schema.paletteRef() }),
   });
 
   /** A fresh, validated copy, so callers (quality presets) may override values without touching the shared data. */
   static load(): RenderingData {
     const data = DataLoader.parse<RenderingData>(RenderingConfig.file, renderingJson, RenderingConfig.schema);
+    if (data.fog.end <= data.fog.start) throw new Error(`${RenderingConfig.file}: fog.end (${data.fog.end}) must be greater than fog.start (${data.fog.start})`);
     return structuredClone(data);
   }
 }

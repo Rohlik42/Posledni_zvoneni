@@ -2,9 +2,11 @@ import type { Camera } from "@babylonjs/core/Cameras/camera";
 import type { AbstractEngine } from "@babylonjs/core/Engines/abstractEngine";
 import { UniversalCamera } from "@babylonjs/core/Cameras/universalCamera";
 import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
+import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { Observable } from "@babylonjs/core/Misc/observable";
 import { Scene } from "@babylonjs/core/scene";
+import { MatteDefaults } from "../rendering/MatteDefaults";
 import { PaletteColor } from "../rendering/PaletteColor";
 import { RenderPipeline } from "../rendering/RenderPipeline";
 import { EngineFactory, type RendererKind } from "./EngineFactory";
@@ -51,6 +53,8 @@ export class Game {
     // `Input` turns into fire / door / altFire. Mouse buttons are ours, so let the events through.
     scene.preventDefaultOnPointerDown = false;
     scene.preventDefaultOnPointerUp = false;
+    // Flat look: no specular highlights on any StandardMaterial (FEEDBACK 2026-10-03, „světlo u zdi“).
+    MatteDefaults.install(scene);
     this.fixedStepMs = MS_PER_SECOND / this.config.simulationHz;
     this.input = new Input(canvas);
     this.input.setStepper((ms) => this.step(ms));
@@ -144,7 +148,7 @@ export class Game {
     light.intensity = ambient.intensity;
     light.diffuse = PaletteColor.color3(ambient.sky);
     light.groundColor = PaletteColor.color3(ambient.ground);
-    light.specular = PaletteColor.color3(ambient.ground);
+    light.specular = Color3.Black();
     return light;
   }
 
