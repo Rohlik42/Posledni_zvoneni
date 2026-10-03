@@ -6,6 +6,7 @@ import type { Game } from "../core/Game";
 import type { Physics } from "../core/Physics";
 import { MaterialLibrary } from "../rendering/MaterialLibrary";
 import { PaletteColor } from "../rendering/PaletteColor";
+import { Skybox } from "../rendering/Skybox";
 import type { PaletteKey } from "../utils/Palette";
 import { GreyboxConfig, type GreyboxData } from "./GreyboxConfig";
 import { PieceList, type PieceSink } from "./GreyboxTypes";
@@ -61,6 +62,8 @@ export class LevelBuilder {
     };
     const geometry = StaticGeometry.build(scene, physics, pieces, resolve);
     game.addAmbientLight();
+    // The view out of every window (no per-window pictures).
+    Skybox.create(scene);
     const lights = level.lights.map((light) => {
       const room = layout.room(light.room);
       const position = LevelLayout.toWorld(light.x, layout.floorY(room) + light.height, light.z);
