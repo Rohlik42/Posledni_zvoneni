@@ -135,3 +135,8 @@ Zapracováno 2026-10-04 (nový model z primitiv 940 trojúhelníků podle bočn�
 - „Moc natočená, nevypadá, že míří dopředu. Nech normální natočení, pruhy tenčí a víc od sebe.“ Zapracováno 2026-10-04.
 - „Zhasnuté pruhy a předek zbraně jsou černočerné. Předek je spíš šedočerný žebrovaný plast a zhasnuté zelené pruhy mají být šedší, aby to vypadalo věrohodně.“ Zapracováno 2026-10-04 (zhasnutá žebra šedozelená, blok ústí šedý plast nad tmavším jádrem, rozsvícená žebra zůstala čistě zelená).
 - „Prostřední trubice je taky černočerná. Má být světlejší, třeba průsvitné sklo, a při nabíjení zelenat, 4 pruhy = nejzelenější.“ Zapracováno 2026-10-04 (mátová skleněná trubice s vláknem, zezelená o čtvrtinu za každé rozsvícené žebro).
+
+## 2026-10-04 — vodní pistolka pomaleji
+- „Kadence základní pistolky je moc rychlá. Ať střílí pomaleji, pořád je moc silná.“
+
+Zapracováno 2026-10-04 (kadence 6 → 3 výstřely/s při stejném poškození 4 na zásah, tedy polovina DPS: 24 → 12; humanoid na Záškoláčkovi padne za ~2,7 s místo ~1,3 s, zásobník 30 vydrží 10 s; ostatní zbraně beze změny, takže jsou proti pistolce větší upgrade; testy `weapons-data.test.ts`, `weapon.spec.ts`, `weapons-all.spec.ts`, `weapons-balance.spec.ts`, `playthrough.spec.ts`, `keyboard-only.spec.ts`, `arena.spec.ts`)

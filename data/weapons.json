@@ -20,7 +20,7 @@
       "kind": "hitscan",
       "damage": 4,
       "damageType": "water",
-      "fireRate": 6,
+      "fireRate": 3,
       "automatic": true,
       "range": 20,
       "spreadDeg": 0.6,
