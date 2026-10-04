@@ -14,6 +14,7 @@ export class LevelConfig {
   static readonly file = "data/level.json";
 
   static readonly schema: SchemaNode = Schema.object({
+    seed: Schema.integer({ min: 0 }),
     plan: Schema.object({ pxPerMeter: POSITIVE, imageWidth: Schema.integer(), imageHeight: Schema.integer(), source: Schema.string() }),
     floors: Schema.array(
       Schema.object({

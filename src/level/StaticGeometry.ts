@@ -19,6 +19,8 @@ const QUAD_INDICES = [0, 1, 2, 0, 2, 3];
 const COLLIDERS = "colliders";
 /** Hidden colliders left out of the navmesh (railing slabs). */
 const NON_NAVIGABLE_COLLIDERS = "railing-colliders";
+/** Name suffix of the merged meshes of unpickable pieces (generated details, phase 19). */
+const DETAIL_SUFFIX = ":detail";
 
 /** Meshes of one owner (room id). */
 export interface OwnerMeshes {
@@ -46,31 +48,43 @@ export class StaticGeometry {
 
   static build(scene: Scene, physics: Physics, pieces: PieceList, material: (id: string) => Material): StaticGeometry {
     const geometry = new StaticGeometry(scene);
-    type Group = { owner: string; material: string; boxes: BoxPiece[]; quads: QuadPiece[]; visible: boolean; collide: boolean; navigable: boolean };
+    type Group = {
+      owner: string;
+      material: string;
+      boxes: BoxPiece[];
+      quads: QuadPiece[];
+      visible: boolean;
+      collide: boolean;
+      navigable: boolean;
+      pickable: boolean;
+    };
     const groups = new Map<string, Group>();
-    const group = (owner: string, mat: string, visible: boolean, collide: boolean, navigable: boolean) => {
+    const group = (owner: string, mat: string, visible: boolean, collide: boolean, navigable: boolean, pickable: boolean) => {
       const hidden = navigable ? COLLIDERS : NON_NAVIGABLE_COLLIDERS;
-      const key = `${owner}|${visible ? mat : hidden}|${visible}|${collide}`;
+      const key = `${owner}|${visible ? mat : hidden}|${visible}|${collide}|${pickable}`;
       let entry = groups.get(key);
       if (entry === undefined) {
-        entry = { owner, material: visible ? mat : hidden, boxes: [], quads: [], visible, collide, navigable };
+        entry = { owner, material: visible ? mat : hidden, boxes: [], quads: [], visible, collide, navigable, pickable };
         groups.set(key, entry);
       }
       return entry;
     };
     for (const box of pieces.boxes) {
       // Colliders are navmesh input unless marked otherwise (railings); visible colliders do not exist after the resolver.
-      if (box.visible || box.collide) group(box.owner, box.material, box.visible, box.collide, box.visible || box.navigable !== false).boxes.push(box);
+      if (box.visible || box.collide) {
+        group(box.owner, box.material, box.visible, box.collide, box.visible || box.navigable !== false, box.pickable !== false).boxes.push(box);
+      }
     }
-    for (const quad of pieces.quads) group(quad.owner, quad.material, true, false, true).quads.push(quad);
+    for (const quad of pieces.quads) group(quad.owner, quad.material, true, false, true, quad.pickable !== false).quads.push(quad);
 
     for (const entry of groups.values()) {
       const data = [...entry.boxes.map((b) => StaticGeometry.boxData(b)), ...entry.quads.map((q) => StaticGeometry.quadData(q))];
       const merged = data[0]!;
       if (data.length > 1) merged.merge(data.slice(1), true);
-      const mesh = new Mesh(`level:${entry.owner}:${entry.material}`, scene);
+      const mesh = new Mesh(`level:${entry.owner}:${entry.material}${entry.pickable ? "" : DETAIL_SUFFIX}`, scene);
       merged.applyToMesh(mesh);
       mesh.freezeWorldMatrix();
+      if (!entry.pickable) mesh.isPickable = false;
       const owned = geometry.ownerMeshes(entry.owner);
       if (entry.visible) {
         const mat = material(entry.material);
@@ -145,7 +159,7 @@ export class StaticGeometry {
       for (const box of list) {
         const shape = new PhysicsShapeBox(
           new Vector3(box.center.x, box.center.y, box.center.z),
-          Quaternion.RotationYawPitchRoll(box.yaw ?? 0, box.pitch ?? 0, 0),
+          Quaternion.RotationYawPitchRoll(box.yaw ?? 0, box.pitch ?? 0, box.roll ?? 0),
           new Vector3(box.size.x, box.size.y, box.size.z),
           this.scene,
         );
@@ -164,7 +178,7 @@ export class StaticGeometry {
     const data = CreateBoxVertexData({ width: box.size.x, height: box.size.y, depth: box.size.z });
     const matrix = Matrix.Compose(
       Vector3.One(),
-      Quaternion.RotationYawPitchRoll(box.yaw ?? 0, box.pitch ?? 0, 0),
+      Quaternion.RotationYawPitchRoll(box.yaw ?? 0, box.pitch ?? 0, box.roll ?? 0),
       new Vector3(box.center.x, box.center.y, box.center.z),
     );
     data.transform(matrix);

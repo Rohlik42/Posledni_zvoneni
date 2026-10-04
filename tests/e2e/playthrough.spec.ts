@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import { ConsoleGuard } from "../support/ConsoleGuard";
+import { ShotPath } from "../support/ShotPath";
 import type { LevelData, RoutePoint } from "../../src/level/LevelTypes";
 
 // Phase 16: a scripted player plays the whole level on the main page (`/`), the game the human gets. The simulation is
@@ -726,6 +727,6 @@ test.describe.serial("playthrough of the level on the main page", () => {
     console.log(test.info().annotations.map((a) => a.description).join("\n"));
     // The end screen with the run's real numbers (time, kills, answers), for the handoff.
     await page.evaluate(() => window.__game!.step(1));
-    await page.screenshot({ path: "screenshots/16-level-end.png" });
+    await page.screenshot({ path: ShotPath.of("16-level-end.png") });
   });
 });

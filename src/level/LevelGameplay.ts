@@ -17,6 +17,7 @@ import { WeaponInventory } from "../weapons/WeaponInventory";
 import { WeaponStations } from "../weapons/WeaponStations";
 import { DoorSystem } from "./DoorSystem";
 import type { Level } from "./Level";
+import { LevelAtmosphere } from "./LevelAtmosphere";
 import { LevelBuilder } from "./LevelBuilder";
 import { LevelLayout } from "./LevelLayout";
 import { LevelProgress } from "./LevelProgress";
@@ -146,6 +147,8 @@ export class LevelGameplay {
     readonly game: GameParts | null,
     readonly difficulty: Difficulty,
     private readonly countDelta: number,
+    /** Flicker, fires, sparks, shadows, night environment and loose debris (phase 19). */
+    readonly atmosphere: LevelAtmosphere,
   ) {}
 
   static async create(game: Game, options: LevelGameplayOptions = {}): Promise<LevelGameplay> {
@@ -200,7 +203,8 @@ export class LevelGameplay {
         enemies?.respawnAll();
       });
     }
-    const gameplay = new LevelGameplay(level, navmesh, player, weapons, inventory, hud, doors, pickups, lighting, enemies, parts, difficulty, countDelta);
+    const atmosphere = new LevelAtmosphere(game, level, lighting, player, enemies, parts === null ? null : { quiz: parts.quiz });
+    const gameplay = new LevelGameplay(level, navmesh, player, weapons, inventory, hud, doors, pickups, lighting, enemies, parts, difficulty, countDelta, atmosphere);
     gameplay.registerTestHooks();
     return gameplay;
   }

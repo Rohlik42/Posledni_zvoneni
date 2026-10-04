@@ -1,5 +1,6 @@
 import { Game } from "./core/Game";
 import { MainScene } from "./core/MainScene";
+import "./ui/BundledFonts";
 
 const CANVAS_ID = "game";
 

@@ -1,0 +1,140 @@
+{
+  "//": "Generátor detailů (src/level/DetailGenerator.ts, fáze 19): suť, trámy a propadlé stropy u závalů, rozbitý nábytek, kabely, spáleniny, skvrny, graffiti, cedulky u dveří a vyražená okna. Vše z kvádrů a quadů, deterministicky ze seedu level.json → seed; detaily nekolidují a nejdou zasáhnout (kromě volných těles 'loose', ta jsou dynamická Havok tělesa jen v celé hře). Rozměry v metrech, úhly v radiánech, rozsahy [min, max]. Materiály jsou id z data/materials.json, 'decal:<druh>:<varianta>' jsou procedurální textury z src/rendering/DecalTextures.ts.",
+  "lift": 0.012,
+  "keepOut": { "door": 0.9, "teacher": 1.1, "point": 0.5, "stair": 0.3 },
+  "rubble": {
+    "//": "Hromada sutě kolem každého závalu (level.json → blockers): kusy v pásu 'spread' kolem obdélníku, zabořené o 'sink' své výšky, náklon 'tilt'.",
+    "perMeter": 5,
+    "spread": 1.1,
+    "size": [0.12, 0.5],
+    "flatness": [0.35, 0.8],
+    "sink": 0.3,
+    "tilt": [0.12, 0.55],
+    "materials": ["rubble", "rubble", "fallen-plaster", "burnt"]
+  },
+  "collapsedCeiling": {
+    "//": "Nad závalem typu collapsed-ceiling: díra ve stropě (tmavý decal), trámy šikmo ze stropu k zemi a visící kusy stropu.",
+    "beams": 3,
+    "beamSize": [0.16, 0.24],
+    "beamTilt": [0.55, 0.95],
+    "beamMaterial": "beam",
+    "slabs": 3,
+    "slabSize": [0.7, 1.5],
+    "slabThickness": 0.12,
+    "slabTilt": [0.25, 0.7],
+    "slabMaterial": "ceiling",
+    "holeGrow": 0.6,
+    "holeMaterial": "decal:hole:0"
+  },
+  "scatter": {
+    "//": "Drobná suť a omítka podél zdí ve všech vnitřních místnostech (hustota na m² podlahy, nejvýš max kusů), ve vzdálenosti 'wallBand' od zdi.",
+    "perSquareMeter": 0.24,
+    "max": 64,
+    "wallBand": [0.08, 0.6],
+    "size": [0.06, 0.3],
+    "materials": ["fallen-plaster", "rubble", "fallen-plaster"],
+    "tilt": [0.1, 0.6]
+  },
+  "wrecks": {
+    "//": "Rozbitý nábytek na chodbách a v halách: zlomená deska lavice opřená o zeď, nohy, sedák. Počet na metr délky místnosti.",
+    "roomTypes": ["chodba", "hala", "telocvicna", "satna"],
+    "perMeter": 0.12,
+    "max": 6,
+    "top": [1.1, 0.04, 0.55],
+    "topLean": [0.35, 0.8],
+    "leg": [0.04, 0.68, 0.04],
+    "seat": [0.4, 0.03, 0.38],
+    "woodMaterial": "furniture-wood",
+    "metalMaterial": "furniture-metal"
+  },
+  "cables": {
+    "//": "Utržené kabely visící ze stropu (šikmo), na metr délky místnosti.",
+    "roomTypes": ["chodba", "hala", "schodiste", "telocvicna", "ucebna", "satna"],
+    "perMeter": 0.14,
+    "max": 7,
+    "length": [1.0, 2.4],
+    "thickness": 0.035,
+    "tilt": [0.15, 0.6],
+    "material": "cable"
+  },
+  "scorch": {
+    "//": "Spáleniny: na podlaze pod každým ohněm (poloměr ohně × floorScale) a na nejbližší zdi do wallDistance, plus 'extra' menších skvrn od ohně v místnosti. Ohořelé trosky kolem ohně.",
+    "floorScale": 3.2,
+    "wallDistance": 2.2,
+    "wallSize": [1.8, 2.6],
+    "extra": 2,
+    "extraSize": [0.8, 1.6],
+    "embers": 7,
+    "emberSize": [0.12, 0.4],
+    "emberMaterial": "burnt"
+  },
+  "stains": {
+    "//": "Zatečené skvrny a šmouhy na zdech každé vnitřní místnosti.",
+    "perRoom": [2, 4],
+    "size": [0.6, 1.5],
+    "height": [0.3, 3.0]
+  },
+  "windows": {
+    "//": "Vyražená okna: podíl oken bez skla (kolize zůstane, hráč nevypadne), střepy v rámu a na podlaze.",
+    "brokenFraction": 0.4,
+    "frameShards": [2, 4],
+    "shardSize": [0.08, 0.32],
+    "floorShards": [3, 6],
+    "floorSpread": 1.2
+  },
+  "signs": {
+    "//": "Cedulka s číslem učebny (z názvu místnosti, 'č. 30') nebo jménem místnosti na zdi chodby vedle každých dveří (kind door) do místnosti jiného typu než chodba/hala.",
+    "height": 1.95,
+    "size": [0.44, 0.26],
+    "offset": 0.32,
+    "corridorTypes": ["chodba", "hala", "schodiste"]
+  },
+  "graffiti": [
+    { "room": "f4-corridor", "wall": "maxZ", "at": 37, "height": 1.7, "width": 2.6, "text": 0 },
+    { "room": "f4-corridor", "wall": "maxZ", "at": 16, "height": 1.5, "width": 1.8, "text": 2 },
+    { "room": "f3-corridor", "wall": "maxZ", "at": 30, "height": 1.7, "width": 2.4, "text": 1 },
+    { "room": "f3-corridor", "wall": "maxZ", "at": 42, "height": 1.5, "width": 2.2, "text": 3 },
+    { "room": "f2-corridor", "wall": "maxZ", "at": 22, "height": 1.7, "width": 2.6, "text": 0 },
+    { "room": "f2-gym", "wall": "maxZ", "at": 51, "height": 1.6, "width": 2.4, "text": 1 },
+    { "room": "f3-wing", "wall": "maxX", "at": 8, "height": 1.5, "width": 1.6, "text": 2 }
+  ],
+  "loose": {
+    "//": "Dynamická Havok tělesa (jen v celé hře, src/level/LooseDebris.ts): reagují na zásah (impuls od hráče × damage × impulsePerDamage podle typu), výbuch pasti a zničení robota (radiální impuls do radius). 'hanging' kusy stropu visí staticky, dokud je něco netrefí. Pozice v plánových souřadnicích, mimo trasu (datový test).",
+    "impulsePerDamage": { "water": 1.0, "electric": 1.0, "kinetic": 1.2, "explosion": 1.5, "quiz": 0 },
+    "maxImpulse": 40,
+    "blast": { "radius": 4.5, "impulse": 30 },
+    "kinds": {
+      "chair": { "size": [0.46, 0.85, 0.46], "mass": 4, "material": "furniture-wood", "blueprint": "schoolChair" },
+      "chunk": { "size": [0.45, 0.3, 0.38], "mass": 9, "material": "rubble" },
+      "plank": { "size": [1.2, 0.05, 0.3], "mass": 3, "material": "beam" },
+      "ceiling": { "size": [1.0, 0.1, 0.7], "mass": 12, "material": "ceiling" }
+    },
+    "items": [
+      { "kind": "chair", "room": "f4-corridor", "x": 33.0, "z": 21.68, "yawDeg": 180 },
+      { "kind": "chunk", "room": "f4-corridor", "x": 27.0, "z": 21.62, "yawDeg": 25 },
+      { "kind": "plank", "room": "f4-corridor", "x": 41.0, "z": 21.75, "yawDeg": 0 },
+      { "kind": "ceiling", "room": "f4-corridor", "x": 35.5, "z": 21.65, "yawDeg": 0, "hanging": true },
+      { "kind": "chunk", "room": "f3-corridor", "x": 47.5, "z": 21.68, "yawDeg": 70 },
+      { "kind": "chair", "room": "f3-corridor", "x": 22.0, "z": 21.78, "yawDeg": 180 },
+      { "kind": "ceiling", "room": "f3-corridor", "x": 40.0, "z": 21.75, "yawDeg": 0, "hanging": true },
+      { "kind": "chair", "room": "f2-corridor", "x": 24.0, "z": 19.85, "yawDeg": 0 },
+      { "kind": "plank", "room": "f2-corridor", "x": 16.0, "z": 19.75, "yawDeg": 0 },
+      { "kind": "chunk", "room": "f2-gym", "x": 56.0, "z": 23.4, "yawDeg": 40 }
+    ]
+  },
+  "textures": {
+    "//": "Procedurální textury decalů (canvas, src/rendering/DecalTextures.ts): px = velikost plátna, barvy jsou klíče palety.",
+    "px": 256,
+    "scorch": { "variants": 2, "color": "base.soot", "rim": "accent.rust", "alpha": 0.92 },
+    "stain": { "variants": 3, "color": "world.rubble", "alpha": 0.55 },
+    "hole": { "variants": 1, "color": "base.void", "rim": "base.ash", "alpha": 0.97 },
+    "sign": { "plate": "world.paper", "text": "base.night", "border": "world.woodDark", "font": "800 {px}px 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif", "smallFont": "600 {px}px Inter, Arial, sans-serif", "dirt": 0.35 },
+    "graffitiFont": "800 {px}px 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif",
+    "graffiti": [
+      { "lines": ["NEURALITH", "DYNAMICS"], "small": "POKROK BEZ LIDÍ", "color": "neon.robot", "style": "stencil" },
+      { "lines": ["NEURALITH", "TĚ SLEDUJE"], "small": "▲ ZÓNA 7 ▲", "color": "neon.warning", "style": "stencil" },
+      { "lines": ["ROBOTI", "VEN!"], "color": "accent.lime", "style": "spray" },
+      { "lines": ["MATURITA", "SE ODKLÁDÁ"], "small": "– 4.B", "color": "accent.pen", "style": "spray" }
+    ]
+  }
+}

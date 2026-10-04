@@ -3,7 +3,39 @@
 Branch `worktree-wf_5b8b3a47-068-1`, worktree `.claude/worktrees/wf_5b8b3a47-068-1`, dev port 5301 (killed at the end),
 Playwright on its hashed port. Base: main @ f1359bc (worktree was cut from stale 6e5ac74 and fast-forwarded to main).
 
-## Status: DONE after fix pass 1 (2026-10-04) — see „Fix pass 1“ right below; the rest of the file is the first pass
+## Status: DONE and merged (main @ 96e9128, shift 4); body rewritten 2026-10-04 by phase 19 for the state after 17/18
+
+This file describes phase 16 as it stands on main **after phases 17 (difficulty) and 18 (menu)** changed the flow
+around it. Sections „Fix pass 1“, „What changed“ and „Verified“ are the record of the phase-16 run (numbers of that
+run, see the note in „Verified“); „Current state“ and „For the human“ are up to date.
+
+## Current state (after phases 17 and 18)
+- `/` opens the **main menu** (phase 18, `GameFlow`), the level builds behind it and `LevelProgress` waits
+  (`deferStart`): no checkpoint is written and no story screen shows until the player chooses. NOVÁ HRA → difficulty
+  picker (phase 17) → JDEME DO ŠKOLY → story screen → game. `?new=1` / `?continue=1` skip the menu
+  (`&difficulty=<id>` picks the level; phase 17).
+- **Death:** after `checkpoint.restoreDelay` (1.5 s simulated) the game pauses and shows the **death screen**
+  („TOHLE NEVYŠLO.“); the checkpoint is restored only by „ZKUSIT ZNOVU →“ (`LevelProgress.setDeathHandler`). The automatic
+  restore after 1.5 s of the phase-16 run survives only without the menu (dev `?scene=level&play=1`).
+- **Robots per difficulty:** 19 / 22 / 22 / 24 / 26 (Mimino … Ultrašprt; `difficulty.json → enemyCountDelta`);
+  `progression.json → countDelta` is gone. End screen „Obtížnost“ = the chosen level's name.
+- „HRÁT ZNOVU“ on the level-end screen → `GameFlow.newGame` (reload with `?new=1`). Checkpoints store `difficulty`.
+- Tests: `tests/e2e/playthrough.spec.ts` starts via `menu.newGame()` + picker `start`, confirms the death screen;
+  it is in the shift gate only. Its screenshot goes to `test-results/screenshots/16-level-end.png` (phase 19), the
+  versioned `screenshots/16-level-end.png` is rewritten only with `SAVE_SCREENSHOTS=1`. The time on that screen
+  **differs between runs** (the playthrough is not deterministic: 2:28 and 2:56 were both seen).
+- Data tests at the end of shift 4: 111/111 (phase 16 itself added 5 + the props-clearance test).
+
+## For the human: play it
+`npm run dev` → **http://localhost:5173/** → main menu → NOVÁ HRA → pick a difficulty (Záškoláček is the default) →
+JDEME DO ŠKOLY → story screen („Poslední zvonění.“), click JDEME VEN →, then the whole level: učebna 30 (Floor 4) →
+Hudebka (Ditrichová) → Zeměpis (Lambertová, hasičák) → balónky na chodbě → Matematika (Šiklová, červený klíč,
+checkpoint) → červené dveře, schody dolů → Výtvarka, Angličtina (paralyzér), Čeština (žlutý klíč) → žluté dveře →
+Fyzika (railgun) → západní schody → Dějepis, šatna, tělocvična (hydrant s hadicí, Taušl, modrý klíč) → hlavní vchod →
+obrazovka konce levelu. Die → death screen → ZKUSIT ZNOVU → back at the last checkpoint. POKRAČOVAT in the main menu
+(or **http://localhost:5173/?continue=1**) continues from the stored checkpoint. Esc = pause.
+`/dev/?scene=level&play=1` = the same game without the menu (`&intro=1`, `&continue=1`, `&difficulty=<id>`,
+`&delta=<n>`; dies → automatic restore after 1.5 s).
 
 ## Fix pass 1 (reviewer: props not placed; end screenshot had zeros)
 - **Merged main** (d774452, Phase 15) into the branch: no conflicts. Data test after the merge: 103/103 before my
@@ -42,20 +74,6 @@ Playwright on its hashed port. Base: main @ f1359bc (worktree was cut from stale
   beside, E hint), u30 aisle toward the board. No collider box is visible.
 
 
-Quick gate green: `npm run typecheck` exit 0; `npm run test:data` 97/97 (92 before + 5 new in
-`tests/data/progression.test.ts`); `npx playwright test tests/smoke tests/e2e/playthrough.spec.ts` 13/13 (6 smoke +
-7 playthrough, 47 s). Also run once because I rewrote a test in it: `tests/e2e/weapon.spec.ts` 10/10. Full suite and
-`npm run build` NOT run (shift gate).
-
-## For the human: play it
-`npm run dev` → **http://localhost:5173/** — story screen („Poslední zvonění.“), click JDEME VEN →, then the whole
-level: učebna 30 (Floor 4) → Hudebka (Ditrichová) → Zeměpis (Lambertová, hasičák) → balónky na chodbě → Matematika
-(Šiklová, červený klíč, checkpoint) → červené dveře, schody dolů → Výtvarka, Angličtina (paralyzér), Čeština (žlutý
-klíč) → žluté dveře → Fyzika (railgun) → západní schody → Dějepis, šatna, tělocvična (hydrant s hadicí, Taušl, modrý
-klíč) → hlavní vchod → obrazovka konce levelu. Die and you are back at the last key after 1.5 s.
-**http://localhost:5173/?continue=1** continues from the stored checkpoint. `?scene=level&play=1` = the same game in
-the dev scene (`&intro=1`, `&continue=1`, `&delta=<n>`).
-
 ## What changed
 - **Composition** — `src/level/LevelGameplay.ts`: option `play` builds the full game on the level (`GameParts`: quiz,
   teachers, stations, progress): `QuizSystem` with reward drops into `PickupField`, `TeacherSystem.levelSpecs` with
@@ -89,7 +107,9 @@ the dev scene (`&intro=1`, `&continue=1`, `&delta=<n>`).
   resumed, intro{visible, view, dismiss}, end{visible, view}}`.
 - **Tests:** `tests/e2e/playthrough.spec.ts` (7, serial, one page on `/`), `tests/data/progression.test.ts` (5).
 
-## Verified (numbers)
+## Verified (numbers of the phase-16 run, before phases 17/18)
+The first pass walked 413–414 m; after fix pass 1 (props, route around the furniture) the walk is **424 m** — use that.
+Death restored automatically after 1.5 s in this run; today it goes through the death screen (see „Current state“).
 - Playthrough (paused + `step`): start — intro texts, checkpoint `start`, 9 teachers bound in their slot rooms, 22
   robots, 7 stations inside their rooms < 0.6 m from a wall, hydrant in `f2-gym`, 15 level pickups, pistol only.
   Floor 4 — robot in the hudebna doorway blocks closing (`{ok:false, message:"Ve dveřích stojí robot…"}`, door stays
@@ -138,10 +158,10 @@ the dev scene (`&intro=1`, `&continue=1`, `&delta=<n>`).
 - **Shift gate, also could be affected by fix pass 1:** `dev-scenes.spec.ts` (`?scene=props`), `perf`/fps suites if
   they load `/` (143 extra static bodies, +navmesh input), `level-walk.spec.ts` only through the shared code (bare
   level has no props).
-- **Phase 17:** pass `countDelta` (robots) and `difficultyName` (end screen) in `LevelGameplayOptions`; `quiz` is in
+- **Phase 17 (done there):** pass `countDelta` (robots) and `difficultyName` (end screen) in `LevelGameplayOptions`; `quiz` is in
   `gameplay.game.quiz` (`damageMultiplier`); player max health via `PlayerHealth.reset(max)` before the start checkpoint
   is saved (LevelProgress saves in its constructor — set health before `LevelGameplay.create` returns or re-save).
-- **Phase 18:** „Nová hra“ → `LevelGameplay.create(game, { play: true, intro: true })`, „Pokračovat“ → `resume: true`
+- **Phase 18 (done there):** „Nová hra“ → `LevelGameplay.create(game, { play: true, intro: true })`, „Pokračovat“ → `resume: true`
   (exists: `new Checkpoint(ProgressionConfig.load().checkpoint.storageKey, …version).exists()`); death screen: today
   `LevelProgress` restores automatically after 1.5 s with a toast; end screen button reloads without `?continue`.
   `ScreenOverlay` can render menu panels. Esc during the intro/end screen is swallowed by the overlay.

@@ -1,7 +1,21 @@
 import type { GreyboxData } from "./GreyboxConfig";
-import type { PieceSink } from "./GreyboxTypes";
+import type { PieceSink, Vec3 } from "./GreyboxTypes";
 import { LevelLayout, type RoomSide, type SideOpening } from "./LevelLayout";
 import type { Door, Room } from "./LevelTypes";
+
+/** A window left without glass (phase 19): where its pane would be, for the shards `DetailGenerator` adds. */
+export interface BrokenPane {
+  windowId: string;
+  room: string;
+  /** World centre of the pane and its size along the wall / up (m). */
+  center: Vec3;
+  width: number;
+  height: number;
+  /** Plan axis that is constant along the wall ("x" for minX/maxX sides). */
+  axis: "x" | "z";
+  /** World direction from the wall into the room (horizontal unit vector). */
+  inward: Vec3;
+}
 
 /**
  * What fills the holes `WallBuilder` leaves in the walls: wooden frames around door openings (the leaves are
@@ -12,7 +26,12 @@ export class OpeningBuilder {
     private readonly layout: LevelLayout,
     private readonly data: Pick<GreyboxData, "doors" | "windows" | "walls">,
     private readonly sink: PieceSink,
+    /** Window ids that are smashed (phase 19): no visible glass, the collider stays so nobody falls out. */
+    private readonly broken: ReadonlySet<string> = new Set(),
   ) {}
+
+  /** Panes of the smashed windows, filled in by `window`. */
+  readonly brokenPanes: BrokenPane[] = [];
 
   /** Frames of every `kind: "door"` opening (jambs and head protrude a little from both wall faces). */
   doorFrames(): void {
@@ -58,13 +77,20 @@ export class OpeningBuilder {
     const at = (opening.a0 + opening.a1) / 2;
     const y = (opening.bottom + opening.top) / 2;
     const across = side.line + (side.sign * wallThickness) / 2;
+    const center = side.axis === "x" ? LevelLayout.toWorld(across, y, at) : LevelLayout.toWorld(at, y, across);
+    const smashed = this.broken.has(opening.window.id);
     this.sink.box({
       owner: room.id,
       material: glassMaterial,
-      center: side.axis === "x" ? LevelLayout.toWorld(across, y, at) : LevelLayout.toWorld(at, y, across),
+      center,
       size: side.axis === "x" ? { x: glassThickness, y: height, z: width } : { x: width, y: height, z: glassThickness },
-      visible: true,
+      visible: !smashed,
       collide: true,
     });
+    if (smashed) {
+      // Plan "outward" is side.sign along the axis; into the room is the opposite, and world z is −plan z.
+      const inward = side.axis === "x" ? { x: -side.sign, y: 0, z: 0 } : { x: 0, y: 0, z: side.sign };
+      this.brokenPanes.push({ windowId: opening.window.id, room: room.id, center, width, height, axis: side.axis, inward });
+    }
   }
 }

@@ -1,0 +1,53 @@
+{
+  "//": "Živá atmosféra levelu (src/level/LevelAtmosphere.ts, fáze 19): blikání světel, oheň (částice, kouř, jiskry, praskání), jiskry z poškozených robotů a lamp, noční prostředí. Časy v sekundách simulace, barvy jsou klíče palety. Světla a ohně samotné jsou v level.json (lights.flicker, fires).",
+  "seed": 1919,
+  "//ambient": "Násobič ambientního světla scény v levelu (game.json → ambient platí i pro boxroom a arénu): tma Quake 1, světlo dávají lampy a ohně.",
+  "ambientScale": 0.55,
+  "flicker": {
+    "//": "Zářivka na poškozeném obvodu: většinou svítí ('base' × intenzita z level.json), občas zhasne na 'offTime' a při rozsvěcení zakoktá 'stutters'× (každé 'stutterTime'). Svítidlo (samosvítící kvádr) tlumí s ní. Oheň: součet dvou sinusů a šumu kolem 1 v rozsahu 'fire'. Nouzová světla pomalu dýchají ('emergency').",
+    "onTime": [1.5, 6.0],
+    "offTime": [0.06, 0.6],
+    "stutters": [1, 4],
+    "stutterTime": [0.03, 0.09],
+    "offLevel": 0.04,
+    "dimLevel": 0.55,
+    "sparkChance": 0.35,
+    "fire": { "min": 0.7, "max": 1.2, "speed": [7.3, 13.1], "noise": 0.12 },
+    "emergency": { "period": 2.8, "depth": 0.18 }
+  },
+  "fire": {
+    "//": "Částice ohně na každém level.json → fires (poloměr = radius): plameny (aditivní), kouř stoupající ke stropu, žhavé jiskry. Počty na jeden oheň s intensity 1.",
+    "flames": { "rate": 70, "capacity": 90, "life": [0.35, 0.8], "size": [0.25, 0.6], "speed": [0.6, 1.4], "colorStart": "neon.fire", "colorEnd": "neon.ember", "glow": 2.2 },
+    "smoke": { "rate": 9, "capacity": 70, "life": [3.0, 5.5], "size": [0.9, 1.8], "speed": [0.35, 0.7], "color": "base.smoke", "alpha": 0.55 },
+    "embers": { "rate": 6, "capacity": 24, "life": [0.8, 1.8], "size": [0.03, 0.06], "speed": [1.0, 2.2], "color": "neon.spark", "glow": 3.0 },
+    "sound": { "name": "fireCrackle", "interval": [0.35, 0.8], "maxDistance": 14, "volume": 0.9 }
+  },
+  "sparks": {
+    "//": "Jiskry: poškozený robot (pod 'robotHealth' zdraví) prská každých 'robotInterval' s, vypadávající zářivka při zhasnutí s šancí flicker.sparkChance.",
+    "capacity": 160,
+    "color": "neon.spark",
+    "glow": 2.6,
+    "size": [0.03, 0.06],
+    "life": [0.25, 0.6],
+    "speed": [1.5, 3.5],
+    "gravity": -9.8,
+    "robotHealth": 0.5,
+    "robotInterval": [0.4, 1.4],
+    "robotCount": [3, 7],
+    "lampCount": [6, 12]
+  },
+  "environment": {
+    "//": "Procedurální noční obloha s kouřem a zářím požárů (src/rendering/NightEnvironment.ts) jako scene.environmentTexture místo stažené HDR; odráží se ve skle oken (glassReflection).",
+    "px": 64,
+    "zenith": "base.void",
+    "horizon": "base.smoke",
+    "smoke": "fog.smoke",
+    "glow": "neon.fire",
+    "glowStrength": 0.55,
+    "glows": [0.6, 2.1, 4.4],
+    "glowWidth": 0.5,
+    "smokeBands": 7,
+    "seed": 66,
+    "glassReflection": 0.35
+  }
+}

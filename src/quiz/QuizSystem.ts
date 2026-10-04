@@ -79,6 +79,8 @@ export class QuizSystem {
   readonly onAnswered = new Observable<AnswerResult>();
   /** Toasts for the HUD (leaving the teacher). */
   readonly onMessage = new Observable<string>();
+  /** The robot trap went off at this point (wrong answer); loose debris nearby is blown away (phase 19). */
+  readonly onTrapBlast = new Observable<Vector3>();
   /** Multiplies the trap damage; the difficulty (phase 17) sets it. */
   damageMultiplier = 1;
 
@@ -171,6 +173,7 @@ export class QuizSystem {
     const damage = Math.round(this.data.wrongAnswerDamage * this.damageMultiplier);
     this.lastDamageDealt = damage;
     this.explosion.blast(teacher.trapPosition);
+    this.onTrapBlast.notifyObservers(teacher.trapPosition);
     this.player.health.damage(damage, this.config.trap.damageType);
     // Dying closes the quiz (onDeath); otherwise the next question of the same subject.
     if (this.active) this.ask(teacher.data.wrongLine, Texts.format(this.texts.quiz.wrong, { damage }));
