@@ -1,6 +1,7 @@
 import type { PointLight } from "@babylonjs/core/Lights/pointLight";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
+import type { Scene } from "@babylonjs/core/scene";
 import { SynthSounds } from "../audio/SynthSounds";
 import type { DamageType } from "../core/DamageTypes";
 import type { Game } from "../core/Game";
@@ -44,6 +45,8 @@ export interface VisualsTestApi {
   shadowLights: () => string[];
   /** Switches the point-light shadows on or off (quality presets, phase 21; A/B checks). */
   setShadows: (enabled: boolean) => void;
+  /** Visible world meshes no point light reaches (DoD §15; must stay empty in the full game). */
+  unlit: () => string[];
   readonly environment: boolean;
   readonly sparkBursts: number;
   sparkAt: (x: number, y: number, z: number) => void;
@@ -127,7 +130,7 @@ export class LevelAtmosphere {
         this.shadows.update(dt);
       },
     });
-    this.registerTestHooks(level);
+    this.registerTestHooks(level, scene);
   }
 
   dispose(): void {
@@ -136,6 +139,20 @@ export class LevelAtmosphere {
     this.sparks.dispose();
     this.shadows.dispose();
     this.debris?.dispose();
+  }
+
+  /**
+   * DoD §15 „no visible element is an untextured primitive without light“: names of visible, lit-material meshes of the
+   * world (rendering group 0) that no point light reaches, so only the dim ambient shows them. Self-lit materials
+   * (fixtures, neon, sky) and the weapon in hand (group 1) do not count.
+   */
+  static unlit(scene: Scene): string[] {
+    const reached = new Set<AbstractMesh>();
+    for (const light of scene.lights) if (light.getClassName() === "PointLight") for (const mesh of light.includedOnlyMeshes) reached.add(mesh);
+    return scene.meshes
+      .filter((mesh) => mesh.isEnabled() && mesh.isVisible && mesh.renderingGroupId === 0 && mesh.getTotalVertices() > 0 && mesh.material !== null)
+      .filter((mesh) => (mesh.material as { disableLighting?: boolean }).disableLighting !== true && !reached.has(mesh))
+      .map((mesh) => mesh.name);
   }
 
   /** Tubes and fires; casters are what each light shines on except the level shell and the weapon in hand. */
@@ -151,9 +168,10 @@ export class LevelAtmosphere {
       }));
   }
 
-  private registerTestHooks(level: Level): void {
+  private registerTestHooks(level: Level, scene: Scene): void {
     const atmosphere = this;
     TestHooks.register("visuals", {
+      unlit: () => LevelAtmosphere.unlit(scene),
       details: () => {
         const rooms: Record<string, number> = {};
         let meshes = 0;

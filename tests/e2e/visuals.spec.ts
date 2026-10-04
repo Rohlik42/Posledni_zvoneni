@@ -48,6 +48,10 @@ test.describe.serial("loose debris (full game)", () => {
     });
   });
 
+  test("DoD §15: every visible world mesh is reached by a point light of its room (details, debris, robots, props)", async () => {
+    expect(await page.evaluate(() => window.__game!.visuals!.unlit())).toEqual([]);
+  });
+
   test("a shot pushes a chair; a hit ceiling piece falls; a blast throws pieces around", async () => {
     const chair = details.loose.items.findIndex((i) => i.kind === "chair" && i.room === "f4-corridor");
     const ceiling = details.loose.items.findIndex((i) => i.hanging === true && i.room === "f4-corridor");

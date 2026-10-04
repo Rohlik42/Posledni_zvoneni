@@ -95,7 +95,7 @@
     { "room": "f3-corridor", "wall": "maxZ", "at": 30, "height": 1.7, "width": 2.4, "text": 1 },
     { "room": "f3-corridor", "wall": "maxZ", "at": 42, "height": 1.5, "width": 2.2, "text": 3 },
     { "room": "f2-corridor", "wall": "maxZ", "at": 22, "height": 1.7, "width": 2.6, "text": 0 },
-    { "room": "f2-gym", "wall": "minZ", "at": 52, "height": 2.6, "width": 3.6, "text": 0 },
+    { "room": "f2-gym", "wall": "maxZ", "at": 51, "height": 1.6, "width": 2.4, "text": 1 },
     { "room": "f3-wing", "wall": "maxX", "at": 8, "height": 1.5, "width": 1.6, "text": 2 }
   ],
   "loose": {
