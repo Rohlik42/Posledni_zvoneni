@@ -16,6 +16,7 @@ import type { DoorSystem } from "./DoorSystem";
 import type { PickupField } from "./PickupField";
 import { ProgressionConfig, type ProgressionData } from "./ProgressionConfig";
 import { LevelStats } from "./LevelStats";
+import { QualityManager } from "../rendering/QualityManager";
 import type { TeacherSystem } from "./TeacherSystem";
 
 const SECONDS_PER_MINUTE = 60;
@@ -140,6 +141,9 @@ export class LevelProgress {
       if (!(options.resume && this.continueStored())) this.begin(options.intro);
       else if (options.intro) this.showIntro();
     }
+    // FEEDBACK 2026-10-04 („občas se to sekne“): the automatic quality choice measures and switches presets behind the
+    // story screen (it does not pause the game), never in play.
+    QualityManager.existing(game)?.addScreen(() => this.introScreen.visible);
     this.registerTestHooks();
   }
 

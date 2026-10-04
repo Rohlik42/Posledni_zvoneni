@@ -1,6 +1,9 @@
+import { FrameTags } from "./FrameTags";
 import type { AdaptiveData, AdaptiveLevel } from "./QualityConfig";
 
 const MS_PER_SECOND = 1000;
+/** `FrameTags` of a frame in which the level changed. */
+const TAG_ADAPTIVE = "adaptive";
 /** Frames longer than this (a tab in the background, a breakpoint) are not counted (ms). */
 const IGNORE_FRAME_MS = 1000;
 
@@ -20,7 +23,9 @@ export interface AdaptiveChange {
  * 1000 / `downFps` ms for `downAfter` s it steps down one of `levels` (lower render scale, fewer decorative particles);
  * below 1000 / `upFps` ms for `upAfter` s it steps back up (not into a level it left for being slow in the last
  * `retryAfter` s, so it does not swing); at least `cooldown` s between steps. It never touches
- * shaders: render scale and particle density change no material defines, so stepping causes no compile stall.
+ * shaders: render scale and particle density change no material defines, so stepping causes no compile stall. The render
+ * scale of a level applies only when the player allows adaptive resolution (`QualityManager`, off by default): a new
+ * resolution reallocates every render target of the frame, a visible hitch (FEEDBACK 2026-10-04 „občas se to sekne“).
  */
 export class AdaptiveQuality {
   private levelIndex = 0;
@@ -80,6 +85,7 @@ export class AdaptiveQuality {
     this.changes.push({ at: this.clock, from: this.levelIndex, to: clamped, frameMs: this.frameMs });
     this.levelIndex = clamped;
     this.sinceChange = 0;
+    FrameTags.note(TAG_ADAPTIVE);
     this.apply(this.current);
   }
 

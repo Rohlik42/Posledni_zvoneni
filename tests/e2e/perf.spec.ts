@@ -167,6 +167,9 @@ test.describe("quality presets and performance (1920×1080)", () => {
     const before = await page.evaluate(() => ({ choice: window.__game!.quality!.choice, detection: window.__game!.quality!.detection() }));
     expect(before.choice).toBe("auto");
     expect(quality.order).toContain(before.detection.start);
+    // FEEDBACK 2026-10-04 („občas se to sekne“): the automatic choice measures and switches only behind a screen (menu,
+    // story, pause), never in play — the pause menu covers the game while it decides.
+    expect(await page.evaluate(() => window.__game!.menu!.pause())).toBe(true);
     await page.waitForFunction(() => window.__game!.quality!.detection().done, undefined, { timeout: DETECT_TIMEOUT_MS });
     const detected = await page.evaluate(() => ({
       preset: window.__game!.quality!.preset,
@@ -178,7 +181,6 @@ test.describe("quality presets and performance (1920×1080)", () => {
     expect(detected.autodetected).toBe(detected.preset);
     expect(quality.order).toContain(detected.preset);
     // The quality page says which preset the automatic choice is at (opened from the pause, then back into the game).
-    expect(await page.evaluate(() => window.__game!.menu!.pause())).toBe(true);
     await page.evaluate(() => window.__game!.menu!.show("quality"));
     const labels = json<{ texts: { quality: { options: Record<string, string> } } }>("data/menu.json").texts.quality.options;
     await expect(page.locator('#menu [data-menu-item="quality:auto"]')).toContainText(labels[detected.preset]!);
@@ -255,11 +257,14 @@ test.describe("quality presets and performance (1920×1080)", () => {
         window.__game!.quality!.set("medium");
         window.__game!.quality!.set("auto");
       });
+      // It measures behind a screen only (FEEDBACK 2026-10-04): the pause menu covers the game meanwhile.
+      expect(await page.evaluate(() => window.__game!.menu!.pause())).toBe(true);
       const started = await page.evaluate(() => ({ choice: window.__game!.quality!.choice, detection: window.__game!.quality!.detection() }));
       expect(started.choice).toBe("auto");
       expect(started.detection.done).toBe(false);
       expect(started.detection.measurements).toEqual([]);
       await page.waitForFunction(() => window.__game!.quality!.detection().done, undefined, { timeout: DOWN_DETECT_TIMEOUT_MS });
+      expect(await page.evaluate(() => window.__game!.menu!.click("resume"))).toBe(true);
       await page.evaluate((heal) => window.__game!.player!.heal(heal), HEAL);
     } finally {
       await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 });

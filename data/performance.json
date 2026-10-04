@@ -1,10 +1,19 @@
 {
   "//": "Výkon v souboji (FEEDBACK 2026-10-04, src/rendering/PerfMonitor.ts, src/level/RoomLighting.ts, src/ui/PerfOverlay.ts). Na Windows trvá překlad shaderu (ANGLE → D3D11, Dawn → D3D12) desítky ms a zasekne snímek, proto se za hry nesmí měnit počet světel, která na materiál svítí.",
   "//dynamicLights": "Pohyblivé věci (roboti, zbraň v ruce, volné předměty) svítí vždy právě 'count' světel: nejbližší světla jejich místnosti (vybírají se znovu každých 'refreshFrames' snímků), doplněná neviditelnými světly s nulovou intenzitou. Stejný počet světel = stejný shader v každé místnosti, takže přechod robota do jiné místnosti nic nepřekládá.",
-  "dynamicLights": { "count": 3, "refreshFrames": 10 },
+  "dynamicLights": {
+    "count": 3,
+    "refreshFrames": 10
+  },
   "//shadows": "Stíny bodových světel (jen Vysoké): stín vrhají jen meshe s poloměrem obalové koule aspoň 'minCasterRadius' m. Drobné díly robotů (oči, ruce, antény), mokré skvrny a drobnosti stín skoro nevrhají, ale každý se kreslí do až 6 stěn cube mapy: v souboji 12 robotů v tělocvičně to bylo ~2000 draw callů za snímek navíc (s 0,3 m 960 místo 2950 draw callů, CPU snímku 13,9 místo 21,6 ms; snímky screenshots/perf-shadow-r0.12.png a perf-shadow-r0.3.png vypadají stejně). Židle a lavice (poloměr ~0,5 m) stín vrhají dál.",
-  "shadows": { "minCasterRadius": 0.3 },
-  "//overlay": "Ladicí panel výkonu: klávesa z data/input.json (akce perfOverlay, F3) nebo ?perf=1 v adrese. Hráč z něj může opsat čísla (fps, ms CPU, zaseknutí > 100 ms, překlady shaderů). 'interval' = obnova textu v s.",
+  "shadows": {
+    "minCasterRadius": 0.3
+  },
+  "//frameBudget": "Odložená práce (src/rendering/FrameBudget.ts, FEEDBACK 2026-10-04 „občas se to sekne, jak se něco předpočítává“): co jde připravit dopředu (mřížky trojúhelníků pro výpočet viditelnosti robotů), se spočítá při načtení za načítací obrazovkou; co přibude za hry, běží před vykreslením snímku nejvýš 'ms' milisekund za snímek, takže žádný snímek nedostane dávku.",
+  "frameBudget": {
+    "ms": 1.5
+  },
+  "//overlay": "Ladicí panel výkonu: klávesa z data/input.json (akce perfOverlay, F3) nebo ?perf=1 v adrese. Hráč z něj může opsat čísla (fps, ms CPU, zaseknutí > 100 ms, překlady shaderů). 'interval' = obnova textu v s. 'tags' = české názvy důvodů dlouhých snímků (src/rendering/FrameTags.ts): panel u posledního snímku delšího než 33 ms ukáže, co hra v tom snímku dělala.",
   "overlay": {
     "interval": 0.5,
     "labels": {
@@ -22,7 +31,25 @@
       "drawCalls": "Draw cally",
       "meshes": "Aktivní meshe",
       "lights": "Světla",
-      "adaptive": "Automatické přizpůsobení"
+      "adaptive": "Automatické přizpůsobení",
+      "longest": "Nejdelší snímek za posledních 10 s (ms)",
+      "slowFrames": "Snímky > 33 ms",
+      "lastLong": "Poslední snímek > 33 ms",
+      "lastLongNone": "zatím žádný",
+      "unknownReason": "důvod neznámý"
+    },
+    "tags": {
+      "warmup": "zahřátí shaderů",
+      "preset": "změna předvolby",
+      "adaptive": "krok automatického přizpůsobení",
+      "resize": "změna velikosti okna",
+      "shadowSwap": "výměna stínové mapy lampy",
+      "budget": "odložená práce",
+      "compile": "překlad shaderu / WebGPU pipeline",
+      "outside": "mimo snímek (GC nebo prohlížeč)",
+      "room": "přechod do jiné místnosti",
+      "sightCache": "přestavba cache viditelnosti",
+      "pool": "nový objekt v bazénu efektů"
     }
   }
 }

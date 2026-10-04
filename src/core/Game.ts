@@ -6,6 +6,8 @@ import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { Observable } from "@babylonjs/core/Misc/observable";
 import { Scene } from "@babylonjs/core/scene";
+import { FrameBudget } from "../rendering/FrameBudget";
+import { FrameTags } from "../rendering/FrameTags";
 import { MatteDefaults } from "../rendering/MatteDefaults";
 import { PerfMonitor } from "../rendering/PerfMonitor";
 import { ShaderPrewarm } from "../rendering/ShaderPrewarm";
@@ -22,6 +24,8 @@ import type { SceneSetup, Simulated } from "./SceneSetup";
 import { TestHooks } from "./TestHooks";
 
 const MS_PER_SECOND = 1000;
+/** `FrameTags` of a frame after the window (canvas) changed size: every render target is reallocated. */
+const TAG_RESIZE = "resize";
 
 /**
  * Owns the engine, the one scene, the render loop, resize and pause.
@@ -145,6 +149,9 @@ export class Game {
     await setup.create(this);
     if (this.scene.activeCamera === null) throw new Error(`Scene "${setup.id}" did not create a camera (use game.useCamera)`);
     await this.scene.whenReadyAsync();
+    // FEEDBACK 2026-10-04 („napočítat on load“): caches queued while the scene was built are finished now, behind the
+    // loading screen; what is queued later runs a little per frame (`FrameBudget`).
+    FrameBudget.for(this.scene).drain();
     const firstFrame = new Promise<void>((resolve) => this.scene.onAfterRenderObservable.addOnce(() => resolve()));
     this.engine.runRenderLoop(() => this.frame());
     await firstFrame;
@@ -269,7 +276,10 @@ export class Game {
     this.frameTimeIndex = (this.frameTimeIndex + 1) % samples;
   }
 
-  private readonly onResize = (): void => this.engine.resize();
+  private readonly onResize = (): void => {
+    FrameTags.note(TAG_RESIZE);
+    this.engine.resize();
+  };
 
   /** Clicking the canvas resumes a paused game (Input requests pointer lock on the same click). */
   private readonly onCanvasClick = (): void => {

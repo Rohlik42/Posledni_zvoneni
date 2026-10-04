@@ -3,6 +3,7 @@ import { expect, test, type BrowserContext, type CDPSession, type Page } from "@
 import type { QualityStats } from "../../src/rendering/QualityManager";
 import type { CompileRecord } from "../../src/rendering/CompileCounter";
 import { ConsoleGuard } from "../support/ConsoleGuard";
+import { arena, stage, startCombat, stopCombat, type CombatCounts } from "../support/CombatScript";
 
 // Combat stress benchmark (FEEDBACK 2026-10-04: „během souboje, když lítá hodně particles, se to dost laguje“, also on
 // Nízké on a Windows Ryzen). The whole game (`/?new=1`), the player in the gym (the largest room, with a fire) and
@@ -27,7 +28,6 @@ const json = <T>(file: string): T => JSON.parse(readFileSync(file, "utf8")) as T
 const level = json<{ route: { floor: number; x: number; z: number }[]; rooms: { id: string; floor: number; rect: { x0: number; z0: number; x1: number; z1: number } }[]; floors: { id: number; elevation: number }[] }>(
   "data/level.json",
 );
-const player = json<{ body: { eyeHeight: number } }>("data/player.json");
 const route = level.route;
 /** The walk: every n-th route point, a stop there (shadows are re-chosen every `shadows.interval` s). */
 const WALK_STRIDE = 3;
@@ -37,20 +37,6 @@ const WALK_MIN_LAMPS = 6;
 const WALK_MAX_PIPELINES = 2;
 
 const READY_TIMEOUT_MS = 60_000;
-const ARENA_ROOM = "f2-gym";
-/** Player stands this far (m) inside the gym's west wall, robots fill the east part from `ROBOT_FROM` (share of width). */
-const PLAYER_INSET_M = 1.8;
-const ROBOT_FROM = 0.45;
-const ROBOT_INSET_M = 1.2;
-const ROBOTS = 12;
-const KILL_EVERY_MS = 1_600;
-const TRAP_EVERY_MS = 2_000;
-const WEAPON_EVERY_MS = 2_400;
-/** Trigger pattern: held, then released (the railgun fires on release, balloons per press). */
-const TRIGGER_DOWN_MS = 700;
-const TRIGGER_UP_MS = 150;
-const KILL_DAMAGE = 1e6;
-const HEAL = 1e6;
 const WARMUP_MS = 4_000;
 const MEASURE_MS = 8_000;
 const CPU_THROTTLE = 4;
@@ -100,21 +86,6 @@ const RENDERER = process.env.COMBAT_RENDERER ?? "";
 const URL = `/?new=1${RENDERER === "" ? "" : `&renderer=${RENDERER}`}`;
 const OUT = `test-results/perf-combat${RENDERER === "" ? "" : `-${RENDERER}`}${process.env.COMBAT_TAG ? `-${process.env.COMBAT_TAG}` : ""}.json`;
 
-const gym = level.rooms.find((r) => r.id === ARENA_ROOM)!;
-const floorY = level.floors.find((f) => f.id === gym.floor)!.elevation;
-const midZ = (gym.rect.z0 + gym.rect.z1) / 2;
-// level.json is plan metres; the world flips z (DECISIONS phase 8).
-const arena = {
-  feet: [gym.rect.x0 + PLAYER_INSET_M, floorY, -midZ],
-  look: [gym.rect.x1, floorY + player.body.eyeHeight, -midZ],
-  robots: {
-    x0: gym.rect.x0 + (gym.rect.x1 - gym.rect.x0) * ROBOT_FROM,
-    x1: gym.rect.x1 - ROBOT_INSET_M,
-    z0: -(gym.rect.z1 - ROBOT_INSET_M),
-    z1: -(gym.rect.z0 + ROBOT_INSET_M),
-    y: floorY,
-  },
-};
 
 interface Measurement {
   key: string;
@@ -144,14 +115,6 @@ interface Measurement {
   effects: { decorative: number; systems: number; thinned: number; culled: number };
 }
 
-interface CombatCounts {
-  kills: number;
-  traps: number;
-  shots: number;
-  deaths: number;
-  switches: number;
-  respawns: number;
-}
 
 const results: { date: string; url: string; arena: typeof arena; runs: Measurement[]; profile?: unknown; webgl2?: Measurement[]; adaptive?: unknown; walk?: unknown } = {
   date: new Date().toISOString(),
@@ -160,128 +123,6 @@ const results: { date: string; url: string; arena: typeof arena; runs: Measureme
   runs: [],
 };
 
-/** Puts the player and `ROBOTS` robots (every type, round robin) into the gym; returns their ids. */
-async function stage(page: Page): Promise<string[]> {
-  return page.evaluate(
-    ({ arena, robots, heal }) => {
-      const g = window.__game!;
-      // Every round starts clean: robots whole and back, no drops of the last round on the floor.
-      g.enemies!.respawnAll();
-      g.pickups!.removeDrops?.();
-      const byType = new Map<string, string[]>();
-      for (const e of g.enemies!.list()) byType.set(e.type, [...(byType.get(e.type) ?? []), e.id]);
-      const queues = [...byType.values()];
-      const chosen: string[] = [];
-      while (chosen.length < robots && queues.some((q) => q.length > 0)) for (const q of queues) if (q.length > 0 && chosen.length < robots) chosen.push(q.shift()!);
-      const cols = 4;
-      const rows = Math.ceil(chosen.length / cols);
-      chosen.forEach((id, i) => {
-        const c = i % cols;
-        const r = Math.floor(i / cols);
-        const x = arena.robots.x0 + ((arena.robots.x1 - arena.robots.x0) * (r + 0.5)) / rows;
-        const z = arena.robots.z0 + ((arena.robots.z1 - arena.robots.z0) * (c + 0.5)) / cols;
-        g.enemies!.teleport(id, x, arena.robots.y, z, -Math.PI / 2);
-      });
-      g.player!.teleport(arena.feet[0]!, arena.feet[1]!, arena.feet[2]!);
-      g.player!.lookAt(arena.look[0]!, arena.look[1]!, arena.look[2]!);
-      g.player!.heal(heal);
-      g.setPaused(false);
-      return chosen;
-    },
-    { arena, robots: ROBOTS, heal: HEAL },
-  );
-}
-
-/** Starts the scripted fight in the page (real time); `window.__combat.stop()` ends it and returns its counts. */
-async function startCombat(page: Page, ids: string[]): Promise<void> {
-  await page.evaluate(
-    ({ ids, arena, t, idle }) => {
-      const g = window.__game!;
-      const counts = { kills: 0, traps: 0, shots: 0, deaths: 0, switches: 0, respawns: 0 };
-      const weapons = g.weapons!.list().filter((w) => w.owned).map((w) => ({ slot: w.slot, id: w.id }));
-      let weaponIndex = 0;
-      let down = false;
-      let triggerAt = performance.now();
-      let lastKill = performance.now();
-      let lastTrap = performance.now();
-      let lastSwitch = performance.now();
-      let running = true;
-      const alive = (): { id: string; center: { x: number; y: number; z: number } }[] =>
-        ids.map((id) => g.enemies!.get(id)).filter((e): e is NonNullable<typeof e> => e !== null && e.alive);
-      const refill = (): void => {
-        for (const w of weapons) {
-          g.weapons!.refill(w.id);
-          g.weapons!.addAmmo(w.id, 100);
-        }
-      };
-      refill();
-      if (weapons[0] !== undefined) g.weapons!.select(weapons[0].slot);
-      const tick = (): void => {
-        if (!running) return;
-        const now = performance.now();
-        g.player!.heal(1e6);
-        const targets = alive();
-        const eye = g.player!.eye;
-        let best: (typeof targets)[number] | null = null;
-        let bestD = Infinity;
-        for (const e of targets) {
-          const d = (e.center.x - eye.x) ** 2 + (e.center.y - eye.y) ** 2 + (e.center.z - eye.z) ** 2;
-          if (d < bestD) {
-            bestD = d;
-            best = e;
-          }
-        }
-        if (best !== null) g.player!.aimAt(best.center);
-        if (idle) {
-          requestAnimationFrame(tick);
-          return;
-        }
-        if (now - triggerAt >= (down ? t.down : t.up)) {
-          down = !down;
-          triggerAt = now;
-          g.input!.setDown("fire", down);
-        }
-        if (now - lastSwitch >= t.weapon && weapons.length > 0) {
-          lastSwitch = now;
-          weaponIndex = (weaponIndex + 1) % weapons.length;
-          g.weapons!.select(weapons[weaponIndex]!.slot);
-          refill();
-          counts.switches++;
-        }
-        if (now - lastKill >= t.kill && targets.length > 0) {
-          lastKill = now;
-          const victim = targets[targets.length - 1]!;
-          g.enemies!.damage(victim.id, t.killDamage, "kinetic");
-          counts.kills++;
-        }
-        if (now - lastTrap >= t.trap) {
-          lastTrap = now;
-          const x = arena.robots.x0 + Math.random() * (arena.robots.x1 - arena.robots.x0);
-          const z = arena.robots.z0 + Math.random() * (arena.robots.z1 - arena.robots.z0);
-          g.quiz!.trapBlast(x, arena.robots.y + 1, z);
-          counts.traps++;
-        }
-        requestAnimationFrame(tick);
-      };
-      requestAnimationFrame(tick);
-      const shotsAtStart = g.weapons!.shots;
-      (window as unknown as { __combat: { stop: () => typeof counts } }).__combat = {
-        stop: () => {
-          running = false;
-          g.input!.setDown("fire", false);
-          counts.shots = g.weapons!.shots - shotsAtStart;
-          counts.deaths = ids.filter((id) => g.enemies!.get(id)?.alive === false).length;
-          return counts;
-        },
-      };
-    },
-    { ids, arena, t: { down: TRIGGER_DOWN_MS, up: TRIGGER_UP_MS, weapon: WEAPON_EVERY_MS, kill: KILL_EVERY_MS, trap: TRAP_EVERY_MS, killDamage: KILL_DAMAGE }, idle: IDLE },
-  );
-}
-
-async function stopCombat(page: Page): Promise<CombatCounts> {
-  return page.evaluate(() => (window as unknown as { __combat: { stop: () => CombatCounts } }).__combat.stop());
-}
 
 async function boot(context: BrowserContext, url = URL): Promise<{ page: Page; guard: ConsoleGuard; cdp: CDPSession }> {
   const page = await context.newPage();
@@ -310,7 +151,7 @@ async function run(page: Page, cdp: CDPSession, config: Config, renderer = RENDE
   const ids = await stage(page);
   await cdp.send("Emulation.setCPUThrottlingRate", { rate: config.throttle });
   try {
-    await startCombat(page, ids);
+    await startCombat(page, ids, IDLE);
     await page.waitForTimeout(WARMUP_MS);
     const before = await page.evaluate(() => {
       window.__game!.quality!.startWindow();
@@ -444,15 +285,16 @@ test.describe("combat stress benchmark", () => {
     }
   });
 
-  test("adaptive quality: a slow Nízké fight steps the render scale down without compiling; the F3 overlay shows the numbers", async ({ browser }) => {
+  test("adaptive quality: a slow Nízké fight steps down without compiling (render scale only when allowed); the F3 overlay shows the numbers", async ({ browser }) => {
     const context = await browser.newContext({ viewport: VIEWPORTS[1080] });
     try {
       const { page, guard, cdp } = await boot(context);
       await page.evaluate(() => window.__game!.quality!.set("low"));
       const ids = await stage(page);
-      await page.evaluate(() => window.__game!.settings!.set({ adaptive: true }));
+      // Adaptive resolution is off by default (a new resolution reallocates render targets: a hitch); this test allows it.
+      await page.evaluate(() => window.__game!.settings!.set({ adaptive: true, adaptiveResolution: true }));
       // A round at full speed first: what this fight compiles at all is built before the adaptation is watched.
-      await startCombat(page, ids);
+      await startCombat(page, ids, IDLE);
       await page.waitForTimeout(WARMUP_MS);
       await stopCombat(page);
       const before = await page.evaluate(() => ({
@@ -462,7 +304,7 @@ test.describe("combat stress benchmark", () => {
         at: performance.now(),
       }));
       expect(before.adaptive).toMatchObject({ enabled: true, level: 0 });
-      await startCombat(page, ids);
+      await startCombat(page, ids, IDLE);
       await cdp.send("Emulation.setCPUThrottlingRate", { rate: ADAPTIVE_THROTTLE });
       try {
         await page.waitForFunction(() => window.__game!.quality!.adaptive().level >= 1, undefined, { timeout: ADAPTIVE_TIMEOUT_MS });
@@ -485,12 +327,26 @@ test.describe("combat stress benchmark", () => {
       await page.evaluate(() => window.__game!.settings!.set({ adaptive: false }));
       expect(await page.evaluate(() => window.__game!.quality!.adaptive().level)).toBe(0);
       expect(await page.evaluate(() => window.__game!.quality!.stats().hardwareScaling)).toBeCloseTo(before.scaling, 5);
+      // The default (FEEDBACK 2026-10-04 „občas se to sekne“): a step without adaptive resolution keeps the render size.
+      const effectsOnly = await page.evaluate(() => {
+        const g = window.__game!;
+        g.settings!.set({ adaptive: true, adaptiveResolution: false });
+        g.quality!.setAdaptiveLevel(1);
+        const step = { scaling: g.quality!.stats().hardwareScaling, adaptive: g.quality!.adaptive(), budget: g.effects!.budget().scale };
+        g.settings!.set({ adaptive: false });
+        return step;
+      });
+      expect(effectsOnly.adaptive.level).toBe(1);
+      expect(effectsOnly.adaptive.renderScale).toBe(1);
+      expect(effectsOnly.scaling).toBeCloseTo(before.scaling, 5);
+      expect(effectsOnly.budget).toBeLessThan(1);
       // F3: the overlay a player can read numbers from.
       await page.keyboard.press("F3");
       expect(await page.evaluate(() => window.__game!.perfOverlay!.visible)).toBe(true);
       const text = await page.evaluate(() => window.__game!.perfOverlay!.text());
       const labels = json<{ overlay: { labels: Record<string, string> } }>("data/performance.json").overlay.labels;
-      for (const key of ["fps", "cpu", "hitches", "compiles", "particles"]) expect(text, key).toContain(labels[key]!);
+      // FEEDBACK 2026-10-04 („občas se to sekne“): the longest frame of the last 10 s and the last long frame's reason.
+      for (const key of ["fps", "cpu", "hitches", "compiles", "particles", "longest", "slowFrames", "lastLong"]) expect(text, key).toContain(labels[key]!);
       await page.keyboard.press("F3");
       expect(await page.evaluate(() => window.__game!.perfOverlay!.visible)).toBe(false);
       expect(guard.problems).toEqual([]);
@@ -542,7 +398,7 @@ test.describe("combat stress benchmark", () => {
       const { page, cdp } = await boot(context);
       await page.evaluate((preset) => window.__game!.quality!.set(preset), PROFILE_PRESET);
       const ids = await stage(page);
-      await startCombat(page, ids);
+      await startCombat(page, ids, IDLE);
       await page.waitForTimeout(WARMUP_MS);
       await cdp.send("Emulation.setCPUThrottlingRate", { rate: PROFILE_THROTTLE });
       await cdp.send("Profiler.enable");

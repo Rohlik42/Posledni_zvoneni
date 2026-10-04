@@ -4,6 +4,7 @@ import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import type { Node } from "@babylonjs/core/node";
 import type { Scene } from "@babylonjs/core/scene";
 import { DamageTargets } from "../../core/DamageTargets";
+import { FrameBudget } from "../../rendering/FrameBudget";
 import { TriangleGrid } from "./TriangleGrid";
 
 /** Slack (m) of the bounding-box pre-test, so rounding never rejects a mesh the exact test would hit. */
@@ -94,8 +95,11 @@ export class LineOfSight {
   private signatureStep = 0;
   /** Boxes a ray passes through (reused between rays). */
   private readonly hits: { index: number; near: number }[] = [];
-  /** Triangle grids of large frozen meshes (built on their first exact test); null = not worth one / unreadable. */
+  /** Triangle grids of large frozen meshes; null = not worth one / unreadable. */
   private readonly grids = new WeakMap<AbstractMesh, TriangleGrid | null>();
+  /** Meshes whose grid waits in the frame budget (an exact test meanwhile uses Babylon's, same answer). */
+  private readonly gridQueue: AbstractMesh[] = [];
+  private readonly gridQueued = new WeakSet<AbstractMesh>();
 
   /**
    * Combat performance (FEEDBACK 2026-10-04): meshes come and go all the time in a fight (wet spots, sparks' hosts,
@@ -107,6 +111,14 @@ export class LineOfSight {
   private cached = new Set<AbstractMesh>();
 
   constructor(private readonly scene: Scene) {
+    // FEEDBACK 2026-10-04 („občas se to sekne, jak se něco předpočítává“): the grids of every large static mesh are
+    // built at load (`Game.start` drains the frame budget behind the loading screen), not on the first ray that
+    // reaches a new room in play (a grid of a big room mesh took several ms each).
+    FrameBudget.for(scene).enqueue("sight-grids", () => {
+      this.refresh();
+      for (const mesh of this.meshes) this.queueGrid(mesh);
+      return true;
+    });
     scene.onNewMeshAddedObservable.add((mesh) => {
       // Nobody cast a ray for a long time: rebuild on the next one instead of keeping a long list.
       if (this.added.length >= MAX_PENDING_ADDED) {
@@ -388,15 +400,33 @@ export class LineOfSight {
     this.boxes[b + 5] = box.maximumWorld.z;
   }
 
-  /** A triangle grid for a large mesh that never moves (frozen world matrix), else null (Babylon's exact test). */
+  /**
+   * The triangle grid of a large mesh that never moves (frozen world matrix), else null (Babylon's exact test). A grid
+   * not built yet is queued in the frame budget (one mesh per unit) and Babylon's test answers until then.
+   */
   private grid(mesh: AbstractMesh): TriangleGrid | null {
-    if (!mesh.isWorldMatrixFrozen || mesh.hasThinInstances || mesh.getTotalIndices() / XYZ < GRID_MIN_TRIANGLES) return null;
-    let grid = this.grids.get(mesh);
-    if (grid === undefined) {
-      grid = TriangleGrid.build(mesh);
-      this.grids.set(mesh, grid);
-    }
-    return grid;
+    const grid = this.grids.get(mesh);
+    if (grid !== undefined) return grid;
+    this.queueGrid(mesh);
+    return null;
+  }
+
+  private static wantsGrid(mesh: AbstractMesh): boolean {
+    return mesh.isWorldMatrixFrozen && !mesh.hasThinInstances && mesh.getTotalIndices() / XYZ >= GRID_MIN_TRIANGLES;
+  }
+
+  private queueGrid(mesh: AbstractMesh): void {
+    if (this.gridQueued.has(mesh) || !LineOfSight.wantsGrid(mesh)) return;
+    this.gridQueued.add(mesh);
+    this.gridQueue.push(mesh);
+    if (this.gridQueue.length === 1) FrameBudget.for(this.scene).enqueue("sight-grid", () => this.buildNextGrid());
+  }
+
+  /** One unit of the frame budget: the grid of the next queued mesh; true when the queue is empty. */
+  private buildNextGrid(): boolean {
+    const mesh = this.gridQueue.shift();
+    if (mesh !== undefined && !mesh.isDisposed() && LineOfSight.wantsGrid(mesh)) this.grids.set(mesh, TriangleGrid.build(mesh));
+    return this.gridQueue.length === 0;
   }
 
   /** Visibility flags, then the owner lookup (a mesh may get an owner after it was added). */

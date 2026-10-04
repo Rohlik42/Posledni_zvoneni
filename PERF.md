@@ -227,3 +227,79 @@ perf.spec (≥ 30 fps) padal už na main @ 6774b08, nezpůsobila to tato změna.
 Panel výkonu: F3 nebo `?perf=1` v adrese ukáže renderer, předvolbu a úroveň adaptace, fps, CPU snímku, interval snímku,
 počet zaseknutí > 100 ms, překlady shaderů (celkem / za poslední sekundu), WebGPU pipeline, částice, draw cally, meshe a
 světla — čísla, která může člověk opsat z Windows (Ryzen) a poslat.
+
+## 2026-10-04 — Zasekávání na Macu (FEEDBACK „občas se to sekne, jak se něco předpočítává“)
+
+Zdroj čísel: `tests/e2e/hitches.spec.ts` (zapisuje `test-results/hitches[-<tag>].json`). Celá hra `/?new=1` s předvolbou
+uloženou v nastavení před načtením a s adaptací, jak ji má hráč (výchozí zapnuto). **Procházka:** hráč jde v reálném
+čase klávesou dopředu celou trasou `level.json → route` (~420 m, ~93 s, 4 patra, dveře otevírá cestou, roboti útočí,
+IDDQD). **Souboj:** 30 s boje v tělocvičně (`tests/support/CombatScript.ts`, stejný skript jako `perf-combat.spec.ts`).
+Snímky se měří v stránce (`performance.now()` v `requestAnimationFrame`), počítá se vše po prvních 3 s. Displej jako
+Retina Macu (`deviceScaleFactor` 2: 1280×720 CSS px = render 2560×1440, 1920×1080 = 3840×2160), headless Chromium,
+WebGPU, M1 Pro; stroj byl zatížený jinými agenty (load 4–7). „Před optimalizací“ = 1bdef5e (worktree, stejný test; past
+z kvízu tam nemá hook, takže jeho souboj je lehčí), „1ef8804“ = commit „combat performance“ (worktree s dočasnými
+štítky důvodů), „po“ = tato změna. Buňka: **snímky > 50 ms / snímky > 33 ms za minutu / nejdelší snímek po 3 s (ms)**.
+
+| Scénář (2×) | Před optimalizací | 1ef8804 | Po |
+| --- | --- | --- | --- |
+| Procházka Vysoké 720p | 49 / 68,7 / 184 | 48 / 55,8 / 104 | **0 / 0 / < 33** (max 29) |
+| Procházka Vysoké 1080p | 56 / 71,9 / 177 | 48 / 59,3 / 99 | **0 / 0 / < 33** (max 31) |
+| Procházka Střední 720p | 39 / 50,9 / 177 | 0 / 0 / < 33 | **0 / 0 / < 33** (max 33) |
+| Procházka Střední 1080p | 34 / 46,7 / 188 | 0 / 0 / < 33 | **0 / 0 / < 33** (max 28) |
+| Souboj Vysoké 720p | 26 / 47 / 254 | 0 / 0 / < 33 (start boje 108) | **0 / 0 / < 33** (max 30) |
+| Souboj Vysoké 1080p | 24 / 57 / 251 | 0 / 0 / < 33 (start boje 96) | **0 / 0 / < 33** (max 31) |
+| Souboj Střední 720p | 26 / 34 / 224 | 0 / 0 / < 33 | **0 / 0 / < 33** (max 28) |
+| Souboj Střední 1080p | 26 / 34 / 240 | 0 / 0 / < 33 | **0 / 0 / < 33** (max 33) |
+| Automaticky, procházka 720p (zvolí Vysoké) | – | – | 0 / 0,7 / 36 |
+| Automaticky, procházka 1080p (zvolí Střední) | – | – | 0 / 0 / < 33 |
+| Displej 1:1, Automaticky 1080p, procházka | – | 33 / 50,6 / 87 (zvolí Vysoké) | **0 / 0,7 / 34** |
+| Displej 1:1, Vysoké 1080p, procházka | – | 42 / 52,8 / 101 | **0 / 0 / < 33** |
+| Displej 1:1, Vysoké 1080p, souboj | – | 0 / 0 / < 33 (start 100) | **0 / 0 / < 33** |
+
+Cíle zadání: žádný snímek > 50 ms po prvních 3 s — **splněno** ve všech 13 bězích; snímky > 33 ms nejvýš 1 za minutu
+— **splněno** (nejvýš 0,7/min, 1 snímek 34–36 ms v celé procházce). Průměry souboje (`perf-combat.spec.ts`, adaptace
+vypnutá, displej 1:1, CPU snímku průměr / p95 ms) 1ef8804 → po: Vysoké 720p 10,8 / 15,4 → 10,8 / 15,5; Střední 720p
+7,8 / 11,7 → 7,8 / 11,1; Vysoké 1080p 11,2 / 16,1 → 11,0 / 15,6; Střední 1080p 8,2 / 11,7 → 8,4 / 11,6 (v rámci ±3 %,
+mez zadání 10 %); 0 překladů a 0 pipeline v měřených oknech v obou.
+
+Kde byla zaseknutí (štítky `FrameTags` a Chrome trace s `HITCH_TRACE=1`):
+- **1ef8804, Vysoké, procházka: výměna stínových map lamp.** 55 z 86 dlouhých snímků mělo štítek `shadowSwap`/`shadowIdle`
+  s CPU snímku 40–75 ms (24 dalších z prvních 10 s už se do tehdejšího logu 64 snímků nevešlo), v chodbách každé ~2 s
+  (kdykoli se změní 2 nejbližší lampy). `RenderTargetTexture.resize`
+  (8 ↔ 512 px) spouští v Babylonu `ShadowGenerator.recreateShadowMap`: nový render pass, takže vrhači znovu staví stav
+  kreslení, a `_markMeshesAsLightDirty` na celou místnost. Dalších 5 snímků (37–56 ms) mělo jen štítek `rechoose`
+  (výměna světel robota) — na Střední tytéž výměny dlouhý snímek nedělají a po opravě zmizely i tyto (byla to první
+  kresba nově vytvořené mapy). Na Střední (bez stínů) 1ef8804 nezasekával.
+- **Automatická volba přepínala předvolbu za hry:** měřila v prvních vteřinách hraní a změna (render targety, 40 stínových
+  generátorů, 3 snímky zahřátí všeho bez ořezu) stojí na M1 **230–355 ms jednoho snímku** (sonda Střední ↔ Vysoké za hry,
+  2560×1440). S displejem 1:1 volba na M1 přešla na Vysoké, a tím i na výměny stínových map výše.
+- **Adaptivní rozlišení:** krok mění hardware scaling a realokuje všechny render targety. Na M1 je levný (sonda 2560×1440
+  ↔ 2176×1224 na Střední i Vysoké: nejdelší snímek kolem kroku 19–23 ms), na Macu tedy zaseknutí nezpůsoboval; je ale
+  přesně tou realokací za hry, kterou zadání zakazuje, a na Windows bývá dražší → výchozí vypnuto (volba zůstává).
+- **Zbytek po opravě (trace):** jediný snímek nad 33 ms v procházce Vysoké (34,7 ms) = přepočet defines materiálu
+  (`isReadyForSubMesh` 2,5 ms) po výměně světel robota; v souboji 34 ms = mokrá skvrna (`CreateDecal`, 2,6 ms) + běžný
+  snímek. GC v dlouhých snímcích 0 ms.
+- **Před optimalizací (1bdef5e)** zasekával v tomto měření víc než 1ef8804, i na Střední (38 snímků > 50 ms za
+  procházku, 26 v souboji). Trace (`HITCH_TRACE=1`, Střední 720p@2×): ve všech dlouhých snímcích procházky běželo
+  `RoomLighting.include`/`exclude` (30–150 ms; robot, který hráče honí, přešel do jiné místnosti a přepojoval ~50 dílů
+  přes Babylonův hook — opraveno v 1ef8804), GC 0 ms. Robot honící hráče s IDDQD přes celou školu je horší případ než
+  běžné hraní, takže starou verzi to v praxi mohlo škubat méně; výměna stínových map v 1ef8804 se ale opakovala při
+  každém průchodu chodbou s lampami na Vysoké, i bez robotů v okolí — proto „občas se to sekne“ až po optimalizaci.
+
+Co se změnilo: stínová mapa lampy mění jen velikost textury (handler generátoru se při naší změně velikosti přeskočí);
+automatická volba měří a přepíná jen za obrazovkou (menu, příběh, pauza), nikdy za hry; adaptace za hry ubírá jen
+ozdobné částice (rozlišení jen s volbou „Při zpomalení snížit i rozlišení“); `FrameBudget` dokončí při načtení vše
+předpočitatelné (mřížky trojúhelníků `LineOfSight` — dřív líně při prvním paprsku do nové místnosti) a co přibude za
+hry, rozloží po ≤ 1,5 ms na snímek; bazény střel robotů (24 na materiál) a balónků (6) mají pevnou velikost.
+
+Panel F3 / `?perf=1` nově ukazuje **nejdelší snímek za posledních 10 s**, počet snímků > 33 ms a **poslední snímek
+> 33 ms s důvodem** (např. „výměna stínové mapy lampy“, „zahřátí shaderů“, „mimo snímek (GC nebo prohlížeč)“, „důvod
+neznámý“). Z Windows (Ryzen) tak jde poslat i příčinu, ne jen čísla.
+
+Měřit znovu: `HITCH_PRESETS=high,medium HITCH_HEIGHTS=720,1080 HITCH_SCENARIOS=walk,combat HITCH_ASSERT=0
+npx playwright test tests/e2e/hitches.spec.ts`; `HITCH_TRACE=1` připíše GC a funkce z CPU sampleru, `HITCH_DPR=1`
+displej 1:1. Výchozí běh (Střední 720p@2×, procházka) je test: žádný snímek > 50 ms po 3 s a nejvýš 4 snímky > 33 ms
+za minutu (cíl 1/min; běh, jehož dlouhé snímky hra nezpůsobila, se změří ještě jednou).
+
+Známé: test 4 v `perf.spec.ts` (Nízké s CPU 4× ≥ 30 fps ve statické scéně) dál padá jako na main před touto změnou
+(teď 28,2 fps, dřív 21,6–23,2; viz „Souboj“).

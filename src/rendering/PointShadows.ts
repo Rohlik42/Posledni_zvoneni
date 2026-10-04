@@ -6,6 +6,7 @@ import type { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { RenderTargetTexture } from "@babylonjs/core/Materials/Textures/renderTargetTexture";
+import { FrameTags } from "./FrameTags";
 import { LightExclusions } from "./LightExclusions";
 import { ShaderPrewarm } from "./ShaderPrewarm";
 import { PerformanceConfig } from "./PerformanceConfig";
@@ -26,6 +27,8 @@ const IDLE_MAP_SIZE = 8;
 /** The keeper's light sits here, dark and shining on nothing (see `keeper`). */
 const KEEPER_POSITION = new Vec3(0, -1e4, 0);
 const KEEPER_MAP_SIZE = 4;
+/** `FrameTags` of a lamp's map growing to `mapSize` (it became one of the nearest) and shrinking back. */
+const TAG_SWAP = "shadowSwap";
 
 /**
  * Shadows of the point lights nearest to the player (phase 19, DECISIONS #11): at most `maxLights` cube shadow maps
@@ -36,8 +39,9 @@ const KEEPER_MAP_SIZE = 4;
  * of every material it shines on (`SHADOWn`), so the whole room recompiled when the player came near a lamp (~83 ms on
  * the M1, far more on Windows). Now, while shadows are on, every shadow lamp (`all`) has a generator for good, and
  * its meshes receive shadows for good: the nearest `maxLights` lamps get a `mapSize` map with their casters, the rest an
- * `IDLE_MAP_SIZE` map drawn once empty (no shadow, no cost). Swapping lamps only resizes maps and swaps caster lists —
- * no define changes, no compiles; the variants are built once when shadows switch on (`ShaderPrewarm` after a preset).
+ * `IDLE_MAP_SIZE` map drawn once empty (no shadow, no cost). Swapping lamps only resizes map textures (without
+ * Babylon's recreation of the map, see `resize`) and swaps caster lists — no define changes, no compiles; the variants
+ * are built once when shadows switch on (`ShaderPrewarm` after a preset).
  * Moving things (`LightExclusions.isDynamic`: robots, the weapon in hand) never receive shadows: their lights change
  * as they move, and a shadowed light at another index would be another shader.
  */
@@ -54,8 +58,8 @@ export class PointShadows {
   private prewarmRegistered = false;
   /**
    * A shadow generator on a dark light that never changes size and has drawn every caster once: it holds the casters'
-   * depth shaders. A lamp's map is recreated when it changes size (Babylon's generator rebuilds itself on resize) and
-   * releases its depth shaders; an effect nobody holds leaves the engine's cache and would compile again.
+   * depth shaders, so they stay in the engine's cache whatever happens to a lamp's generator (an effect nobody holds
+   * leaves the cache and would compile again). Lamps' maps are no longer recreated on resize (`resize`).
    */
   private keeper: { light: PointLight; generator: ShadowGenerator } | null = null;
   /** Smaller meshes cast no shadow (data/performance.json → shadows, FEEDBACK 2026-10-04 combat performance). */
@@ -168,6 +172,7 @@ export class PointShadows {
     for (const { light, receivers } of all) {
       if (this.generators.has(light)) continue;
       const generator = new ShadowGenerator(IDLE_MAP_SIZE, light);
+      PointShadows.guardResize(generator);
       generator.usePoissonSampling = true;
       generator.bias = this.settings.bias;
       generator.setDarkness(this.settings.darkness);
@@ -229,12 +234,36 @@ export class PointShadows {
   }
 
   /**
-   * Resizes only the map's texture: `ShadowGenerator.mapSize` would recreate the map and release its depth shaders
-   * (a release that drops an effect to zero users removes it from the engine cache, so it compiled again).
+   * Resizes only the map's texture (FEEDBACK 2026-10-04 „občas se to sekne“): Babylon's generator listens to its map's
+   * resize and then recreates the whole map — a new render pass, so every caster builds its depth draw state again —
+   * and marks every mesh of the light dirty. That was 40–75 ms of CPU each time the nearest lamps changed on the walk
+   * on Vysoké (`tests/e2e/hitches.spec.ts`). With the guard (`guardResize`) only the texture is reallocated: the render
+   * pass, the casters' draw state built in the warm-up and the receivers' shaders stay; receivers bind the new texture.
    */
   private static resize(generator: ShadowGenerator, size: number): void {
     const map = generator.getShadowMap()!;
-    if (map.getSize().width !== size) map.resize(size);
+    if (map.getSize().width === size) return;
+    FrameTags.note(TAG_SWAP);
+    PointShadows.quietResize = true;
+    try {
+      map.resize(size);
+    } finally {
+      PointShadows.quietResize = false;
+    }
+    (generator as unknown as { _mapSize: number })._mapSize = size;
+  }
+
+  /** While `resize` runs, the generator's own resize handler (recreate the map) is skipped. */
+  private static quietResize = false;
+
+  private static guardResize(generator: ShadowGenerator): void {
+    generator.getShadowMap()!.onResizeObservable.add(
+      (_map, state) => {
+        if (PointShadows.quietResize) state.skipNextObservers = true;
+      },
+      undefined,
+      true,
+    );
   }
 
   private disposeAll(): void {

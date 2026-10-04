@@ -2,6 +2,19 @@ import type { AbstractEngine } from "@babylonjs/core/Engines/abstractEngine";
 import type { Scene } from "@babylonjs/core/scene";
 import { TestHooks } from "../core/TestHooks";
 import { CompileCounter, type CompileRecord } from "./CompileCounter";
+import { FrameTags } from "./FrameTags";
+
+/** A frame longer than `SLOW_FRAME_MS` and what the game did in it (FEEDBACK 2026-10-04, hitches on the Mac). */
+export interface LongFrame {
+  /** `performance.now()` when the next frame began (the end of the long one), ms. */
+  at: number;
+  /** Wall-clock gap from the frame's begin to the next begin, ms. */
+  ms: number;
+  /** CPU time of the frame itself (engine begin → end), ms; much less than `ms` = the time went outside the frame. */
+  cpuMs: number;
+  /** Reasons noted in the frame (`FrameTags`, compiles); `outside` when the frame was short and the gap was not. */
+  tags: string[];
+}
 
 /** What the performance overlay and `__game.perf` report (FEEDBACK 2026-10-04: numbers a player can send from Windows). */
 export interface PerfSnapshot {
@@ -27,6 +40,12 @@ export interface PerfSnapshot {
   lights: number;
   renderWidth: number;
   renderHeight: number;
+  /** Longest frame interval of the last `LONGEST_WINDOW_S` s, ms. */
+  longestRecentMs: number;
+  /** Frames over `SLOW_FRAME_MS` since load (after the first `WARMUP_FRAMES`). */
+  slowFrames: number;
+  /** The last frame over `SLOW_FRAME_MS`: its length, how long ago (s) and its reason tags; null before the first. */
+  lastLong: { ms: number; ago: number; tags: string[] } | null;
 }
 
 /** `window.__game.perf`. */
@@ -41,6 +60,8 @@ export interface PerfTestApi {
   trace: (on: boolean) => void;
   /** Meshes whose name starts with `prefix`: name, world bounding radius (m), enabled (diagnostics of draw calls). */
   meshes: (prefix: string) => { name: string; radius: number; enabled: boolean }[];
+  /** The last frames over `SLOW_FRAME_MS` with their reason tags, oldest first (copies). */
+  longFrames: () => LongFrame[];
 }
 
 declare module "../core/TestHooks" {
@@ -55,6 +76,18 @@ const SAMPLE_FRAMES = 60;
 const HITCH_MS = 100;
 /** Loading frames are not counted as hitches. */
 const WARMUP_FRAMES = 120;
+/** A frame this long missed at least one vsync at 60 Hz: logged with its reasons (ms). */
+const SLOW_FRAME_MS = 33;
+/** Long frames kept in the log. */
+const LONG_LOG_SIZE = 256;
+/** The panel's „longest frame of the last n s“ (s, one bucket per second). */
+const LONGEST_WINDOW_S = 10;
+const MS_PER_SECOND = 1000;
+/** A long gap whose frame used less than this share of it on the CPU happened outside the game's frame. */
+const OUTSIDE_SHARE = 0.5;
+/** Tags of frames the game did nothing special in (`data/performance.json → overlay.tags`). */
+const TAG_COMPILE = "compile";
+const TAG_OUTSIDE = "outside";
 
 /**
  * Cheap always-on performance numbers of a game (FEEDBACK 2026-10-04): CPU frame time, frame interval, hitches, shader
@@ -72,6 +105,13 @@ export class PerfMonitor {
   private hitchCount = 0;
   private begin = 0;
   private lastBegin = 0;
+  private slowCount = 0;
+  private readonly longLog: LongFrame[] = [];
+  /** Longest gap per second of the last `LONGEST_WINDOW_S` s and the second each bucket holds. */
+  private readonly secondMax = new Float64Array(LONGEST_WINDOW_S);
+  private readonly secondOf = new Float64Array(LONGEST_WINDOW_S).fill(-1);
+  /** Compiles + pipelines at the begin of the previous frame (a change tags the frame). */
+  private compilesAtBegin = 0;
 
   constructor(
     private readonly engine: AbstractEngine,
@@ -80,11 +120,16 @@ export class PerfMonitor {
     this.compiles = CompileCounter.install(engine);
     engine.onBeginFrameObservable.add(() => {
       const now = performance.now();
+      const compiles = this.compiles.effectCompiles + this.compiles.pipelines;
       if (this.lastBegin > 0) {
         const gap = now - this.lastBegin;
         this.interval[this.index] = gap;
         if (this.frames > WARMUP_FRAMES && gap > HITCH_MS) this.hitchCount += 1;
+        this.trackLongest(now, gap);
+        if (gap > SLOW_FRAME_MS) this.logLong(now, gap, compiles);
       }
+      FrameTags.clear();
+      this.compilesAtBegin = compiles;
       this.lastBegin = now;
       this.begin = now;
     });
@@ -113,6 +158,7 @@ export class PerfMonitor {
       trace: (on) => {
         monitor.compiles.trace = on;
       },
+      longFrames: () => monitor.longLog.map((f) => ({ ...f, tags: [...f.tags] })),
       meshes: (prefix) =>
         scene.meshes
           .filter((m) => m.name.startsWith(prefix))
@@ -155,6 +201,44 @@ export class PerfMonitor {
       lights: scene.lights.length,
       renderWidth: engine.getRenderWidth(),
       renderHeight: engine.getRenderHeight(),
+      longestRecentMs: this.longestRecent(),
+      slowFrames: this.slowCount,
+      lastLong: this.lastLong(),
     };
+  }
+
+  /** Longest frame interval of the last `LONGEST_WINDOW_S` s (ms). */
+  longestRecent(): number {
+    const second = Math.floor(performance.now() / MS_PER_SECOND);
+    let longest = 0;
+    for (let i = 0; i < LONGEST_WINDOW_S; i++) if (second - this.secondOf[i]! < LONGEST_WINDOW_S) longest = Math.max(longest, this.secondMax[i]!);
+    return longest;
+  }
+
+  private lastLong(): PerfSnapshot["lastLong"] {
+    const last = this.longLog[this.longLog.length - 1];
+    if (last === undefined) return null;
+    return { ms: last.ms, ago: (performance.now() - last.at) / MS_PER_SECOND, tags: [...last.tags] };
+  }
+
+  private trackLongest(now: number, gap: number): void {
+    const second = Math.floor(now / MS_PER_SECOND);
+    const bucket = second % LONGEST_WINDOW_S;
+    if (this.secondOf[bucket] !== second) {
+      this.secondOf[bucket] = second;
+      this.secondMax[bucket] = 0;
+    }
+    if (gap > this.secondMax[bucket]!) this.secondMax[bucket] = gap;
+  }
+
+  /** A frame over `SLOW_FRAME_MS` (allocates only then): its CPU time and the reasons noted while it ran. */
+  private logLong(now: number, gap: number, compiles: number): void {
+    if (this.frames > WARMUP_FRAMES) this.slowCount += 1;
+    const cpuMs = this.cpu[(this.index + SAMPLE_FRAMES - 1) % SAMPLE_FRAMES]!;
+    const tags = [...FrameTags.peek()];
+    if (compiles > this.compilesAtBegin) tags.push(TAG_COMPILE);
+    if (tags.length === 0 && cpuMs < gap * OUTSIDE_SHARE) tags.push(TAG_OUTSIDE);
+    this.longLog.push({ at: now, ms: gap, cpuMs, tags });
+    if (this.longLog.length > LONG_LOG_SIZE) this.longLog.shift();
   }
 }

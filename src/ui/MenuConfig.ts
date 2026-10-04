@@ -25,8 +25,13 @@ export interface SettingsData {
   /** „Realistické postavy učitelů“: glTF teachers instead of the primitive ones (FEEDBACK 2026-10-04), off by default. */
   realisticPeople: boolean;
   quality: QualityOption;
-  /** „Automaticky přizpůsobit výkon“ (FEEDBACK 2026-10-04, `AdaptiveQuality`) on by default. */
+  /** „Automaticky přizpůsobit výkon“ (FEEDBACK 2026-10-04, `AdaptiveQuality`) on by default: effect density only. */
   adaptive: boolean;
+  /**
+   * „Automaticky snížit rozlišení“: the adaptation may also lower the render scale. Off by default (FEEDBACK 2026-10-04
+   * „občas se to sekne“): a new resolution reallocates every render target of the frame, which hitches.
+   */
+  adaptiveResolution: boolean;
 }
 
 /** Head of a menu page: kicker, title with an optional highlighted second part (LEGACY §4), lead. */
@@ -64,6 +69,8 @@ export interface MenuTexts {
     autoNow: string;
     /** The adaptive toggle under the presets (FEEDBACK 2026-10-04): label, its state words and what it does. */
     adaptive: { label: string; on: string; off: string; detail: string };
+    /** The adaptive resolution toggle (off by default, it hitches when it steps). */
+    adaptiveResolution: { label: string; on: string; off: string; detail: string };
   };
   controls: PageTexts & { rows: { keys: string; action: string }[]; note: string };
   credits: PageTexts & {
@@ -123,6 +130,7 @@ export class MenuConfig {
       realisticPeople: Schema.boolean(),
       quality: Schema.enumOf(QUALITY_OPTIONS),
       adaptive: Schema.boolean(),
+      adaptiveResolution: Schema.boolean(),
     }),
     qualityOptions: Schema.array(Schema.enumOf(QUALITY_OPTIONS), 1),
     legacyUrl: Schema.string(),
@@ -186,6 +194,7 @@ export class MenuConfig {
         details: qualityRecord(),
         autoNow: Schema.string(),
         adaptive: Schema.object({ label: Schema.string(), on: Schema.string(), off: Schema.string(), detail: Schema.string() }),
+        adaptiveResolution: Schema.object({ label: Schema.string(), on: Schema.string(), off: Schema.string(), detail: Schema.string() }),
       }),
       controls: page({
         rows: Schema.array(Schema.object({ keys: Schema.string(), action: Schema.string() }), 1),

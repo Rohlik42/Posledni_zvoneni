@@ -9,6 +9,7 @@ import type { DamageType } from "../core/DamageTypes";
 import type { Simulated } from "../core/SceneSetup";
 import type { Player } from "../player/Player";
 import { DropletEmitter } from "../rendering/DropletEmitter";
+import { FrameTags } from "../rendering/FrameTags";
 import { PaletteColor } from "../rendering/PaletteColor";
 import { ShaderPrewarm } from "../rendering/ShaderPrewarm";
 import { Random } from "../utils/Random";
@@ -39,8 +40,13 @@ const IMPACT_MIN_RISE = -0.3;
 const TRAIL_SEED = 5;
 /** The flash fades from full size to this fraction over its life. */
 const FLASH_END_SCALE = 0.3;
-/** Bolt and flash spheres are made once and reused (FEEDBACK 2026-10-04, combat performance): this many at load. */
-const PREWARM_SPHERES = 8;
+/**
+ * Bolt and flash spheres are made once at load and reused (FEEDBACK 2026-10-04): this many per material, never more —
+ * a new mesh in a fight is a hitch. When every one is in flight the oldest bolt (or flash) of that material ends early.
+ */
+const POOL_SPHERES = 24;
+/** `FrameTags` of a frame that ended a bolt early because the pool was empty. */
+const TAG_POOL = "pool";
 
 /** One electric bolt in flight. */
 interface Bolt {
@@ -118,7 +124,7 @@ export class EnemyProjectiles implements Simulated {
   prewarm(data: ProjectileData): void {
     for (const material of [this.glow(data.color, data.glow), this.glow(data.color, data.glow * FLASH_GLOW_BOOST)]) {
       const pool = this.pool(material);
-      while (pool.length < PREWARM_SPHERES) pool.push(this.createSphere(material));
+      while (pool.length < POOL_SPHERES) pool.push(this.createSphere(material));
       // One of them is drawn in the load-time warm-up, so the bolt's pipeline exists before the first shot.
       ShaderPrewarm.for(this.scene).addMesh(pool[0]!);
     }
@@ -264,11 +270,29 @@ export class EnemyProjectiles implements Simulated {
     this.flashes.push({ mesh, age: 0, life: data.flashTime, size: data.flashSize });
   }
 
-  /** A sphere from the pool (enabled), or a new one when every sphere is in flight. */
+  /**
+   * A sphere from the pool (enabled). The pool never grows in play: with every sphere of `material` in flight the
+   * oldest flash, else the oldest bolt, of that material gives up its sphere (a material nobody prewarmed — tests that
+   * fire a kind no robot carries — still gets a new sphere).
+   */
   private sphere(material: StandardMaterial): Mesh {
-    const mesh = this.pool(material).pop() ?? this.createSphere(material);
+    const mesh = this.pool(material).pop() ?? this.reclaim(material) ?? this.createSphere(material);
     mesh.setEnabled(true);
     return mesh;
+  }
+
+  private reclaim(material: StandardMaterial): Mesh | null {
+    for (let i = 0; i < this.flashes.length; i++) {
+      if (this.flashes[i]!.mesh.material !== material) continue;
+      FrameTags.note(TAG_POOL);
+      return this.flashes.splice(i, 1)[0]!.mesh;
+    }
+    for (let i = 0; i < this.bolts.length; i++) {
+      if (this.bolts[i]!.mesh.material !== material) continue;
+      FrameTags.note(TAG_POOL);
+      return this.bolts.splice(i, 1)[0]!.mesh;
+    }
+    return null;
   }
 
   private pool(material: StandardMaterial): Mesh[] {

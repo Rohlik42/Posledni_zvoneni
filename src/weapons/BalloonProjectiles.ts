@@ -4,6 +4,7 @@ import { PhysicsMotionType } from "@babylonjs/core/Physics/v2/IPhysicsEnginePlug
 import { PhysicsBody } from "@babylonjs/core/Physics/v2/physicsBody";
 import { PhysicsShapeSphere } from "@babylonjs/core/Physics/v2/physicsShape";
 import type { Scene } from "@babylonjs/core/scene";
+import { FrameTags } from "../rendering/FrameTags";
 import { ShaderPrewarm } from "../rendering/ShaderPrewarm";
 import type { HitResult, Hitscan } from "./Hitscan";
 import { WaterBalloonModel } from "./models/WaterBalloonModel";
@@ -12,8 +13,13 @@ import { WaterBalloonModel } from "./models/WaterBalloonModel";
 const CONTACT_PROBE_DISTANCE = 1;
 /** The burst point sits this far off the surface, so splash rays start in the open (m). */
 const SURFACE_OFFSET = 0.05;
-/** Balloon models made at load and reused (FEEDBACK 2026-10-04: no model is built per throw). */
-const POOL_START = 2;
+/**
+ * Balloon models made at load and reused (FEEDBACK 2026-10-04: no model is built per throw), never more: with every
+ * one in the air the oldest vanishes and flies again (a new model in play would be a hitch).
+ */
+const POOL_SIZE = 6;
+/** `FrameTags` of a throw that had to take the oldest balloon out of the air. */
+const TAG_POOL = "pool";
 
 export interface BalloonFlightOptions {
   radius: number;
@@ -67,7 +73,7 @@ export class BalloonProjectiles {
     private readonly hitscan: Hitscan,
     private readonly options: BalloonFlightOptions,
   ) {
-    for (let i = 0; i < POOL_START; i++) this.spare.push(this.createShell());
+    for (let i = 0; i < POOL_SIZE; i++) this.spare.push(this.createShell());
     // A flying balloon is drawn once in the load-time warm-up (its materials without the hand's room lights).
     const shown = this.spare[0]!;
     ShaderPrewarm.for(scene).addAction((at) => {
@@ -87,6 +93,10 @@ export class BalloonProjectiles {
 
   launch(position: Vector3, velocity: Vector3): void {
     const { scene, options } = this;
+    if (this.spare.length === 0 && this.flying.length > 0) {
+      FrameTags.note(TAG_POOL);
+      this.remove(this.flying[0]!);
+    }
     const { node, model } = this.spare.pop() ?? this.createShell();
     node.position.copyFrom(position);
     node.rotationQuaternion = null;

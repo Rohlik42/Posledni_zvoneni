@@ -1,5 +1,5 @@
 {
-  "//": "Fáze 18: hlavní menu, pauza, obrazovka smrti, nastavení (src/core/GameFlow.ts, src/ui/MenuOverlay.ts, src/ui/MenuPages.ts, src/core/Settings.ts). Vzhled panelu bere progression.json → screen (písma, barvy, blur) a doplňuje ho 'layout' (px). settings = rozsahy a výchozí hodnoty nastavení (localStorage pod settings.storageKey): mouseSensitivity = násobič player.json → camera.mouseSensitivity, volume = násobič sounds.json → masterVolume (0–1), musicVolume / effectsVolume = násobiče data/audio.json → buses.music / buses.effects a buses.world (fáze 20), quality = předvolba z qualityOptions (auto = automatická volba; předvolby jsou v data/quality.json a zapíná je src/rendering/QualityManager.ts, fáze 21), adaptive = „Automaticky přizpůsobit výkon“ (FEEDBACK 2026-10-04: za hry sníží rozlišení a počet ozdobných částic, když jsou snímky pomalé; data/quality.json → adaptive), realisticPeople = „Realistické postavy učitelů“: glTF postavy z data/people.json místo učitelů z kostiček (FEEDBACK 2026-10-04: náročnější, laguje u nich, proto výchozí vypnuto; platí od dalšího spuštění levelu, „Nová hra“ pak stránku znovu načte; ?people=gltf / ?people=lowpoly v adrese přebije nastavení). legacyUrl = odkaz na starou hru (na GitHub Pages leží pod /legacy/). texts = všechny texty menu; {value}, {label} a {count} jsou zástupné hodnoty.",
+  "//": "Fáze 18: hlavní menu, pauza, obrazovka smrti, nastavení (src/core/GameFlow.ts, src/ui/MenuOverlay.ts, src/ui/MenuPages.ts, src/core/Settings.ts). Vzhled panelu bere progression.json → screen (písma, barvy, blur) a doplňuje ho 'layout' (px). settings = rozsahy a výchozí hodnoty nastavení (localStorage pod settings.storageKey): mouseSensitivity = násobič player.json → camera.mouseSensitivity, volume = násobič sounds.json → masterVolume (0–1), musicVolume / effectsVolume = násobiče data/audio.json → buses.music / buses.effects a buses.world (fáze 20), quality = předvolba z qualityOptions (auto = automatická volba; předvolby jsou v data/quality.json a zapíná je src/rendering/QualityManager.ts, fáze 21), adaptive = „Automaticky přizpůsobit výkon“ (FEEDBACK 2026-10-04: za hry sníží počet ozdobných částic, když jsou snímky pomalé; data/quality.json → adaptive), adaptiveResolution = „Při zpomalení snížit i rozlišení“ (výchozí vypnuto: změna rozlišení znovu alokuje všechny render targety snímku a zasekne obraz, FEEDBACK 2026-10-04 „občas se to sekne“), realisticPeople = „Realistické postavy učitelů“: glTF postavy z data/people.json místo učitelů z kostiček (FEEDBACK 2026-10-04: náročnější, laguje u nich, proto výchozí vypnuto; platí od dalšího spuštění levelu, „Nová hra“ pak stránku znovu načte; ?people=gltf / ?people=lowpoly v adrese přebije nastavení). legacyUrl = odkaz na starou hru (na GitHub Pages leží pod /legacy/). texts = všechny texty menu; {value}, {label} a {count} jsou zástupné hodnoty.",
   "settings": {
     "storageKey": "malgym2066.settings",
     "version": 1,
@@ -10,7 +10,8 @@
     "invertY": false,
     "realisticPeople": false,
     "quality": "auto",
-    "adaptive": true
+    "adaptive": true,
+    "adaptiveResolution": false
   },
   "qualityOptions": ["auto", "low", "medium", "high"],
   "legacyUrl": "legacy/index.html",
@@ -82,7 +83,7 @@
       "kicker": "PŘEDVOLBY GRAFIKY",
       "title": "Kvalita",
       "titleAccent": "obrazu",
-      "lead": "Automaticky vybere předvolbu podle grafické karty a prvních vteřin hry. Volba se uloží.",
+      "lead": "Automaticky vybere předvolbu podle grafické karty a měření za menu nebo úvodním příběhem, nikdy za hry. Volba se uloží.",
       "options": {
         "auto": "AUTOMATICKY",
         "low": "NÍZKÉ",
@@ -100,7 +101,13 @@
         "label": "AUTOMATICKY PŘIZPŮSOBIT VÝKON",
         "on": "ZAPNUTO",
         "off": "VYPNUTO",
-        "detail": "když se hra za boje zpomalí, sníží rozlišení a počet jisker; až se zrychlí, vrátí je"
+        "detail": "když se hra za boje zpomalí, ubere jiskry, cákance a stopy střel; až se zrychlí, vrátí je"
+      },
+      "adaptiveResolution": {
+        "label": "PŘI ZPOMALENÍ SNÍŽIT I ROZLIŠENÍ",
+        "on": "ZAPNUTO",
+        "off": "VYPNUTO",
+        "detail": "pomůže slabému počítači, ale změna rozlišení může obraz na okamžik zaseknout"
       }
     },
     "controls": {

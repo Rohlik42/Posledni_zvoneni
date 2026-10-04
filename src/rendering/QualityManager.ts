@@ -9,6 +9,7 @@ import type { QualityOption } from "../ui/MenuConfig";
 import { QUALITY_PRESETS, QualityConfig, type QualityData, type QualityPreset, type QualityPresetData } from "./QualityConfig";
 import { AdaptiveQuality, type AdaptiveChange } from "./AdaptiveQuality";
 import { EffectBudget } from "./EffectBudget";
+import { FrameTags } from "./FrameTags";
 import { ShaderPrewarm } from "./ShaderPrewarm";
 import { FrameSampler, type FrameCounters, type FrameWindow } from "./FrameSampler";
 import { QualityDetector, type QualityMeasurement } from "./QualityDetector";
@@ -16,6 +17,8 @@ import type { RenderPipeline } from "./RenderPipeline";
 import { PIPELINE_PARTS } from "./RenderingConfig";
 
 const UNKNOWN_GPU = "unknown";
+/** `FrameTags` of a frame that applied a preset. */
+const TAG_PRESET = "preset";
 /** Mesh names are `<kind>:<id>…`, `<kind>_<part>` or `<kind>-<n>`. */
 const NAME_SEPARATORS = /[:_-]/;
 
@@ -79,7 +82,18 @@ export interface QualityTestApi {
   /** Phase 25: restarts `stats().window` (a test calls it at the start of its measurement). */
   startWindow: () => void;
   /** FEEDBACK 2026-10-04: the in-game adaptation — on/off (settings), level (0 = the preset), its multipliers, changes. */
-  adaptive: () => { enabled: boolean; level: number; levels: number; renderScale: number; effects: number; frameMs: number; changes: AdaptiveChange[] };
+  adaptive: () => {
+    enabled: boolean;
+    /** Adaptive resolution allowed in the settings (off by default). */
+    resolution: boolean;
+    level: number;
+    levels: number;
+    /** The level's render scale in effect (1 while adaptive resolution is off). */
+    renderScale: number;
+    effects: number;
+    frameMs: number;
+    changes: AdaptiveChange[];
+  };
   /** Forces an adaptive level (tests); the controller keeps adapting from there. */
   setAdaptiveLevel: (level: number) => void;
   readonly presets: readonly QualityPreset[];
@@ -112,9 +126,13 @@ export class QualityManager {
   private readonly gpu: string;
   private readonly start: { preset: QualityPreset; hint: string | null };
   private detector: QualityDetector | null = null;
-  /** FEEDBACK 2026-10-04: render scale and effect density follow the frame time in play (menu toggle). */
+  /** FEEDBACK 2026-10-04: effect density (and, if allowed, render scale) follows the frame time in play (menu toggles). */
   private readonly adaptive: AdaptiveQuality;
+  /** The adaptation may change the render scale (settings, off by default: a new resolution reallocates render targets). */
+  private resolutionAllowed: boolean;
   private readonly budget: EffectBudget;
+  /** Screens that cover the game without pausing it (the story screen): the automatic choice measures behind them. */
+  private readonly screens: (() => boolean)[] = [];
   /** The scene rendered once (later preset changes run the shader warm-up). */
   private started = false;
   private choiceValue: QualityOption;
@@ -136,11 +154,16 @@ export class QualityManager {
     this.adaptive = new AdaptiveQuality(this.data.adaptive, () => this.applyAdaptive(true));
     const settings = Settings.shared();
     this.adaptive.setEnabled(settings.values.adaptive);
+    this.resolutionAllowed = settings.values.adaptiveResolution;
     this.choiceValue = settings.values.quality;
     this.current = this.resolve(this.choiceValue);
     settings.onChanged.add((values) => {
       if (values.quality !== this.choiceValue) this.choose(values.quality);
       if (values.adaptive !== this.adaptive.isEnabled) this.adaptive.setEnabled(values.adaptive);
+      if (values.adaptiveResolution !== this.resolutionAllowed) {
+        this.resolutionAllowed = values.adaptiveResolution;
+        this.applyAdaptive(false);
+      }
     });
     game.onPipelineChanged.add((pipeline) => this.applyPipeline(pipeline, this.preset));
     game.scene.onBeforeRenderObservable.add(() => this.measure());
@@ -180,9 +203,14 @@ export class QualityManager {
     return { enabled: this.adaptive.isEnabled, level: this.adaptive.level, levels: this.data.adaptive.levels.length };
   }
 
-  /** Share of the canvas rendered now: the preset's render scale times the adaptive level's. */
+  /** Share of the canvas rendered now: the preset's render scale times the adaptive level's (when allowed). */
   get renderScale(): number {
-    return this.preset.renderScale * this.adaptive.current.renderScale;
+    return this.preset.renderScale * this.adaptiveRenderScale;
+  }
+
+  /** The adaptive level's render scale, 1 unless the player allowed adaptive resolution. */
+  private get adaptiveRenderScale(): number {
+    return this.resolutionAllowed ? this.adaptive.current.renderScale : 1;
   }
 
   /** The preset the automatic choice is at; null when the player picked one by hand. */
@@ -193,6 +221,18 @@ export class QualityManager {
   /** A choice for this page only, not stored in the settings (dev scene `?scene=quality&preset=`). */
   useForPage(choice: QualityOption): void {
     if (choice !== this.choiceValue) this.choose(choice);
+  }
+
+  /** A screen that covers the game while `visible()` (the automatic choice may measure and switch behind it). */
+  addScreen(visible: () => boolean): void {
+    this.screens.push(visible);
+  }
+
+  /** The game is paused or a screen covers it: a preset change is not seen in play. */
+  private covered(): boolean {
+    if (this.game.paused) return true;
+    for (const visible of this.screens) if (visible()) return true;
+    return false;
   }
 
   /** Applies the preset to `target` now and on every change; returns a function that removes it. */
@@ -227,19 +267,25 @@ export class QualityManager {
     this.applyAll();
   }
 
-  /** Feeds the automatic choice with frames of the running game (the menu, pause and quiz screens do not count). */
+  /**
+   * The automatic choice measures frames rendered behind a screen — the main menu, the story (`addScreen`), the pause
+   * menu — and switches the preset there (FEEDBACK 2026-10-04 „občas se to sekne“): a new preset rebuilds render
+   * targets, shadow generators and shaders, so it must never happen in play. Shader warm-up frames do not count. In play
+   * only the adaptation runs (effects, and the render scale when allowed).
+   */
   private measure(): void {
-    if (this.game.paused) return;
-    if (this.detector !== null && !this.detector.done) {
-      const next = this.detector.frame(this.game.engine.getDeltaTime(), this.current);
+    const deltaMs = this.game.engine.getDeltaTime();
+    if (this.covered()) {
+      if (this.detector === null || this.detector.done || ShaderPrewarm.for(this.game.scene).isRunning) return;
+      const next = this.detector.frame(deltaMs, this.current);
       if (next !== null) this.setPreset(next);
       return;
     }
-    // After the automatic choice (or with a preset picked by hand): adapt render scale and effects to the frame time.
-    this.adaptive.frame(this.game.engine.getDeltaTime());
+    this.adaptive.frame(deltaMs);
   }
 
   private applyAll(): void {
+    FrameTags.note(TAG_PRESET);
     const preset = this.preset;
     this.budget.configure(preset.effects);
     this.applyAdaptive(false);
@@ -259,7 +305,7 @@ export class QualityManager {
   private applyAdaptive(step: boolean): void {
     const level = this.adaptive.current;
     const engine = this.game.engine;
-    const scaling = this.baseScaling / (this.preset.renderScale * level.renderScale);
+    const scaling = this.baseScaling / (this.preset.renderScale * this.adaptiveRenderScale);
     if (engine.getHardwareScalingLevel() !== scaling) {
       if (step) this.game.pipeline?.holdBloomKernel(scaling);
       engine.setHardwareScalingLevel(scaling);
@@ -369,7 +415,8 @@ export class QualityManager {
         enabled: manager.adaptive.isEnabled,
         level: manager.adaptive.level,
         levels: manager.data.adaptive.levels.length,
-        renderScale: manager.adaptive.current.renderScale,
+        renderScale: manager.adaptiveRenderScale,
+        resolution: manager.resolutionAllowed,
         effects: manager.adaptive.current.effects,
         frameMs: manager.adaptive.frameMs,
         changes: manager.adaptive.changes.map((c) => ({ ...c })),

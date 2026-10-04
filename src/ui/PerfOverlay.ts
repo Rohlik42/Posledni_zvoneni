@@ -42,7 +42,8 @@ declare module "../core/TestHooks" {
 
 /**
  * Performance panel (FEEDBACK 2026-10-04: „na Ryzenu se souboj laguje“ — a player on Windows can read the numbers off
- * the screen): renderer, preset and adaptive level, fps, CPU frame time, frame interval, hitches over 100 ms, shader
+ * the screen): renderer, preset and adaptive level, fps, CPU frame time, frame interval, the longest frame of the last
+ * 10 s, frames over 33 ms and the reason of the last one (`FrameTags`), hitches over 100 ms, shader
  * compiles and WebGPU pipelines, particles, draw calls, meshes, lights. F3 (`perfOverlay` in data/input.json) toggles it,
  * `?perf=1` shows it at load. Labels are in data/performance.json. Refreshed every `overlay.interval` s of real time.
  */
@@ -107,6 +108,9 @@ export class PerfOverlay {
       `${l.fps}: ${f(p.fps)}`,
       `${l.cpu}: ${f(p.cpuFrameMs)} / ${f(p.cpuFrameMaxMs)}`,
       `${l.interval}: ${f(p.frameIntervalMs)} / ${f(p.frameIntervalMaxMs)}`,
+      `${l.longest}: ${f(p.longestRecentMs)}`,
+      `${l.slowFrames}: ${p.slowFrames}`,
+      `${l.lastLong}: ${p.lastLong === null ? l.lastLongNone : `${f(p.lastLong.ms)} ms, ${Math.round(p.lastLong.ago)} s — ${p.lastLong.tags.length === 0 ? l.unknownReason : p.lastLong.tags.map((t) => this.data.tags[t] ?? t).join(", ")}`}`,
       `${l.hitches}: ${p.hitches}`,
       `${l.compiles}: ${p.compiles} / ${p.recentCompiles}`,
       `${l.pipelines}: ${p.pipelines}`,

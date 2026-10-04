@@ -16,8 +16,10 @@ export interface SettingsValues {
   realisticPeople: boolean;
   /** Quality preset (phase 21 applies it). */
   quality: QualityOption;
-  /** Lower the render scale and effects in play when frames get slow (FEEDBACK 2026-10-04, `AdaptiveQuality`). */
+  /** Lower the decorative effects in play when frames get slow (FEEDBACK 2026-10-04, `AdaptiveQuality`). */
   adaptive: boolean;
+  /** The adaptation may lower the render scale too (off by default: a resolution change hitches). */
+  adaptiveResolution: boolean;
 }
 
 interface StoredSettings extends SettingsValues {
@@ -60,6 +62,7 @@ export class Settings {
       realisticPeople: d.realisticPeople,
       quality: d.quality,
       adaptive: d.adaptive,
+      adaptiveResolution: d.adaptiveResolution,
     };
   }
 
@@ -111,6 +114,7 @@ export class Settings {
       realisticPeople: typeof values.realisticPeople === "boolean" ? values.realisticPeople : d.realisticPeople,
       quality: (QUALITY_OPTIONS as readonly string[]).includes(values.quality) ? values.quality : d.quality,
       adaptive: typeof values.adaptive === "boolean" ? values.adaptive : d.adaptive,
+      adaptiveResolution: typeof values.adaptiveResolution === "boolean" ? values.adaptiveResolution : d.adaptiveResolution,
     };
   }
 

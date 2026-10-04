@@ -3,6 +3,7 @@ import type { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import type { Node } from "@babylonjs/core/node";
 import type { Scene } from "@babylonjs/core/scene";
+import { FrameTags } from "./FrameTags";
 
 /** Frames drawn with everything shown (the first creates the WebGPU pipelines, the next ones catch late defines). */
 const PREWARM_FRAMES = 3;
@@ -11,6 +12,8 @@ const PREWARM_FRAMES = 3;
  * pipelines are built) but the GPU clips them, so the player never sees them, even when the warm-up runs in play.
  */
 const SHOW_DISTANCE = 2;
+/** `FrameTags` of a warm-up frame. */
+const TAG_WARMUP = "warmup";
 
 /** Shows an effect at `at` for the warm-up frames; returns what puts it back. */
 export type PrewarmAction = (at: Vector3) => () => void;
@@ -67,6 +70,11 @@ export class ShaderPrewarm {
     this.cullingSwitch = cullingSwitch;
   }
 
+  /** A warm-up is drawing its frames now (they are slow on purpose: measurements skip them). */
+  get isRunning(): boolean {
+    return this.running !== null;
+  }
+
   /** Warm-ups run and frames drawn by them (tests). */
   get stats(): { runs: number; frames: number; meshes: number; actions: number } {
     return { runs: this.runs, frames: this.framesDrawn, meshes: this.meshes.size, actions: this.actions.length };
@@ -108,6 +116,7 @@ export class ShaderPrewarm {
     this.cullingSwitch?.(false);
     try {
       for (let i = 0; i < PREWARM_FRAMES; i++) {
+        FrameTags.note(TAG_WARMUP);
         await new Promise<void>((resolve) => this.scene.onAfterRenderObservable.addOnce(() => resolve()));
         this.framesDrawn += 1;
       }

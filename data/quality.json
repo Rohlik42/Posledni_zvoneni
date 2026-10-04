@@ -1,19 +1,19 @@
 {
   "//": "Fáze 21: předvolby kvality (src/rendering/QualityManager.ts, DESIGN §8, DECISIONS #11, #12). Mění jen vzhled, nikdy herní logiku. Volbu drží Settings (data/menu.json → settings.quality: auto / low / medium / high). Pořadí 'order' = od nejlevnější po nejdražší (autodetekce po něm přepíná nahoru a dolů).",
   "order": ["low", "medium", "high"],
-  "//autodetect": "Volba 'auto': startovní předvolba podle grafického adaptéru (engine.getGlInfo(): WebGPU adapter.info vendor + architecture, u WebGL2 vendor + renderer; první shoda regulárního výrazu 'match' bez ohledu na velikost písmen, jinak 'start'), pak změří fps hry: po 'warmupSeconds' běžící (nepozastavené) hry průměr přes 'sampleSeconds'; ≥ upFps → o stupeň výš, < downFps → o stupeň níž, jinak zůstane. Nejvýš 'maxRounds' měření; na stupeň, ze kterého spadla kvůli fps, se už nevrací.",
+  "//autodetect": "Volba 'auto': startovní předvolba podle grafického adaptéru (engine.getGlInfo(): WebGPU adapter.info vendor + architecture, u WebGL2 vendor + renderer; první shoda regulárního výrazu 'match' bez ohledu na velikost písmen, jinak 'start'), pak změří fps snímků vykreslených za obrazovkou, která hru zakrývá (hlavní menu, příběh, pauza — FEEDBACK 2026-10-04 „občas se to sekne“: nová předvolba přestaví render targety, stíny a shadery, proto se nikdy nemění za hry): po 'warmupSeconds' průměr přes 'sampleSeconds' (snímky zahřátí shaderů se nepočítají); ≥ upFps → o stupeň výš, < downFps → o stupeň níž, jinak zůstane. Nejvýš 'maxRounds' měření; na stupeň, ze kterého spadla kvůli fps, se už nevrací.",
   "autodetect": {
     "start": "medium",
     "gpu": [
       { "match": "swiftshader|llvmpipe|softpipe|software|basic render", "preset": "low" }
     ],
-    "warmupSeconds": 1,
-    "sampleSeconds": 3,
+    "warmupSeconds": 0.5,
+    "sampleSeconds": 2,
     "upFps": 55,
     "downFps": 30,
     "maxRounds": 2
   },
-  "//adaptive": "Automatické přizpůsobení výkonu za hry (FEEDBACK 2026-10-04, src/rendering/AdaptiveQuality.ts, menu Kvalita → „Automaticky přizpůsobit výkon“, výchozí zapnuto v data/menu.json → settings.adaptive): když průměrná doba snímku za poslední 'window' s přesáhne 1000/downFps ms déle než 'downAfter' s, hra sestoupí o úroveň v 'levels' (renderScale = násobek rozlišení předvolby, effects = násobek hustoty efektových částic); když je pod 1000/upFps ms déle než 'upAfter' s, vrátí se o úroveň výš. Do úrovně, kterou opustila kvůli pomalým snímkům, se vrátí nejdřív po 'retryAfter' s (nekolísá). Mezi změnami je aspoň 'cooldown' s. Mění jen rozlišení a hustotu částic, nikdy shadery (žádné překlady za hry). Pozastavená hra se nepočítá.",
+  "//adaptive": "Automatické přizpůsobení výkonu za hry (FEEDBACK 2026-10-04, src/rendering/AdaptiveQuality.ts, menu Kvalita → „Automaticky přizpůsobit výkon“, výchozí zapnuto v data/menu.json → settings.adaptive): když průměrná doba snímku za poslední 'window' s přesáhne 1000/downFps ms déle než 'downAfter' s, hra sestoupí o úroveň v 'levels' (renderScale = násobek rozlišení předvolby, effects = násobek hustoty efektových částic); když je pod 1000/upFps ms déle než 'upAfter' s, vrátí se o úroveň výš. Do úrovně, kterou opustila kvůli pomalým snímkům, se vrátí nejdřív po 'retryAfter' s (nekolísá). Mezi změnami je aspoň 'cooldown' s. Mění jen hustotu částic (a rozlišení, jen když hráč v menu zapne „Při zpomalení snížit i rozlišení“ — data/menu.json → settings.adaptiveResolution, výchozí vypnuto: změna rozlišení znovu alokuje render targety a zasekne obraz), nikdy shadery (žádné překlady za hry). Pozastavená hra se nepočítá.",
   "adaptive": {
     "window": 1,
     "downFps": 45,

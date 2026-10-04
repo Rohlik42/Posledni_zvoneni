@@ -178,7 +178,20 @@ export class MenuPages {
         this.refresh();
       },
     };
-    return { id: "quality", texts: t, items: [...items, adaptiveItem, this.backItem()], onBack: () => this.back() };
+    // FEEDBACK 2026-10-04 „občas se to sekne“: lowering the resolution reallocates the frame's render targets (a hitch),
+    // so the adaptation keeps the resolution unless the player allows it here.
+    const resolution = this.settings.values.adaptiveResolution;
+    const resolutionItem: MenuItem = {
+      key: "quality:adaptiveResolution",
+      label: `${t.adaptiveResolution.label}: ${resolution ? t.adaptiveResolution.on : t.adaptiveResolution.off}`,
+      detail: t.adaptiveResolution.detail,
+      selected: resolution,
+      action: () => {
+        this.settings.set({ adaptiveResolution: !this.settings.values.adaptiveResolution });
+        this.refresh();
+      },
+    };
+    return { id: "quality", texts: t, items: [...items, adaptiveItem, resolutionItem, this.backItem()], onBack: () => this.back() };
   }
 
   private controls(): MenuPage {
