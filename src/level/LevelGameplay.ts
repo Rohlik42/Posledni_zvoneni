@@ -186,9 +186,9 @@ export class LevelGameplay {
     const hud = Hud.create(game, player, weapons);
     hud.attachItems(inventory);
     const lighting = new RoomLighting(game, level);
-    // The weapon in hand is lit by the room the player stands in.
+    // The weapons (in hand and preloaded, `viewmodelMeshes`) are lit by the room the player stands in.
     lighting.track(
-      () => weapons.active?.viewmodel.meshes ?? [],
+      () => weapons.viewmodelMeshes,
       () => player.eyePosition,
     );
     const doors = DoorSystem.fromLevel(game, physics, player, inventory, level, navmesh, lighting);

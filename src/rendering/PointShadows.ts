@@ -1,3 +1,4 @@
+import { Constants } from "@babylonjs/core/Engines/constants";
 import { PointLight } from "@babylonjs/core/Lights/pointLight";
 import { Vector3 as Vec3 } from "@babylonjs/core/Maths/math.vector";
 import { ShadowGenerator } from "@babylonjs/core/Lights/Shadows/shadowGenerator";
@@ -29,6 +30,8 @@ const KEEPER_POSITION = new Vec3(0, -1e4, 0);
 const KEEPER_MAP_SIZE = 4;
 /** `FrameTags` of a lamp's map growing to `mapSize` (it became one of the nearest) and shrinking back. */
 const TAG_SWAP = "shadowSwap";
+/** Label of a lamp map's depth buffer (as Babylon's generator names it). */
+const DEPTH_LABEL = "DepthStencilForShadowGenerator";
 
 /**
  * Shadows of the point lights nearest to the player (phase 19, DECISIONS #11): at most `maxLights` cube shadow maps
@@ -249,6 +252,13 @@ export class PointShadows {
       map.resize(size);
     } finally {
       PointShadows.quietResize = false;
+    }
+    // `resize` makes a render target without the depth buffer the generator gave the map (its own handler, skipped
+    // above, would recreate it): without it the casters were drawn with no depth test (the last one drawn won, not the
+    // nearest) and in a draw state the warm-up never built — new WebGPU pipelines in play (FEEDBACK 2026-10-04).
+    const engine = map.getScene()!.getEngine();
+    if (engine._features.supportDepthStencilTexture) {
+      map.createDepthStencilTexture(engine.useReverseDepthBuffer ? Constants.GEQUAL : Constants.LESS, true, undefined, undefined, undefined, `${DEPTH_LABEL}-${generator.getLight().name}`);
     }
     (generator as unknown as { _mapSize: number })._mapSize = size;
   }

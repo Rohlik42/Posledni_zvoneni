@@ -51,6 +51,8 @@ export class DropletEmitter {
   /** Decorative emitters only: the scene's effect budget and the fraction of a droplet owed by the density. */
   private readonly budget: EffectBudget | null;
   private credit = 0;
+  /** Stopped while it has nothing to emit (`sleepWhenIdle`); the next droplet starts it again. */
+  private sleeping = false;
 
   constructor(name: string, scene: Scene, options: DropletEmitterOptions) {
     const system = new ParticleSystem(name, options.capacity, scene);
@@ -76,6 +78,7 @@ export class DropletEmitter {
     system.startDirectionFunction = (_matrix, direction) => this.startDirection(direction);
     system.start();
     this.system = system;
+    this.sleepWhenIdle();
     this.budget = options.essential === true ? null : EffectBudget.for(scene);
     this.budget?.register(system);
     // One droplet in front of the camera at load, so the particle shader and its pipeline exist before the first shot.
@@ -102,7 +105,31 @@ export class DropletEmitter {
     // More than the system can hold would only replay stale droplets later; keep the newest.
     if (this.queue.length >= this.system.getCapacity()) this.queue.shift();
     this.queue.push(droplet);
+    if (this.sleeping) {
+      this.sleeping = false;
+      this.system.start();
+    }
     this.system.manualEmitCount = this.queue.length;
+  }
+
+  /**
+   * An idle emitter costs nothing (FEEDBACK 2026-10-04, Nízké on a slow CPU): Babylon animates and draws every started
+   * particle system every frame, empty or not (its readiness check, defines, an empty vertex upload), and the game
+   * keeps ~30 of them for effects that are idle most of the time (every weapon is built at load). A frame that starts
+   * with nothing queued stops the system; Babylon then lets the live particles run out and drops the system from the
+   * frame until the next droplet starts it again. Stopping in the frame that emits would end it at once: Babylon
+   * judges „alive“ before it creates the new particles.
+   */
+  private sleepWhenIdle(): void {
+    const { system } = this;
+    const update = system.updateFunction;
+    system.updateFunction = (particles) => {
+      if (this.queue.length === 0 && !this.sleeping) {
+        this.sleeping = true;
+        system.stop();
+      }
+      update(particles);
+    };
   }
 
   /** Particles alive right now. */

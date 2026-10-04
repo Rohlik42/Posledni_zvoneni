@@ -1,5 +1,6 @@
 import type { Light } from "@babylonjs/core/Lights/light";
 import { PointLight } from "@babylonjs/core/Lights/pointLight";
+import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import { Mesh } from "@babylonjs/core/Meshes/mesh";
@@ -24,6 +25,8 @@ interface Tracked {
   lights: Light[];
   /** Frames until the nearest lights are chosen again (rooms with more lights than `count`). */
   refreshIn: number;
+  /** The mesh list checked for new meshes last frame (the same array again needs no check). */
+  checked: readonly AbstractMesh[] | null;
 }
 
 /** Light lists whose `splice` re-checks only the removed meshes (`cheapRemoval`). */
@@ -78,6 +81,9 @@ export class RoomLighting {
       const light = new PointLight(`room-lighting-pad-${i}`, PAD_POSITION.clone(), game.scene);
       light.intensity = 0;
       light.range = PAD_RANGE;
+      // Black like every level light: one light with a specular colour turns the `SPECULARTERM` define on, so a moving
+      // thing padded in a room with few lamps had another shader than in a room with enough (FEEDBACK 2026-10-04).
+      light.specular = Color3.Black();
       light.includedOnlyMeshes = [this.anchor];
       this.padding.push(light);
     }
@@ -115,11 +121,24 @@ export class RoomLighting {
     RoomLighting.exclude([...this.level.lights, ...[...this.extraLights.values()].flat()], meshes);
   }
 
-  /** Moving meshes lit by the room they are in; `meshes` is asked again on every room change. Returns an untrack. */
+  /**
+   * Moving meshes lit by the room they are in; `meshes` is asked every frame (new meshes join the lights). A list that
+   * comes back as the same array (the weapons' viewmodels, rebuilt only when a weapon is built) is not checked again.
+   * Returns an untrack.
+   */
   track(meshes: () => readonly AbstractMesh[], position: () => Vector3): () => void {
     // Wet spots and the like hanging on the thing stay out (`LightExclusions`).
-    const lit = (): AbstractMesh[] => meshes().filter((mesh) => !LightExclusions.has(mesh));
-    const entry: Tracked = { meshes: lit, position, room: null, lit: [], litSet: new Set(), lights: [], refreshIn: 0 };
+    let source: readonly AbstractMesh[] | null = null;
+    let filtered: AbstractMesh[] = [];
+    const lit = (): readonly AbstractMesh[] => {
+      const current = meshes();
+      if (current !== source) {
+        source = current;
+        filtered = current.filter((mesh) => !LightExclusions.has(mesh));
+      }
+      return filtered;
+    };
+    const entry: Tracked = { meshes: lit, position, room: null, lit: [], litSet: new Set(), lights: [], refreshIn: 0, checked: null };
     this.tracked.add(entry);
     this.relink(entry);
     return () => {
@@ -171,7 +190,8 @@ export class RoomLighting {
         continue;
       }
       const meshes = entry.meshes();
-      if (this.meshesRemoved || meshes.some((m) => !entry.litSet.has(m))) this.resync(entry, meshes);
+      if (this.meshesRemoved || (meshes !== entry.checked && meshes.some((m) => !entry.litSet.has(m)))) this.resync(entry, meshes);
+      entry.checked = meshes;
       entry.refreshIn -= 1;
       if (entry.refreshIn <= 0) this.rechoose(entry);
     }

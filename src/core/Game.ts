@@ -15,6 +15,7 @@ import { PerfOverlay } from "../ui/PerfOverlay";
 import { PaletteColor } from "../rendering/PaletteColor";
 import { RenderPipeline } from "../rendering/RenderPipeline";
 import { RenderingConfig } from "../rendering/RenderingConfig";
+import { CanonicalDefines } from "../rendering/CanonicalDefines";
 import { EngineFactory, type RendererKind } from "./EngineFactory";
 import { GameConfig, type GameData } from "./GameConfig";
 import { Cheats } from "./Cheats";
@@ -108,6 +109,8 @@ export class Game {
 
   static async create(canvas: HTMLCanvasElement): Promise<Game> {
     const { engine, renderer, gpuTiming } = await EngineFactory.create(canvas);
+    // Before any material: one shader per material state, whatever the mesh's history (FEEDBACK 2026-10-04).
+    CanonicalDefines.install();
     // Before the scene exists, so every material, depth renderer and pipeline is built for it (DECISIONS „Fáze F1“).
     engine.useReverseDepthBuffer = RenderingConfig.load().reverseDepth;
     return new Game(canvas, engine, renderer, new Scene(engine), gpuTiming);

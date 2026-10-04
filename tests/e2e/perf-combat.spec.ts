@@ -34,7 +34,6 @@ const WALK_STRIDE = 3;
 const WALK_STOP_MS = 400;
 const WALK_SETTLE_MS = 1_500;
 const WALK_MIN_LAMPS = 6;
-const WALK_MAX_PIPELINES = 2;
 
 const READY_TIMEOUT_MS = 60_000;
 const WARMUP_MS = 4_000;
@@ -58,6 +57,8 @@ const HIGH_1080_MAX_P95_CPU_MS = 25;
 const LOW_THROTTLED_MIN_FPS = 14;
 /** No hitch: no frame longer than this after warm-up, without throttling. */
 const MAX_FRAME_INTERVAL_MS = 100;
+/** Defines quoted per compile in an assertion message. */
+const MESSAGE_DEFINES = 24;
 /** The adaptation test: a CPU throttle under which Nízké in the fight runs well below `adaptive.downFps`. */
 const ADAPTIVE_THROTTLE = 6;
 const ADAPTIVE_TIMEOUT_MS = 30_000;
@@ -102,7 +103,7 @@ interface Measurement {
   counters: QualityStats["window"]["counters"];
   compiles: number;
   pipelines: number;
-  compileLog: { shader: string; defines: string; stack: string | null; users: string[] }[];
+  compileLog: { kind: CompileRecord["kind"]; shader: string; state: string | null; defines: string; stack: string | null; users: string[] }[];
   combat: CombatCounts;
   renderWidth: number;
   renderHeight: number;
@@ -181,7 +182,7 @@ async function run(page: Page, cdp: CDPSession, config: Config, renderer = RENDE
       counters: w.counters,
       compiles: after.compiles - before.compiles,
       pipelines: after.pipelines - before.pipelines,
-      compileLog: after.log.map((r: CompileRecord) => ({ shader: r.shader, defines: r.defines.split("\n").filter((l) => l.length > 0).join(" "), stack: r.stack, users: r.users ?? [] })),
+      compileLog: after.log.map((r: CompileRecord) => ({ kind: r.kind, shader: r.shader, state: r.state, defines: r.defines.split("\n").filter((l) => l.length > 0).join(" "), stack: r.stack, users: r.users ?? [] })),
       combat,
       renderWidth: after.stats.renderWidth,
       renderHeight: after.stats.renderHeight,
@@ -194,6 +195,16 @@ async function run(page: Page, cdp: CDPSession, config: Config, renderer = RENDE
   } finally {
     await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 });
   }
+}
+
+/** What compiled, for an assertion message: kind, shader, who draws with it, the pipeline's draw state, distinctive defines. */
+function describeCompiles(log: Measurement["compileLog"]): string {
+  return log
+    .map((c) => {
+      const defines = c.defines.split(" #define ").filter((d) => !/(_INDEX -1|DIRECTUV 0| 0)$/.test(d)).slice(0, MESSAGE_DEFINES).join(" ");
+      return `${c.kind} ${c.shader} [${c.users.join("; ") || "no user found"}]${c.state === null ? "" : ` {${c.state}}`} <${defines}>`;
+    })
+    .join(" | ");
 }
 
 interface ProfileNode {
@@ -252,7 +263,7 @@ test.describe("combat stress benchmark", () => {
       for (const m of IDLE ? [] : results.runs.slice(1)) {
         expect(m.combat.shots, `${m.key}: the fight fired`).toBeGreaterThan(0);
         expect(m.combat.kills, `${m.key}: robots died`).toBeGreaterThan(0);
-        expect(m.compiles + m.pipelines, `${m.key}: no shader or pipeline compiled after warm-up (${m.compileLog.map((c) => c.shader).join(", ")})`).toBe(0);
+        expect(m.compiles + m.pipelines, `${m.key}: no shader or pipeline compiled after warm-up (${describeCompiles(m.compileLog)})`).toBe(0);
         if (m.cpuThrottle === 1) expect(m.frameIntervalMs.max, `${m.key}: no frame over ${MAX_FRAME_INTERVAL_MS} ms`).toBeLessThanOrEqual(MAX_FRAME_INTERVAL_MS);
         if (m.preset === "high" && m.viewport.height === 1080 && m.cpuThrottle === 1) {
           expect(m.cpuFrameMs.avg, `${m.key}: average CPU frame`).toBeLessThanOrEqual(HIGH_1080_MAX_AVG_CPU_MS);
@@ -277,7 +288,7 @@ test.describe("combat stress benchmark", () => {
         const m = await run(page, cdp, { key: `webgl2-${preset}-1080`, preset, height: 1080, throttle: 1 }, "webgl2");
         results.webgl2.push(m);
         console.log(`${m.key}: fps ${m.fps.toFixed(1)} cpu avg ${m.cpuFrameMs.avg.toFixed(1)} p95 ${m.cpuFrameMs.p95.toFixed(1)} max ${m.cpuFrameMs.max.toFixed(1)} | interval max ${m.frameIntervalMs.max.toFixed(1)} | draws ${m.drawCalls.avg.toFixed(0)} | compiles ${m.compiles}`);
-        if (ASSERT) expect(m.compiles, `${m.key}: no shader compiled after warm-up (${m.compileLog.map((c) => c.users.join(" ")).join("; ")})`).toBe(0);
+        if (ASSERT) expect(m.compiles, `${m.key}: no shader compiled after warm-up (${describeCompiles(m.compileLog.filter((c) => c.kind === "effect"))})`).toBe(0);
       }
       expect(guard.problems).toEqual([]);
     } finally {
@@ -376,15 +387,16 @@ test.describe("combat stress benchmark", () => {
       const after = await page.evaluate((since) => ({
         compiles: window.__game!.perf!.compiles,
         pipelines: window.__game!.perf!.pipelines,
-        log: window.__game!.perf!.recentCompiles().filter((r) => r.at >= since).map((r) => `${r.shader}: ${(r.users ?? []).slice(0, 2).join(", ")}`),
+        log: window.__game!.perf!.recentCompiles().filter((r) => r.at >= since).map((r) => `${r.kind} ${r.shader}: ${(r.users ?? []).slice(0, 2).join(", ")}${r.state === null ? "" : ` {${r.state}}`}`),
         hitches: window.__game!.perf!.snapshot().hitches,
       }), before.at);
       results.walk = { lamps: lit.size, compiles: after.compiles - before.compiles, pipelines: after.pipelines - before.pipelines, log: after.log };
       console.log(`walk: ${lit.size} shadow lamps, ${after.compiles - before.compiles} compiles, ${after.pipelines - before.pipelines} pipelines`);
       expect(lit.size, "the walk switched shadows between many lamps").toBeGreaterThanOrEqual(WALK_MIN_LAMPS);
       expect(after.compiles - before.compiles, `no shader compiled on the walk (${after.log.join("; ")})`).toBe(0);
-      // One WebGPU pipeline is still created somewhere on the route (also on Střední, without shadows; not traced down).
-      expect(after.pipelines - before.pipelines, "WebGPU pipelines created on the walk").toBeLessThanOrEqual(WALK_MAX_PIPELINES);
+      // The one pipeline the walk used to create was a lamp's shadow map drawn without its depth buffer after a resize
+      // (`PointShadows.resize`, FEEDBACK 2026-10-04): now none.
+      expect(after.pipelines - before.pipelines, `WebGPU pipelines created on the walk (${after.log.join("; ")})`).toBe(0);
       expect(guard.problems).toEqual([]);
     } finally {
       await context.close();

@@ -1,4 +1,5 @@
 import { Observable, type Observer } from "@babylonjs/core/Misc/observable";
+import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import type { Scene } from "@babylonjs/core/scene";
 import { SynthSounds } from "../audio/SynthSounds";
 import type { CheatEvent } from "../core/Cheats";
@@ -130,6 +131,8 @@ export class WeaponInventory {
   private readonly pools = new Map<string, AmmoReserve>();
   private current: Weapon | null = null;
   private pending: Weapon | null = null;
+  /** Viewmodel meshes of every built weapon, owned or preloaded (`viewmodelMeshes`); rebuilt when weapons come or go. */
+  private viewmodels: Mesh[] = [];
   /** Switch progress: 0–0.5 lowering the old weapon, 0.5–1 raising the new one; 1 = done. */
   private switchProgress = 1;
   private shotTotal = 0;
@@ -234,6 +237,16 @@ export class WeaponInventory {
     return this.owned.get(id);
   }
 
+  /**
+   * Viewmodel meshes of every built weapon, owned or preloaded (FEEDBACK 2026-10-04): room lighting lights all of them,
+   * not only the one in hand, so each is drawn with the same lights in the shader warm-up (at load nothing is in hand
+   * yet, and a preloaded weapon is drawn there before the player has it) as in play — another light count, or a part
+   * drawn blended with lights the warm-up never used, would build a shader or pipeline at the first switch to it.
+   */
+  get viewmodelMeshes(): readonly Mesh[] {
+    return this.viewmodels;
+  }
+
   /** The weapon in hand or the one being switched to. */
   get selected(): Weapon | null {
     return this.pending ?? this.current;
@@ -268,7 +281,10 @@ export class WeaponInventory {
     }
     // A preloaded weapon is kept for the next give (its effects stay compiled).
     if (weapon.data.preload === true) this.spare.set(id, weapon);
-    else weapon.dispose();
+    else {
+      weapon.dispose();
+      this.collectViewmodels();
+    }
     return true;
   }
 
@@ -332,6 +348,7 @@ export class WeaponInventory {
     for (const weapon of [...this.owned.values(), ...this.spare.values()]) weapon.dispose();
     this.owned.clear();
     this.spare.clear();
+    this.viewmodels = [];
     this.onShot.clear();
     this.feedback.dispose();
     this.current = null;
@@ -360,9 +377,14 @@ export class WeaponInventory {
   }
 
   /** Builds a weapon (holstered) and passes its shots on. */
+  private collectViewmodels(): void {
+    this.viewmodels = [...this.owned.values(), ...this.spare.values()].flatMap((weapon) => weapon.viewmodel.meshes);
+  }
+
   private build(data: WeaponData): Weapon {
     const weapon = WeaponFactory.create(this.context, data);
     weapon.holster = 1;
+    this.viewmodels = [...this.viewmodels, ...weapon.viewmodel.meshes];
     weapon.onShot.add((shot) => {
       this.shotTotal++;
       this.last = shot;

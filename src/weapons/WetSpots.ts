@@ -17,8 +17,13 @@ import type { StreamData } from "./WeaponConfig";
 /** Pulls the decal towards the camera in the depth test so it never flickers against the surface it lies on. */
 const DECAL_Z_OFFSET = -2;
 const FULL_TURN = Math.PI * 2;
-/** Edge of the warm-up stand-in (m); it is drawn only during the load-time warm-up. */
+/** Edge of the warm-up stand-ins (m); they are drawn only during the shader warm-up. */
 const PREWARM_SIZE = 0.1;
+/**
+ * Vertical stretch of the warm-up stand-ins: a spot on a wall has a uniform world scale, one on a stretched robot part
+ * a non-uniform one, which is another shader define (`NONUNIFORMSCALING`), so one stand-in of each is drawn.
+ */
+const PREWARM_STRETCH = [1, 2] as const;
 
 interface WetSpot {
   mesh: Mesh;
@@ -36,7 +41,7 @@ export class WetSpots {
   private serial = 0;
   /** The quality preset's cap on wet spots (FEEDBACK 2026-10-04); the weapon's own `maxWetSpots` still applies. */
   private readonly budget: EffectBudget;
-  private readonly proxy: Mesh;
+  private readonly proxies: Mesh[];
 
   constructor(
     scene: Scene,
@@ -54,14 +59,17 @@ export class WetSpots {
     material.disableDepthWrite = true;
     this.material = material;
     this.budget = EffectBudget.for(scene);
-    // A hidden stand-in with the decal's vertex layout (positions, normals, UVs) is drawn in the load-time warm-up, so
-    // the first wet spot of a fight builds no shader (FEEDBACK 2026-10-04).
-    const proxy = CreatePlane(`wet-spot-prewarm-${data.colorDeep}`, { size: PREWARM_SIZE }, scene);
-    proxy.material = material;
-    proxy.isPickable = false;
-    proxy.setEnabled(false);
-    ShaderPrewarm.for(scene).addMesh(proxy);
-    this.proxy = proxy;
+    // Hidden stand-ins with the decal's vertex layout (positions, normals, UVs) are
+    // drawn in the shader warm-up, so the first wet spot of a fight builds no shader (FEEDBACK 2026-10-04).
+    this.proxies = PREWARM_STRETCH.map((stretch) => {
+      const proxy = CreatePlane(`wet-spot-prewarm-${data.colorDeep}-${stretch}`, { size: PREWARM_SIZE }, scene);
+      proxy.material = material;
+      proxy.isPickable = false;
+      proxy.scaling.y = stretch;
+      proxy.setEnabled(false);
+      ShaderPrewarm.for(scene).addMesh(proxy);
+      return proxy;
+    });
   }
 
   /** Wet spots kept at most: the weapon's `maxWetSpots`, capped by the preset's budget. */
@@ -113,7 +121,7 @@ export class WetSpots {
   dispose(): void {
     for (const spot of this.spots) spot.mesh.dispose();
     this.spots.length = 0;
-    this.proxy.dispose();
+    for (const proxy of this.proxies) proxy.dispose();
     this.material.dispose();
   }
 }

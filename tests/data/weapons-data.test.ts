@@ -207,3 +207,9 @@ test("targets.json: practice targets stand inside the 20×20 m box room", () => 
     assert.equal(target.position[1], 0, `${target.name} stands on the floor`);
   }
 });
+
+test("weapons.json: every enabled weapon is built at load (FEEDBACK 2026-10-04, no shader built at the first pickup or shot)", () => {
+  // A weapon built at its pickup registers its pooled effects (beams, balloons, wet spots) after the load-time shader
+  // warm-up, so its first shot in a fight compiled them (`perf-combat.spec.ts`, fresh load: 3–5 pipelines).
+  for (const weapon of WeaponConfig.load().weapons.filter((w) => w.enabled)) assert.equal(weapon.preload, true, weapon.id);
+});

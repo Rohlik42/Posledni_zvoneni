@@ -244,8 +244,8 @@ export abstract class Weapon {
   }
 
   /**
-   * A preloaded weapon (`preload`, BFG 9000) draws its viewmodel once in the load-time warm-up, behind the camera, so
-   * its materials are built before the player first raises it.
+   * A preloaded weapon (`preload`, every weapon since FEEDBACK 2026-10-04) draws its viewmodel in the shader warm-up,
+   * behind the camera, so its materials are built before the player first raises it.
    */
   prewarmViewmodel(): void {
     const { root } = this.model;

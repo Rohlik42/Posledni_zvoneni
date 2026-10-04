@@ -24,6 +24,8 @@ const UP = Vector3.Up();
 /** Sparks at a pierced robot: this share of `particles`, flying up to this many times faster than along the beam. */
 const IMPACT_SHARE = 0.5;
 const IMPACT_SPEED_SCALE = 3;
+/** Length of the beam drawn in the shader warm-up (m): any length other than the width makes the scale non-uniform. */
+const PREWARM_LENGTH = 1;
 
 /**
  * The railgun's beam (phase 13): a bright core cylinder and a wider, fainter glow cylinder from the muzzle to where the
@@ -57,6 +59,7 @@ export class RailBeam {
     this.glowMaterial = RailBeam.material(scene, `${name}-beam-glow`, PaletteColor.emissive(effect.colorEnd, effect.glow * GLOW_SHARE));
     this.core = RailBeam.cylinder(scene, `${name}-beam-core`, this.coreMaterial);
     this.glow = RailBeam.cylinder(scene, `${name}-beam-glow`, this.glowMaterial);
+    ShaderPrewarm.for(scene).addAction((at) => this.prewarm(at));
     const color = PaletteColor.color4(effect.color);
     this.sparks = new DropletEmitter(`${name}-beam-sparks`, scene, {
       capacity: SPARK_CAPACITY,
@@ -133,6 +136,35 @@ export class RailBeam {
     this.sparks.dispose();
   }
 
+  /**
+   * Shows the beam in the shader warm-up as a shot does (FEEDBACK 2026-10-04, „po přepnutí na Nízké se přeloží
+   * shader“): stretched (a non-uniform scale is its own shader define) and at full brightness, where the core is drawn
+   * opaque and the glow blended — the two pipelines of the beam's one shader. Drawn at rest (scale 1, alpha 0) the
+   * warm-up built neither and the first shot after load or a preset change compiled them.
+   */
+  private prewarm(at: Vector3): () => void {
+    const alphas = [this.coreMaterial.alpha, this.glowMaterial.alpha];
+    const saved = [this.core, this.glow].map((mesh) => ({ mesh, enabled: mesh.isEnabled(false), position: mesh.position.clone(), scaling: mesh.scaling.clone() }));
+    for (const [mesh, width] of [
+      [this.core, this.width],
+      [this.glow, this.glowWidth],
+    ] as const) {
+      mesh.position.copyFrom(at);
+      mesh.scaling.set(width, PREWARM_LENGTH, width);
+      mesh.setEnabled(true);
+    }
+    this.setBrightness(1);
+    return () => {
+      this.coreMaterial.alpha = alphas[0]!;
+      this.glowMaterial.alpha = alphas[1]!;
+      for (const s of saved) {
+        s.mesh.position.copyFrom(s.position);
+        s.mesh.scaling.copyFrom(s.scaling);
+        s.mesh.setEnabled(s.enabled);
+      }
+    };
+  }
+
   private setBrightness(level: number): void {
     this.coreMaterial.alpha = level;
     this.glowMaterial.alpha = level * GLOW_SHARE;
@@ -156,8 +188,6 @@ export class RailBeam {
     mesh.isPickable = false;
     mesh.applyFog = false;
     mesh.setEnabled(false);
-    // Drawn once in the load-time warm-up (FEEDBACK 2026-10-04): no pipeline is built at the first shot.
-    ShaderPrewarm.for(scene).addMesh(mesh);
     return mesh;
   }
 }

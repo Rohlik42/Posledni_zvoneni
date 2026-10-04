@@ -303,3 +303,81 @@ za minutu (cíl 1/min; běh, jehož dlouhé snímky hra nezpůsobila, se změř�
 
 Známé: test 4 v `perf.spec.ts` (Nízké s CPU 4× ≥ 30 fps ve statické scéně) dál padá jako na main před touto změnou
 (teď 28,2 fps, dřív 21,6–23,2; viz „Souboj“).
+
+## 2026-10-04 — Překlady po přepnutí předvolby (Nízké 720p) a zahřátí všech variant
+
+Úloha: `perf-combat.spec.ts` padal na `low-720` (po přepnutí na Nízké se v měřeném okně přeložil 1 shader a vznikly
+1–2 WebGPU pipeline, i na 9b31cb4). Zahřátí (`ShaderPrewarm`) má po změně předvolby (za menu, pauzou nebo příběhem) a
+při načtení postavit každou variantu, kterou hra pak opravdu použije. Stroj: M1 Pro, headless Chromium, WebGPU, load
+average 3–7 (běžely i jiné agenty). „Před“ = cafaee4 (worktree), „po“ = tato změna (worktree se stejným základem),
+střídavě za sebou.
+
+**Jak se to hledalo.** `CompileCounter` teď zapisuje i každou novou WebGPU pipeline (`kind: "pipeline"`) s efektem
+(`effectId`, defines) a stavem kreslení: render target (`PostProcessRTT-imageProcessing`, `sceneprePassRT`,
+`light:…_shadowMap`, `main`), formáty barev a hloubky, MSAA, blending, zápis hloubky, culling, surový klíč Babylonovy
+cache a se zapnutým `perf.trace(true)` i mesh, který ji kreslil. Assert v `perf-combat.spec.ts` pak píše např.
+`pipeline default [extinguisher-beam-core …] {draw, target PostProcessRTT-imageProcessing, …, blend 0, depthWrite 1,
+…} <ALPHABLEND NONUNIFORMSCALING …>`. Sonda (jednorázový spec, není v repu): čerstvé načtení s předvolbou, nebo 16 s boje,
+pauza, přepnutí předvolby, 1,5 s; pak 32 s boje (každá zbraň 2×) a vše, co se v něm přeložilo.
+
+| Sonda (720p; 32 s boje), efekty + pipeline | Před | Po |
+| --- | --- | --- |
+| Načtení na Nízké | 7 | **0** |
+| Načtení na Střední / Vysoké | 7 / 7 | **0 / 0** |
+| Vysoké → Nízké | 10 | **0** |
+| Střední → Nízké | 12 | **0** |
+| Nízké → Vysoké | 5 | **0** |
+| Vysoké → Střední | 0 | 0 |
+| 1080p: načtení Nízké, Nízké → Střední, Střední → Vysoké, Vysoké → Nízké, Nízké → Vysoké | – | **0 ve všech** |
+
+Co se překládalo a proč (každá příčina potvrzená sondou, opravy v pořadí nálezu):
+1. **Paprsek hasičáku a railgunu** (to je `low-720` z úlohy): zahřátí ho kreslilo v klidu — měřítko 1 a průhlednost 0.
+   Výstřel ho natáhne (define `NONUNIFORMSCALING`, jiný shader) a jádro v plném jasu (alfa 1) se kreslí neprůhledně,
+   tedy jiná pipeline než při doznívání. Na Nízké chybí pre-pass SSAO, takže kreslení míří do jiného render targetu
+   než na Střední a Vysoké a pipeline z dřívějších předvoleb nepomůže.
+2. **Defines podle historie meshe** (Babylon drží defines pro každý sub-mesh a vypisuje je v pořadí, v jakém poprvé
+   vznikly): mesh, který svítil 1 světlem a pak 4, dával jiný řetězec (= jiný shader) než mesh se 4 světly od začátku.
+   Po vypnutí SSAO zůstaly v defines každého už kresleného meshe `PREPASS_COLOR`, indexy a `SCENE_MRT_COUNT`, takže
+   robot po respawnu nebo nová mokrá skvrna (kreslené poprvé po přepnutí) měly jinou variantu než všechno, co
+   zahřátí vidělo. Typicky 4–8 efektů a pipeline po Vysoké/Střední → Nízké.
+3. **Zbraně postavené až při sebrání** (jen BFG měla `preload`): jejich efekty z bazénů (paprsky, balónky, skvrny)
+   se zaregistrovaly do zahřátí až po něm, takže se přeložily při prvním výstřelu. To platí i pro skutečné sebrání zbraně
+   za hry.
+4. **Zbraň v ruce svítila jen ta aktivní**: při načtení ještě žádná není v ruce (zvedá se), zahřátí ji tedy kreslilo
+   jen s ambientem a její průhledná nádržka se 4 světly dostala pipeline až v boji.
+5. **Doplňková tmavá světla pohyblivých věcí měla bílý odlesk** (`specular`), všechna světla levelu černý: robot nebo
+   zbraň v místnosti s méně než 3 lampami (doplněné tmavými) měly define `SPECULARTERM`, v místnosti s dost lampami ne.
+   Přechod mezi místnostmi tak mohl přeložit shader i za hry mimo souboj.
+6. **Mokrá skvrna na nataženém dílu robota** (`NONUNIFORMSCALING`): zahřátí kreslilo jen skvrnu s měřítkem 1.
+7. **Stínová mapa lampy po změně velikosti neměla hloubkový buffer**: rychlá změna velikosti mapy ze „Zasekávání na
+   Macu“ přeskočí Babylonův handler, který buffer vytváří. Vrhači se pak kreslili bez testu hloubky (ve stínové mapě
+   vyhrál poslední nakreslený, ne nejbližší) a v jiném stavu, než který zahřátí postavilo. To byla ta „1 pipeline na
+   trase, nevystopovaná“ z „Souboje“.
+
+| `perf-combat.spec.ts` | Před | Po |
+| --- | --- | --- |
+| Měřená okna (12 kombinací předvolba × 720p/1080p × CPU 1×/4×), překlady + pipeline | `low-720` 0 + 1, v A/B i `high-1080` 0 + 1 a `low-1080-x4` 0 + 1 | **0 + 0 ve všech** (2 plné běhy) |
+| První boj (Vysoké 1080p, neměřený) | 1 + 2 (paprsek hasičáku) | **0 + 0** |
+| Procházka trasou na Vysoké (27 stínových lamp) | 0 + ≤ 1 (test dovoloval 2) | **0 + 0** (test teď chce 0) |
+| WebGL2 Vysoké / Nízké 1080p, adaptace na Nízké s CPU 6× | 0 | 0 |
+| Vysoké 1080p CPU snímku průměr / p95 | 9,4–9,7 / 13,6–13,7 ms | 9,4–9,7 / 13,4–13,8 ms |
+| Nízké 1080p CPU 4× v boji | 35,0–35,4 fps | 34,2–37,4 fps |
+
+Statická scéna (`perf.spec.ts`, tři běhy střídavě před / po): Nízké s CPU 4× **32,8 / 33,4 / 33,5 → 32,6 / 33,3 /
+33,0 fps** (test 4, mez 30, prochází), Vysoké CPU snímku 9,88–9,98 → 9,73–9,82 ms, načtení do hratelného stavu
+2,39–2,42 → 2,51–2,54 s (+ ~130 ms: při načtení se staví a zahřívají všechny zbraně; mez 5 s). `hitches.spec.ts`:
+procházka Střední 720p@2× 0 snímků > 33 ms po zahřátí (nejdelší 30,7 ms), souboj Vysoké a Nízké 720p@2× 0 po 3 s.
+
+Cena oprav a co ji vyrovnalo: postavené zbraně přidaly ~6 nečinných systémů částic. Babylon každý spuštěný systém
+v každém snímku animuje a kreslí, i prázdný (kontrola připravenosti, defines, prázdné nahrání). `DropletEmitter` teď
+nečinný systém zastaví a další kapka ho zase spustí. Seřazené defines se počítají jen pro materiály meshů (mají
+`PREPASS`), ne pro image processing částic, který se vypisuje třikrát za snímek a systém. Seznam meshů zbraní pro
+osvětlení se v `RoomLighting` nekontroluje znovu, když je to stále stejné pole. CPU profil statické scény (Nízké,
+CPU 4×) je pak před i po stejný: částice 1,5–1,9 %, `RoomLighting` 0,6–0,7 %.
+
+**Nízké s CPU 4× ≥ 30 fps (`perf.spec.ts` test 4)** dnes prochází i před touto změnou (32–33 fps při load average
+3–5). Dřívějších 20–21 fps se na cafaee4 nepodařilo zopakovat, nejspíš to bylo vytížením stroje (sonda „Souboj“
+uvádí load až 20). Sloučení dílů robotů do méně meshů (141 z ~684 draw callů ve startovním pohledu) se nedělalo.
+Díly jsou samostatné cíle zásahu (`DamageTargets`) i trosky po zničení (`LooseDebris`) a nesou mokré skvrny a oči
+s vlastní animací, takže by se změnilo, jak se robot rozpadá a co zasáhne. Zbytek ceny je kreslení: `(program)`
+~23 %, `_draw`, uniformy.
