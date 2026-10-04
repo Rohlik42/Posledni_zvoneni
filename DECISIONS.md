@@ -282,3 +282,7 @@ Každé rozhodnutí je jedna věta s důvodem. Člověk je může změnit. Agent
 - **Meze validace ve schématech `*Config.ts` (`Schema.number({ min, max })`) a popisky galerie (`title` v modelových třídách) zůstávají v kódu:** meze nejsou herní hodnoty, ale kontrola dat, a popisky patří k modelové třídě, která se sama registruje do galerie (CLAUDE.md „každý model je samostatná třída“).
 - **V tělocvičně je navíc volná židle 3–4 m od hydrantu (`details.json → loose.items`):** bod 19.7 chce, aby hadice hýbala předměty, ale jediná troska v tělocvičně ležela 14 m od hydrantu a dostřel hadice je 12 m; test `visuals.spec` to teď ověřuje.
 - **ASSETS.md má řádky i pro knihovny přibalené do buildu (Babylon.js, Havok, recast-navigation, Yuka):** build je šíří včetně WASM a obrazovka Zdroje vypisuje ASSETS.md, takže licence mají být vidět tam.
+
+## Fáze 26 — Stabilní průchod, cache LineOfSight a trvalé důkazy (2026-10-04)
+
+- **Cache blokujících meshů v `LineOfSight` hlídá podpis sady každých 30 kroků (`SIGNATURE_CHECK_STEPS`, 0,5 s), ne veřejným `invalidate()`:** podpis (počet a součet `uniqueId` kandidátů = pickable, rendering group 0, bez `DamageTargets`, a totéž pro zmražené world matrix) zachytí každou změnu příznaků bez toho, aby na ni musel pamatovat kód, který je mění; stojí jeden průchod `scene.meshes` za půl sekundy a veřejné API se nemění.

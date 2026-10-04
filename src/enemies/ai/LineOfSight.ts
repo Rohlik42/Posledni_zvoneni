@@ -16,6 +16,13 @@ const EAGER_GROUP_MESHES = 8;
  */
 const LAZY_REFRESH_STEPS = 10;
 const LAZY_SLACK = 0.25;
+/**
+ * Phase 26: the cache is rebuilt at once when a mesh is added or removed, but a mesh can also become (or stop being) a
+ * candidate later — made pickable, moved to another rendering group, linked to a damageable owner — or have its world
+ * matrix frozen or unfrozen. Every `SIGNATURE_CHECK_STEPS` fixed steps the signature of the candidate set (see
+ * `signature`) is compared with the one of the last rebuild, and a difference rebuilds the cache.
+ */
+const SIGNATURE_CHECK_STEPS = 30;
 /** Floats per box in the cache: min x, y, z, max x, y, z. */
 const BOX_FLOATS = 6;
 /** Direction components smaller than this are treated as parallel to a slab. */
@@ -80,6 +87,9 @@ export class LineOfSight {
   /** Moving groups too large to re-read every step (see `LAZY_REFRESH_STEPS`). */
   private lazy = new Uint8Array(0);
   private refreshedStep = -1;
+  /** Signature of the candidate set at the last rebuild, and the step it was last compared in. */
+  private builtSignature = "";
+  private signatureStep = 0;
   /** Boxes a ray passes through (reused between rays). */
   private readonly hits: { index: number; near: number }[] = [];
   /** Triangle grids of large frozen meshes (built on their first exact test); null = not worth one / unreadable. */
@@ -247,14 +257,20 @@ export class LineOfSight {
    * boxes of groups that can move once per step.
    */
   private refresh(): void {
+    if (!this.dirty && this.step - this.signatureStep >= SIGNATURE_CHECK_STEPS) {
+      this.signatureStep = this.step;
+      if (this.signature() !== this.builtSignature) this.dirty = true;
+    }
     if (this.dirty) {
       this.dirty = false;
       this.refreshedStep = this.step;
+      this.signatureStep = this.step;
+      this.builtSignature = this.signature();
       // Meshes that are never pickable (effects, pickups, the weapon in hand) or have an owner never block; the flags are
       // checked again per ray, so this only shortens the list.
       const byRoot = new Map<Node, { mesh: AbstractMesh; order: number }[]>();
       this.scene.meshes.forEach((mesh, order) => {
-        if (!mesh.isPickable || mesh.renderingGroupId !== 0 || DamageTargets.find(mesh) !== null) return;
+        if (!LineOfSight.candidate(mesh)) return;
         let root: Node = mesh;
         while (root.parent !== null) root = root.parent;
         const members = byRoot.get(root);
@@ -286,6 +302,32 @@ export class LineOfSight {
         if (this.lazy[g] === 0 || this.step - this.groupReadStep[g]! >= LAZY_REFRESH_STEPS) this.readGroup(g);
       }
     }
+  }
+
+  /** Whether a mesh belongs in the cache: pickable, in the world's rendering group, no damageable owner. */
+  private static candidate(mesh: AbstractMesh): boolean {
+    return mesh.isPickable && mesh.renderingGroupId === 0 && DamageTargets.find(mesh) === null;
+  }
+
+  /**
+   * Cheap fingerprint of the candidate set: count and sum of unique ids of the candidates, and the same of those with a
+   * frozen world matrix (frozen decides which groups are re-read per step and which get a triangle grid).
+   */
+  private signature(): string {
+    let count = 0;
+    let ids = 0;
+    let frozen = 0;
+    let frozenIds = 0;
+    for (const mesh of this.scene.meshes) {
+      if (!LineOfSight.candidate(mesh)) continue;
+      count += 1;
+      ids += mesh.uniqueId;
+      if (mesh.isWorldMatrixFrozen) {
+        frozen += 1;
+        frozenIds += mesh.uniqueId;
+      }
+    }
+    return `${count}:${ids}:${frozen}:${frozenIds}`;
   }
 
   /** Boxes of a group's meshes and their union. */
