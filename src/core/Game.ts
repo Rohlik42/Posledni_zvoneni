@@ -29,6 +29,8 @@ export class Game {
   readonly onPausedChanged = new Observable<boolean>();
   /** Fires after every fixed step with the step length in seconds. */
   readonly onAfterStep = new Observable<number>();
+  /** Fires when `useCamera` built a new post-processing pipeline (quality presets apply to it, phase 21). */
+  readonly onPipelineChanged = new Observable<RenderPipeline>();
 
   readonly input: Input;
   readonly config: GameData;
@@ -54,6 +56,8 @@ export class Game {
     // `Input` turns into fire / door / altFire. Mouse buttons are ours, so let the events through.
     scene.preventDefaultOnPointerDown = false;
     scene.preventDefaultOnPointerUp = false;
+    // Nothing hovers meshes (weapons and AI cast their own rays): no scene pick on every mouse move (phase 21).
+    scene.skipPointerMovePicking = true;
     // Flat look: no specular highlights on any StandardMaterial (FEEDBACK 2026-10-03, „světlo u zdi“).
     MatteDefaults.install(scene);
     this.fixedStepMs = MS_PER_SECOND / this.config.simulationHz;
@@ -129,6 +133,7 @@ export class Game {
     this.scene.activeCamera = camera;
     this.pipeline?.dispose();
     this.pipeline = new RenderPipeline(this.scene, [camera]);
+    this.onPipelineChanged.notifyObservers(this.pipeline);
     return this.pipeline;
   }
 

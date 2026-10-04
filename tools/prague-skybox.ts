@@ -11,7 +11,8 @@
 //      fire glow behind the roofs by azimuth (orange near the horizon, fading upward), smoke darkening near the fires;
 //      buildings become a near-black silhouette with a trace of the photo and the fire rim (sv. Mikuláš and the
 //      Castle stay recognisable by their outline); ground = dark;
-//   3. output: `public/textures/sky/prague_{px,nx,py,ny,pz,nz}.jpg` at `size`², written only when bytes change.
+//   3. output: `public/textures/sky/prague_{px,nx,py,ny,pz,nz}.jpg` at `size`², written only when bytes change; every
+//      entry of `variants` also writes a downscaled copy `prague<suffix>_*.jpg` (phase 21: 1024² for the Nízké preset).
 import { readFileSync } from "node:fs";
 import sharp from "sharp";
 import { writeIfChanged } from "./lib/ImageOps";
@@ -43,6 +44,8 @@ interface Config {
   outPrefix: string;
   size: number;
   jpegQuality: number;
+  /** Downscaled copies of the same faces (phase 21 quality presets). */
+  variants?: { suffix: string; size: number }[];
   faces: Record<FaceId, { file: string; rotate?: number }>;
   skyline: {
     blurSigma: number;
@@ -242,9 +245,10 @@ function toBytes(rgb: Float32Array): Buffer {
   return out;
 }
 
-async function encode(rgb: Float32Array, rotate: number): Promise<Buffer> {
+async function encode(rgb: Float32Array, rotate: number, size: number): Promise<Buffer> {
   let image = sharp(toBytes(rgb), { raw: { width: N, height: N, channels: CHANNELS } });
   if (rotate !== 0) image = image.rotate(rotate);
+  if (size !== N) image = sharp(await image.png().toBuffer()).resize(size, size, { kernel: "lanczos3" });
   return image.jpeg({ quality: config.jpegQuality, chromaSubsampling: "4:4:4", mozjpeg: true }).toBuffer();
 }
 
@@ -258,14 +262,17 @@ for (const file of SIDE_FILES) {
 sources.set("up", await upFace());
 sources.set("down", groundFace());
 
-let changed = 0;
-for (const [face, { file, rotate }] of Object.entries(config.faces) as Array<[FaceId, { file: string; rotate?: number }]>) {
-  const rgb = sources.get(file);
-  if (rgb === undefined) throw new Error(`prague-skybox: unknown source face "${file}"`);
-  const path = `${config.outDir}/${config.outPrefix}_${face}.jpg`;
-  if (writeIfChanged(path, await encode(rgb, rotate ?? 0))) changed++;
+const outputs = [{ prefix: config.outPrefix, size: N }, ...(config.variants ?? []).map((v) => ({ prefix: `${config.outPrefix}${v.suffix}`, size: v.size }))];
+for (const output of outputs) {
+  let changed = 0;
+  for (const [face, { file, rotate }] of Object.entries(config.faces) as Array<[FaceId, { file: string; rotate?: number }]>) {
+    const rgb = sources.get(file);
+    if (rgb === undefined) throw new Error(`prague-skybox: unknown source face "${file}"`);
+    const path = `${config.outDir}/${output.prefix}_${face}.jpg`;
+    if (writeIfChanged(path, await encode(rgb, rotate ?? 0, output.size))) changed++;
+  }
+  console.log(`prague-skybox: ${changed} of 6 faces changed (${output.size}², ${config.outDir}/${output.prefix}_*.jpg)`);
 }
-console.log(`prague-skybox: ${changed} of 6 faces changed (${N}², ${config.outDir}/${config.outPrefix}_*.jpg)`);
 
 const debugDir = process.env.DEBUG_DIR;
 if (debugDir !== undefined) {

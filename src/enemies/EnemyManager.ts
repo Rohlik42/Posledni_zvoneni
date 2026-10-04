@@ -11,7 +11,7 @@ import type { Player, Vec3Like } from "../player/Player";
 import { Random } from "../utils/Random";
 import type { AiStateId } from "./ai/AiStateIds";
 import type { StateChange } from "./ai/GroundAgent";
-import { LineOfSight } from "./ai/LineOfSight";
+import { LineOfSight, type SightCheck } from "./ai/LineOfSight";
 import { CoverPoints, type CoverCandidate } from "./CoverPoints";
 import { Drone, type DroneContext } from "./Drone";
 import type { EncounterData, EnemySpawnData } from "./EncounterConfig";
@@ -82,6 +82,11 @@ export interface EnemiesTestApi {
   coverCandidates: (id: string) => CoverCandidate[];
   /** Line-of-sight rays cast by AI so far. */
   readonly sightRays: number;
+  /**
+   * Phase 21: `rays` seeded random rays of `length` m from each robot's centre, answered by the cached line-of-sight
+   * search and by Babylon's `pickWithRay`; the mismatches must be empty.
+   */
+  sightCheck: (rays: number, length: number, seed: number) => SightCheck;
 }
 
 declare module "../core/TestHooks" {
@@ -236,6 +241,8 @@ export class EnemyManager {
   }
 
   private update(dt: number): void {
+    // Doors and debris may have moved since the last step: line-of-sight boxes are re-read before the first ray.
+    this.lineOfSight.beginStep();
     for (const enemy of this.enemies) enemy.update(dt);
     this.projectiles.update(dt);
     this.debris.update(dt);
@@ -314,6 +321,11 @@ export class EnemyManager {
       },
       get sightRays() {
         return manager.lineOfSight.castCount;
+      },
+      sightCheck: (rays, length, seed) => {
+        manager.lineOfSight.beginStep();
+        const origins = manager.enemies.map((e) => e.center.clone());
+        return manager.lineOfSight.selfCheck(origins, rays, length, seed);
       },
     });
   }

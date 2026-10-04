@@ -15,6 +15,8 @@ import { Player, type PlayerSpawn } from "../player/Player";
 import { QuizSystem } from "../quiz/QuizSystem";
 import { Hud } from "../ui/Hud";
 import { WeaponInventory } from "../weapons/WeaponInventory";
+import { QualityManager } from "../rendering/QualityManager";
+import { RenderingConfig } from "../rendering/RenderingConfig";
 import { WeaponStations } from "../weapons/WeaponStations";
 import { DoorSystem } from "./DoorSystem";
 import type { Level } from "./Level";
@@ -29,6 +31,7 @@ import { PickupField } from "./PickupField";
 import { ProgressionConfig } from "./ProgressionConfig";
 import { PropColliders } from "./PropColliders";
 import { PropPlacer, type PlacedProps } from "./PropPlacer";
+import { RoomCulling } from "./RoomCulling";
 import { RoomLighting } from "./RoomLighting";
 import { TeacherSystem } from "./TeacherSystem";
 
@@ -210,6 +213,9 @@ export class LevelGameplay {
       });
     }
     const atmosphere = new LevelAtmosphere(game, level, lighting, player, enemies, parts === null ? null : { quiz: parts.quiz });
+    // Phase 21: things in rooms the player cannot see into are not drawn (render list only, logic untouched).
+    const culling = new RoomCulling(game.scene, level, RenderingConfig.load().culling, () => player.eyePosition, level.layout.greybox.lights.dynamicFloorTolerance);
+    QualityManager.existing(game)?.register(culling);
     const gameplay = new LevelGameplay(level, navmesh, player, weapons, inventory, hud, doors, pickups, lighting, enemies, parts, difficulty, countDelta, atmosphere);
     gameplay.registerTestHooks();
     return gameplay;

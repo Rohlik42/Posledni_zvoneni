@@ -1,5 +1,6 @@
 import { LevelGameplay } from "../level/LevelGameplay";
 import { ProgressionConfig } from "../level/ProgressionConfig";
+import { QualityManager } from "../rendering/QualityManager";
 import { Checkpoint } from "./Checkpoint";
 import { Difficulty } from "./Difficulty";
 import { DifficultyConfig } from "./DifficultyConfig";
@@ -14,6 +15,8 @@ import type { SceneSetup } from "./SceneSetup";
  * difficulty) and `?continue=1` (deep link) skip the menu; they and `&difficulty=` are then removed from the address, so
  * reloading the page shows the menu again.
  *
+ * The quality preset of the settings (or the automatic choice) applies to the whole game (`QualityManager`, phase 21).
+ *
  * The level is built for one difficulty (robots are placed at build time): `&difficulty=<id>`, else the stored
  * checkpoint's (so „Pokračovat“ needs no reload), else the last choice, else the default.
  */
@@ -22,6 +25,8 @@ export class MainScene implements SceneSetup {
   readonly title = "MALGYM 2066";
 
   async create(game: Game): Promise<void> {
+    // Quality presets (phase 21) before anything is built, so the level loads at the chosen preset.
+    QualityManager.for(game);
     const url = new URL(window.location.href);
     const resume = url.searchParams.get(CONTINUE_PARAM) === "1";
     const fresh = url.searchParams.get(NEW_GAME_PARAM) === "1";

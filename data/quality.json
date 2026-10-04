@@ -1,0 +1,52 @@
+{
+  "//": "Fáze 21: předvolby kvality (src/rendering/QualityManager.ts, DESIGN §8, DECISIONS #11, #12). Mění jen vzhled, nikdy herní logiku. Volbu drží Settings (data/menu.json → settings.quality: auto / low / medium / high). Pořadí 'order' = od nejlevnější po nejdražší (autodetekce po něm přepíná nahoru a dolů).",
+  "order": ["low", "medium", "high"],
+  "//autodetect": "Volba 'auto': startovní předvolba podle grafického adaptéru (engine.getGlInfo(): WebGPU adapter.info vendor + architecture, u WebGL2 vendor + renderer; první shoda regulárního výrazu 'match' bez ohledu na velikost písmen, jinak 'start'), pak změří fps hry: po 'warmupSeconds' běžící (nepozastavené) hry průměr přes 'sampleSeconds'; ≥ upFps → o stupeň výš, < downFps → o stupeň níž, jinak zůstane. Nejvýš 'maxRounds' měření; na stupeň, ze kterého spadla kvůli fps, se už nevrací.",
+  "autodetect": {
+    "start": "medium",
+    "gpu": [
+      { "match": "swiftshader|llvmpipe|softpipe|software|basic render", "preset": "low" }
+    ],
+    "warmupSeconds": 1,
+    "sampleSeconds": 3,
+    "upFps": 55,
+    "downFps": 30,
+    "maxRounds": 2
+  },
+  "//presets": "renderScale = podíl rozlišení canvasu (engine hardware scaling); msaaSamples a pipeline = části RenderPipeline (data/rendering.json má výchozí hodnoty); ssaoSamples = vzorky SSAO; fog = lineární mlha (start/end v m, menší = hustší); shadows = stíny bodových světel (PointShadows) a nejvýš kolik světel; particles = násobič hustoty částic ohně; skybox = hrana stěny cube mapy (data/sky.json → variants); cullingDepth = kolik průchodů od místnosti hráče se ještě kreslí roboti, učitelé a předměty (RoomCulling, data/rendering.json → culling; plášť levelu vždy).",
+  "presets": {
+    "low": {
+      "renderScale": 0.6,
+      "msaaSamples": 1,
+      "pipeline": { "ssao": false, "bloom": false, "grain": true, "chromaticAberration": false, "vignette": true, "fxaa": true, "toneMapping": true, "fog": true },
+      "ssaoSamples": 8,
+      "fog": { "start": 3, "end": 20 },
+      "shadows": { "enabled": false, "maxLights": 0 },
+      "particles": 0.4,
+      "skybox": 1024,
+      "cullingDepth": 2
+    },
+    "medium": {
+      "renderScale": 1,
+      "msaaSamples": 2,
+      "pipeline": { "ssao": true, "bloom": true, "grain": true, "chromaticAberration": true, "vignette": true, "fxaa": false, "toneMapping": true, "fog": true },
+      "ssaoSamples": 8,
+      "fog": { "start": 5, "end": 30 },
+      "shadows": { "enabled": false, "maxLights": 0 },
+      "particles": 0.7,
+      "skybox": 2048,
+      "cullingDepth": 3
+    },
+    "high": {
+      "renderScale": 1,
+      "msaaSamples": 4,
+      "pipeline": { "ssao": true, "bloom": true, "grain": true, "chromaticAberration": true, "vignette": true, "fxaa": false, "toneMapping": true, "fog": true },
+      "ssaoSamples": 16,
+      "fog": { "start": 5, "end": 30 },
+      "shadows": { "enabled": true, "maxLights": 2 },
+      "particles": 1,
+      "skybox": 2048,
+      "cullingDepth": 3
+    }
+  }
+}

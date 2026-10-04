@@ -4,6 +4,9 @@ import { Schema } from "../utils/Schema";
 
 export const TONE_MAPPING_TYPES = ["standard", "aces", "neutral"] as const;
 export const FOG_MODES = ["exp", "exp2", "linear"] as const;
+/** Parts of the pipeline that can be switched independently (`RenderPipeline.setEnabled`; quality presets, phase 21). */
+export const PIPELINE_PARTS = ["toneMapping", "bloom", "grain", "chromaticAberration", "vignette", "fxaa", "ssao", "fog"] as const;
+export type PipelinePart = (typeof PIPELINE_PARTS)[number];
 
 export interface RenderingData {
   clearColor: string;
@@ -35,6 +38,8 @@ export interface RenderingData {
    * renders every `refreshRate` frames.
    */
   shadows: { enabled: boolean; maxLights: number; mapSize: number; maxDistance: number; interval: number; bias: number; darkness: number; refreshRate: number };
+  /** Culling by rooms (phase 21, `RoomCulling`): things in rooms more than `depth` passages from the player's are not drawn. */
+  culling: { enabled: boolean; depth: number; interval: number };
 }
 
 const enabled = Schema.boolean();
@@ -67,6 +72,7 @@ export class RenderingConfig {
       base: unit,
     }),
     fog: Schema.object({ enabled, mode: Schema.enumOf(FOG_MODES), density: positive, start: positive, end: positive, color: Schema.paletteRef() }),
+    culling: Schema.object({ enabled, depth: Schema.integer({ min: 0, max: 10 }), interval: positive }),
     shadows: Schema.object({
       enabled,
       maxLights: Schema.integer({ min: 0, max: 4 }),

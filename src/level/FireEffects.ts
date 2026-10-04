@@ -38,7 +38,10 @@ interface Burning {
 export class FireEffects {
   private readonly burning: Burning[] = [];
   private readonly random: Random;
+  /** Emit rate of each particle system at full density (quality presets scale it, phase 21). */
+  private readonly baseRates = new Map<ParticleSystem, number>();
   private crackles = 0;
+  private densityScale = 1;
 
   constructor(
     scene: Scene,
@@ -65,6 +68,16 @@ export class FireEffects {
 
   get count(): number {
     return this.burning.length;
+  }
+
+  /** Share of the full particle emit rate (quality presets, phase 21): 1 = data/atmosphere.json, 0.4 = 40 %. */
+  setDensity(scale: number): void {
+    this.densityScale = scale;
+    for (const [system, rate] of this.baseRates) system.emitRate = rate * scale;
+  }
+
+  get density(): number {
+    return this.densityScale;
   }
 
   /** Particles alive in all fires (flames, smoke, embers). */
@@ -163,6 +176,7 @@ export class FireEffects {
     system.minSize = d.size[0] * Math.sqrt(scale);
     system.maxSize = d.size[1] * Math.sqrt(scale);
     system.emitRate = d.rate * scale;
+    this.baseRates.set(system, system.emitRate);
     system.billboardMode = ParticleSystem.BILLBOARDMODE_ALL;
     system.isLocal = false;
     system.start();

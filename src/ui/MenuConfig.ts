@@ -3,7 +3,7 @@ import { DataError } from "../utils/DataError";
 import { DataLoader } from "../utils/DataLoader";
 import { Schema, type SchemaNode } from "../utils/Schema";
 
-/** Quality presets the menu offers (phase 21 applies them; `auto` = automatic choice). */
+/** Quality presets the menu offers (`QualityManager` applies them, phase 21; `auto` = automatic choice). */
 export const QUALITY_OPTIONS = ["auto", "low", "medium", "high"] as const;
 export type QualityOption = (typeof QUALITY_OPTIONS)[number];
 
@@ -51,7 +51,8 @@ export interface MenuTexts {
     on: string;
     off: string;
   };
-  quality: PageTexts & { options: Record<QualityOption, string>; details: Record<QualityOption, string> };
+  /** `autoNow`: detail of the automatic option once it chose a preset (`{detail}`, `{value}` = the preset's label; phase 21). */
+  quality: PageTexts & { options: Record<QualityOption, string>; details: Record<QualityOption, string>; autoNow: string };
   controls: PageTexts & { rows: { keys: string; action: string }[]; note: string };
   credits: PageTexts & {
     thanks: string[];
@@ -164,7 +165,7 @@ export class MenuConfig {
         on: Schema.string(),
         off: Schema.string(),
       }),
-      quality: page({ options: qualityRecord(), details: qualityRecord() }),
+      quality: page({ options: qualityRecord(), details: qualityRecord(), autoNow: Schema.string() }),
       controls: page({
         rows: Schema.array(Schema.object({ keys: Schema.string(), action: Schema.string() }), 1),
         note: Schema.string(),

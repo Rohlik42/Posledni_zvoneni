@@ -12,11 +12,9 @@ import { Scene } from "@babylonjs/core/scene";
 import { TestHooks } from "../core/TestHooks";
 import { MatteDefaults } from "./MatteDefaults";
 import { PaletteColor } from "./PaletteColor";
-import { RenderingConfig, type RenderingData } from "./RenderingConfig";
+import { PIPELINE_PARTS, RenderingConfig, type PipelinePart, type RenderingData } from "./RenderingConfig";
 
-/** Parts of the pipeline that can be switched independently (quality presets toggle these, phase 21). */
-export const PIPELINE_PARTS = ["toneMapping", "bloom", "grain", "chromaticAberration", "vignette", "fxaa", "ssao", "fog"] as const;
-export type PipelinePart = (typeof PIPELINE_PARTS)[number];
+export { PIPELINE_PARTS, type PipelinePart } from "./RenderingConfig";
 
 export interface RenderingTestApi {
   parts: () => Record<PipelinePart, boolean>;
@@ -96,6 +94,28 @@ export class RenderPipeline {
     if (this.state[part] === effective) return;
     this.state[part] = effective;
     this.apply(part, effective);
+  }
+
+  /** MSAA samples of the pipeline's render targets (quality presets, phase 21). */
+  setMsaaSamples(samples: number): void {
+    if (this.defaultPipeline.samples !== samples) this.defaultPipeline.samples = samples;
+  }
+
+  get msaaSamples(): number {
+    return this.defaultPipeline.samples;
+  }
+
+  /** SSAO samples (quality presets); no-op where SSAO is not supported. */
+  setSsaoSamples(samples: number): void {
+    if (this.ssao !== null && this.ssao.samples !== samples) this.ssao.samples = samples;
+  }
+
+  /** Linear fog range in metres (quality presets: the low preset has denser fog). */
+  setFogRange(start: number, end: number): void {
+    this.config.fog.start = start;
+    this.config.fog.end = end;
+    this.scene.fogStart = start;
+    this.scene.fogEnd = end;
   }
 
   dispose(): void {

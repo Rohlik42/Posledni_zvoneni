@@ -3,6 +3,9 @@
   "enabled": true,
   "texture": "textures/sky/prague",
   "extension": ".jpg",
+  "//faceSize": "Hrana stěny 'texture' v px. 'variants' = zmenšené kopie podle hrany (fáze 21, tools/prague-skybox.json → variants); preset kvality si vybere nejbližší ≥ své hodnotě data/quality.json → skybox.",
+  "faceSize": 2048,
+  "variants": { "1024": "textures/sky/prague-1k" },
   "size": 160,
   "yawDeg": 0,
   "level": 1.5

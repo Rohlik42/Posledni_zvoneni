@@ -12,6 +12,8 @@ import type { Player } from "../player/Player";
 import type { QuizSystem } from "../quiz/QuizSystem";
 import { NightEnvironment } from "../rendering/NightEnvironment";
 import { PointShadows, type ShadowCandidate } from "../rendering/PointShadows";
+import type { QualityPresetData } from "../rendering/QualityConfig";
+import { QualityManager, type QualityTarget } from "../rendering/QualityManager";
 import { RenderingConfig } from "../rendering/RenderingConfig";
 import { AtmosphereConfig } from "./AtmosphereConfig";
 import { DamageSparks } from "./DamageSparks";
@@ -86,7 +88,7 @@ export interface AtmosphereGameParts {
  * (`NightEnvironment`) and, in the full game, loose Havok debris (`LooseDebris`). Static details are generated with
  * the level (`DetailGenerator`). Created by `LevelGameplay` for the bare level and the full game alike.
  */
-export class LevelAtmosphere {
+export class LevelAtmosphere implements QualityTarget {
   readonly lights: LightAnimator;
   readonly fires: FireEffects;
   readonly sparks: DamageSparks;
@@ -94,6 +96,7 @@ export class LevelAtmosphere {
   readonly environment: NightEnvironment;
   readonly debris: LooseDebris | null;
   private readonly removeSystem: () => void;
+  private readonly removeQuality: () => void;
 
   constructor(game: Game, level: Level, lighting: RoomLighting, player: Player, enemies: EnemyManager | null, parts: AtmosphereGameParts | null) {
     const data = AtmosphereConfig.load();
@@ -132,10 +135,18 @@ export class LevelAtmosphere {
         this.shadows.update(dt);
       },
     });
+    // Quality presets (phase 21): point-light shadows only on high (DECISIONS #11), fewer fire particles on lower ones.
+    this.removeQuality = QualityManager.existing(game)?.register(this) ?? (() => undefined);
     this.registerTestHooks(level, scene);
   }
 
+  applyQuality(preset: QualityPresetData): void {
+    this.shadows.configure(preset.shadows.enabled, preset.shadows.maxLights);
+    this.fires.setDensity(preset.particles);
+  }
+
   dispose(): void {
+    this.removeQuality();
     this.removeSystem();
     this.fires.dispose();
     this.sparks.dispose();
