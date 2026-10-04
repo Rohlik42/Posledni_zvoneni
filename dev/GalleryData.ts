@@ -20,6 +20,8 @@ export interface GallerySectionData {
   maxScale: number;
   /** Expands this model into every teacher look of `data/teachers.json`. */
   teachers?: string;
+  /** Which look of each teacher the expansion uses: `look` (primitive, default) or `gltfLook` (glTF person). */
+  teacherLook?: "look" | "gltfLook";
   items: GalleryItemData[];
 }
 
@@ -76,11 +78,12 @@ export class GalleryData {
           title: Schema.string(),
           maxScale: positive,
           teachers: Schema.string(),
+          teacherLook: Schema.enumOf(["look", "gltfLook"] as const),
           items: Schema.array(
             Schema.object({ model: Schema.string(), label: Schema.string(), options: Schema.record(Schema.string()), yawDeg: Schema.number() }, ["label", "options", "yawDeg"]),
           ),
         },
-        ["teachers"],
+        ["teachers", "teacherLook"],
       ),
       1,
     ),

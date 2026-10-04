@@ -184,8 +184,9 @@ function buildSections(sectionData: readonly GallerySectionData[], otherTitle: s
     if (section.teachers !== undefined) {
       const entry = resolve(section.teachers, `section ${section.id}.teachers`);
       for (const teacher of TeacherConfig.load().teachers) {
-        const { person, colors, scale } = teacher.look;
-        items.push({ entry, label: teacher.surname, options: { person, colors, scale } });
+        // The primitive teachers by default, the glTF people for a section with `teacherLook: "gltfLook"`.
+        const look = section.teacherLook === "gltfLook" ? teacher.gltfLook : teacher.look;
+        items.push({ entry, label: teacher.surname, options: { ...look } });
       }
     }
     return { id: section.id, title: section.title, maxScale: section.maxScale, items };

@@ -1,11 +1,6 @@
 import type { AssetContainer } from "@babylonjs/core/assetContainer";
 import { LoadAssetContainerAsync } from "@babylonjs/core/Loading/sceneLoader";
 import type { Scene } from "@babylonjs/core/scene";
-// glTF 2.0 only: the file loader plugin, the 2.0 loader and the one extension the optimized files need
-// (tools/optimize-people.ts quantizes vertices). No Draco/meshopt — nothing is fetched from a CDN.
-import "@babylonjs/loaders/glTF/glTFFileLoader";
-import "@babylonjs/loaders/glTF/2.0/glTFLoader";
-import "@babylonjs/loaders/glTF/2.0/Extensions/KHR_mesh_quantization";
 import { PeopleConfig } from "./PeopleConfig";
 
 const GLB_EXTENSION = ".glb";
@@ -33,6 +28,7 @@ export class PeopleLibrary {
    * a material created while the files load would keep the raised value (and warn on WebGPU).
    */
   static async preload(scene: Scene, ids: readonly string[] = PeopleConfig.ids()): Promise<void> {
+    await PeopleLibrary.loadLoader();
     let pending = PeopleLibrary.loading.get(scene);
     if (pending === undefined) {
       pending = new Map();
@@ -70,6 +66,17 @@ export class PeopleLibrary {
     const container = PeopleLibrary.loaded.get(scene)?.get(id);
     if (container === undefined) throw new Error(`PeopleLibrary: person model "${id}" is not loaded (await PeopleLibrary.preload first)`);
     return container;
+  }
+
+  /**
+   * The glTF 2.0 loader, imported on first use (FEEDBACK 2026-10-04: with the default primitive teachers the game never
+   * downloads or runs it — a separate chunk): the file loader plugin, the 2.0 loader and the one extension the optimized
+   * files need (tools/optimize-people.ts quantizes vertices). No Draco/meshopt — nothing is fetched from a CDN.
+   */
+  private static async loadLoader(): Promise<void> {
+    await import("@babylonjs/loaders/glTF/glTFFileLoader");
+    await import("@babylonjs/loaders/glTF/2.0/glTFLoader");
+    await import("@babylonjs/loaders/glTF/2.0/Extensions/KHR_mesh_quantization");
   }
 
   /** `maxSimultaneousLights` of every material of the scene that has one. */

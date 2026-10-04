@@ -11,6 +11,7 @@ import { LevelLayout } from "./LevelLayout";
 import type { RoomLighting } from "./RoomLighting";
 import { Teacher, type TeacherPlacement, type TeacherState } from "./Teacher";
 import { TeacherConfig, type TeachersData } from "./TeacherConfig";
+import { TeacherModelFactory, type TeacherModelKind } from "./TeacherModelFactory";
 
 const DEG_TO_RAD = Math.PI / 180;
 const MS_PER_SECOND = 1000;
@@ -50,6 +51,8 @@ export interface TeachersTestApi {
   readonly hint: string | null;
   /** Lines said by freed teachers (E), newest last. */
   messages: () => string[];
+  /** Model of the teachers: `procedural` (default) or `gltf` (setting „Realistické postavy učitelů“ / `?people=gltf`). */
+  readonly modelKind: TeacherModelKind;
 }
 
 declare module "../core/TestHooks" {
@@ -66,6 +69,8 @@ declare module "../core/TestHooks" {
  */
 export class TeacherSystem {
   readonly teachers: Teacher[];
+  /** Primitive (default) or glTF teachers (FEEDBACK 2026-10-04), fixed when the system is built. */
+  readonly modelKind: TeacherModelKind;
   /** Lines of freed teachers for the HUD toasts. */
   readonly onMessage = new Observable<string>();
 
@@ -89,12 +94,13 @@ export class TeacherSystem {
     this.data = TeacherConfig.load();
     this.texts = Texts.load();
     this.cone = Math.cos(this.data.interact.coneDeg * DEG_TO_RAD);
-    this.teachers = specs.map((spec) => new Teacher(game.scene, TeacherConfig.teacher(spec.id), spec.placement, this.data, physics));
+    this.modelKind = TeacherModelFactory.kind;
+    this.teachers = specs.map((spec) => new Teacher(game.scene, TeacherConfig.teacher(spec.id), spec.placement, this.data, physics, this.modelKind));
     if (lighting !== null) {
       for (const teacher of this.teachers) if (teacher.placement.room !== null) lighting.attach(teacher.meshes, [teacher.placement.room]);
     }
-    // Shaders of the glTF people compile in the background once their room lights are known (no stall on first sight).
-    for (const teacher of this.teachers) void teacher.model.person.compileMaterials();
+    // Shaders (of the glTF people) compile in the background once their room lights are known (no stall on first sight).
+    for (const teacher of this.teachers) void teacher.model.prepare();
     quiz.useTeachers((id) => this.get(id) ?? null);
     this.removeSystem = game.addSystem({ update: (dt) => this.update(dt) });
     this.frameObserver = game.scene.onBeforeRenderObservable.add(() => this.frame());
@@ -242,6 +248,7 @@ export class TeacherSystem {
         return system.hint;
       },
       messages: () => [...system.log],
+      modelKind: system.modelKind,
     });
   }
 }

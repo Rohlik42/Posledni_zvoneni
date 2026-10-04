@@ -1,9 +1,8 @@
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import type { Game } from "../../src/core/Game";
 import { Physics } from "../../src/core/Physics";
-import { PeopleLibrary } from "../../src/level/PeopleLibrary";
 import { PickupField } from "../../src/level/PickupField";
-import { TeacherConfig } from "../../src/level/TeacherConfig";
+import { TeacherModelFactory } from "../../src/level/TeacherModelFactory";
 import { TeacherSystem } from "../../src/level/TeacherSystem";
 import { Inventory } from "../../src/player/Inventory";
 import { Player } from "../../src/player/Player";
@@ -17,13 +16,14 @@ const DEG_TO_RAD = Math.PI / 180;
 
 export const id = "teacher";
 export const title =
-  "Zajatý učitel v krabicové místnosti: E u učitele otevře kvíz (pauza, 1–4 / klik = odpověď, Esc = odejít), špatně = výbuch pasti a další otázka, správně = odměna a učitel vstane (?teacher=<id z teachers.json> vybere učitele)";
+  "Zajatý učitel v krabicové místnosti: E u učitele otevře kvíz (pauza, 1–4 / klik = odpověď, Esc = odejít), špatně = výbuch pasti a další otázka, správně = odměna a učitel vstane (?teacher=<id z teachers.json> vybere učitele; ?people=gltf glTF postava místo kostiček)";
 
 export async function create(game: Game): Promise<void> {
   const layout = DevSceneData.load().teacher;
   const teacherId = new URLSearchParams(window.location.search).get("teacher") ?? layout.teacher;
   const physics = await Physics.create(game);
-  await PeopleLibrary.preload(game.scene, [TeacherConfig.teacher(teacherId).look.person]);
+  // Primitive teacher by default; the glTF person with the setting or ?people=gltf (FEEDBACK 2026-10-04).
+  await TeacherModelFactory.preload(game.scene, [teacherId]);
   const room = BoxRoom.build(game, physics);
   const spawn = { position: Vector3.FromArray(layout.spawn.position), yaw: layout.spawn.yawDeg * DEG_TO_RAD };
   const player = Player.create(game, physics, spawn);

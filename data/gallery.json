@@ -1,5 +1,5 @@
 {
-  "//": "Dev scéna 'gallery' (dev/scenes/GalleryScene.ts, fáze 15): všechny modely z ModelRegistry na podstavcích s popiskem a počtem trojúhelníků, pod herním osvětlením (ambient, zářivky, mlha a pipeline jako ve hře). Sekce jsou police nad sebou (první nahoře, rowHeight m od sebe) na tmavé zdi, kamera hledí zpředu; sekce s víc než 'columns' kusy se zalomí. Model se zmenší, aby se vešel do buňky (cell.fill × width, maxHeight), a zvětší nejvýš na maxScale sekce. 'teachers' rozvine model na 9 podob z data/teachers.json, 'people' ukáže glTF postavy z data/people.json v klidové animaci. Modely, které žádná sekce nejmenuje, skončí v poslední sekci 'Ostatní'. yawDeg otočí přední stranu (+z) ke kameře, zbraně bokem; položka může mít vlastní yawDeg (terč má lícem −z). ?section=<id> ukáže jen jednu sekci po camera.focusColumns kusech v řadě (detail). Mlha je herní (data/rendering.json), jen posunutá o vzdálenost kamery tak, aby modely vypadaly jako z fogViewDistance m.",
+  "//": "Dev scéna 'gallery' (dev/scenes/GalleryScene.ts, fáze 15): všechny modely z ModelRegistry na podstavcích s popiskem a počtem trojúhelníků, pod herním osvětlením (ambient, zářivky, mlha a pipeline jako ve hře). Sekce jsou police nad sebou (první nahoře, rowHeight m od sebe) na tmavé zdi, kamera hledí zpředu; sekce s víc než 'columns' kusy se zalomí. Model se zmenší, aby se vešel do buňky (cell.fill × width, maxHeight), a zvětší nejvýš na maxScale sekce. 'teachers' rozvine model na 9 podob z data/teachers.json (teacherLook: 'look' = učitelé z kostiček, výchozí ve hře; 'gltfLook' = glTF postavy, ve hře jen s přepínačem „Realistické postavy učitelů“), 'people' ukáže glTF postavy z data/people.json v klidové animaci. Modely, které žádná sekce nejmenuje, skončí v poslední sekci 'Ostatní'. yawDeg otočí přední stranu (+z) ke kameře, zbraně bokem; položka může mít vlastní yawDeg (terč má lícem −z). ?section=<id> ukáže jen jednu sekci po camera.focusColumns kusech v řadě (detail). Mlha je herní (data/rendering.json), jen posunutá o vzdálenost kamery tak, aby modely vypadaly jako z fogViewDistance m.",
   "columns": 12,
   "cell": { "width": 1.5, "depth": 1.4, "maxHeight": 1.5, "fill": 0.85 },
   "rowHeight": 2.3,
@@ -42,9 +42,17 @@
     },
     {
       "id": "teachers",
-      "title": "Učitelé (≤ 8 500 tri)",
+      "title": "Učitelé (≤ 2 000 tri)",
       "maxScale": 1,
-      "teachers": "TeacherModel",
+      "teachers": "ProceduralTeacherModel",
+      "items": []
+    },
+    {
+      "id": "gltfTeachers",
+      "title": "Učitelé glTF, jen s přepínačem (≤ 8 500 tri)",
+      "maxScale": 1,
+      "teachers": "GltfTeacherModel",
+      "teacherLook": "gltfLook",
       "items": []
     },
     {

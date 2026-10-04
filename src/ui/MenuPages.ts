@@ -15,6 +15,9 @@ const TABLE_CELL_PADDING = "4px 8px";
 const TABLE_BORDER_ALPHA_HEX = "40";
 const VALUE_MIN_WIDTH_PX = 64;
 const SETTINGS_ROW_GAP_PX = 14;
+/** A setting's note sits under its control, across the control and value columns, pulled up to its row. */
+const NOTE_COLUMNS = "2 / -1";
+const NOTE_PULL_UP_PX = 10;
 /** Czech decimal separator for the sensitivity value. */
 const DECIMAL_POINT = ".";
 const DECIMAL_COMMA = ",";
@@ -141,6 +144,8 @@ export class MenuPages {
       ...this.slider("musicVolume", t.labels.musicVolume, s.musicVolume, values.musicVolume, percent),
       ...this.slider("effectsVolume", t.labels.effectsVolume, s.effectsVolume, values.effectsVolume, percent),
       ...this.toggle("invertY", t.labels.invertY, values.invertY, t.on, t.off),
+      // FEEDBACK 2026-10-04: the glTF teachers are heavier; off by default, built with the next level.
+      ...this.toggle("realisticPeople", t.labels.realisticPeople, values.realisticPeople, t.on, t.off, t.nextLevel),
     );
     return { id: "settings", texts: t, content: [grid], items: [this.backItem()], onBack: () => this.back() };
   }
@@ -236,7 +241,8 @@ export class MenuPages {
     return [this.cell(label, {}), input, shown];
   }
 
-  private toggle(name: "invertY", label: string, value: boolean, on: string, off: string): HTMLElement[] {
+  /** An on/off button; `note` (dim, beside it) says when the change does not apply at once. */
+  private toggle(name: "invertY" | "realisticPeople", label: string, value: boolean, on: string, off: string, note = ""): HTMLElement[] {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "menu-item";
@@ -247,7 +253,12 @@ export class MenuPages {
       const applied = this.settings.set({ [name]: !this.settings.values[name] });
       button.textContent = applied[name] ? on : off;
     });
-    return [this.cell(label, {}), button, this.cell("", {})];
+    const row = [this.cell(label, {}), button, this.cell("", {})];
+    if (note === "") return row;
+    // The note gets a row of its own under the toggle (the label column stays narrow).
+    const hint = this.cell(note, { gridColumn: NOTE_COLUMNS, marginTop: `-${NOTE_PULL_UP_PX}px`, fontSize: `${this.data.layout.noteSize}px`, color: Palette.hex(this.screen.colors.kicker) });
+    hint.dataset.settingNote = name;
+    return [...row, hint];
   }
 
   private grid(columns: string[]): HTMLDivElement {

@@ -4,7 +4,7 @@ import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
 import type { Game } from "../../src/core/Game";
-import { TeacherModel } from "../../src/level/models/TeacherModel";
+import { GltfTeacherModel } from "../../src/level/models/GltfTeacherModel";
 import { PeopleLibrary } from "../../src/level/PeopleLibrary";
 import { TeacherConfig } from "../../src/level/TeacherConfig";
 import { FlatMaterials } from "../../src/rendering/FlatMaterials";
@@ -47,8 +47,9 @@ export async function create(game: Game): Promise<void> {
   };
   const seatedId = params.get("seated") ?? data.seated;
   const standingId = params.get("standing") ?? data.standing;
-  const seatedLook = TeacherConfig.teacher(seatedId).look;
-  const standingLook = TeacherConfig.teacher(standingId).look;
+  // Always the glTF teachers (this scene shows them close up), whatever the „realistic people“ setting says.
+  const seatedLook = TeacherConfig.teacher(seatedId).gltfLook;
+  const standingLook = TeacherConfig.teacher(standingId).gltfLook;
   await PeopleLibrary.preload(scene, [seatedLook.person, standingLook.person]);
 
   game.addAmbientLight();
@@ -62,9 +63,9 @@ export async function create(game: Game): Promise<void> {
     lamp.range = data.lamp.range;
   }
 
-  const seated = new TeacherModel(scene, { name: `teacher:${seatedId}`, ...seatedLook });
+  const seated = new GltfTeacherModel(scene, { name: `teacher:${seatedId}`, ...seatedLook });
   seated.root.position.x = data.spacing * HALF;
-  const standing = new TeacherModel(scene, { name: `teacher:${standingId}`, ...standingLook });
+  const standing = new GltfTeacherModel(scene, { name: `teacher:${standingId}`, ...standingLook });
   standing.root.position.x = -data.spacing * HALF;
   standing.setBound(false);
   standing.setStanding(number("stand", 1));

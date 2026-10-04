@@ -22,6 +22,8 @@ export interface SettingsData {
   musicVolume: RangeSetting;
   effectsVolume: RangeSetting;
   invertY: boolean;
+  /** „Realistické postavy učitelů“: glTF teachers instead of the primitive ones (FEEDBACK 2026-10-04), off by default. */
+  realisticPeople: boolean;
   quality: QualityOption;
 }
 
@@ -45,7 +47,9 @@ export interface MenuTexts {
   pause: PageTexts & { items: { resume: string; settings: string; controls: string; mainMenu: string }; note: string };
   death: PageTexts & { lead: string; labels: { checkpoint: string; time: string; deaths: string }; button: string };
   settings: PageTexts & {
-    labels: { mouseSensitivity: string; volume: string; musicVolume: string; effectsVolume: string; invertY: string };
+    labels: { mouseSensitivity: string; volume: string; musicVolume: string; effectsVolume: string; invertY: string; realisticPeople: string };
+    /** Next to a setting that applies only to the next level (the teachers' model). */
+    nextLevel: string;
     sensitivityValue: string;
     volumeValue: string;
     on: string;
@@ -108,6 +112,7 @@ export class MenuConfig {
       musicVolume: range(),
       effectsVolume: range(),
       invertY: Schema.boolean(),
+      realisticPeople: Schema.boolean(),
       quality: Schema.enumOf(QUALITY_OPTIONS),
     }),
     qualityOptions: Schema.array(Schema.enumOf(QUALITY_OPTIONS), 1),
@@ -159,7 +164,9 @@ export class MenuConfig {
           musicVolume: Schema.string(),
           effectsVolume: Schema.string(),
           invertY: Schema.string(),
+          realisticPeople: Schema.string(),
         }),
+        nextLevel: Schema.string(),
         sensitivityValue: Schema.string(),
         volumeValue: Schema.string(),
         on: Schema.string(),

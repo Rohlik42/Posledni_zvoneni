@@ -27,7 +27,6 @@ import { LevelLayout } from "./LevelLayout";
 import { LevelProgress } from "./LevelProgress";
 import { LevelStations } from "./LevelStations";
 import { NavMeshService } from "./NavMeshService";
-import { PeopleLibrary } from "./PeopleLibrary";
 import { PickupConfig } from "./PickupConfig";
 import { PickupField } from "./PickupField";
 import { ProgressionConfig } from "./ProgressionConfig";
@@ -35,6 +34,7 @@ import { PropColliders } from "./PropColliders";
 import { PropPlacer, type PlacedProps } from "./PropPlacer";
 import { RoomCulling } from "./RoomCulling";
 import { RoomLighting } from "./RoomLighting";
+import { TeacherModelFactory } from "./TeacherModelFactory";
 import { TeacherSystem } from "./TeacherSystem";
 
 const DEGREES_TO_RADIANS = Math.PI / 180;
@@ -159,8 +159,9 @@ export class LevelGameplay {
   ) {}
 
   static async create(game: Game, options: LevelGameplayOptions = {}): Promise<LevelGameplay> {
-    // The teachers' glTF people (FEEDBACK 2026-10-04) load before the level builds its materials (PeopleLibrary.preload).
-    if (options.play === true) await PeopleLibrary.preload(game.scene);
+    // The teachers' model kind is fixed now; the glTF people (only behind the setting, FEEDBACK 2026-10-04) load
+    // before the level builds its materials (PeopleLibrary.preload). The default primitive teachers load nothing.
+    if (options.play === true) await TeacherModelFactory.preload(game.scene);
     const physics = await Physics.create(game);
     const level = await LevelBuilder.build(game, physics);
     const play = options.play === true;

@@ -51,3 +51,9 @@ Zapracováno 2026-10-04 (pistolka slabší: TTK humanoida 1,0 → 1,5 s, dostře
 - „Roboti jsou dobří v současném low-poly, ale na lidi bych chtěl opravdový model, aby nebyli z kostiček.“ (schválen Quaternius „Ultimate Modular Men + Women“, CC0)
 
 Zapracováno 2026-10-04 (učitelé jsou glTF postavy Quaternius, 8 modelů v `public/models/people/` zmenšených na 3,2 MB; svázaní na židli procedurální pózou z kostí, po osvobození vstanou, zamávají a stojí v klidové animaci; roboti, zbraně a rekvizity dál z primitiv; snímky `screenshots/people-seated.png`, `people-standing.png`, `people-gallery.png`, test `tests/e2e/people.spec.ts`, rozhodnutí v DECISIONS „FEEDBACK 2026-10-04 — Lidé jako opravdové modely“)
+
+## 2026-10-04 — glTF lidé zpomalují, zpět na low-poly
+
+- „Zdá se mi, že ty skutečné modely lidí dost zpomalují, lagne se to, když se blížím k nějakému. Můžeme na to udělat feature flag? Prosím vrátit zpět ty low poly, co tam byly, a tyhle nové umístit za přepínač.“
+
+Zapracováno 2026-10-04 (učitelé jsou zase z kostiček jako dřív — `ProceduralTeacherModel`; glTF postavy jen s nastavením „Realistické postavy učitelů (experimentální, náročnější)“, výchozí vypnuto, platí od dalšího spuštění levelu, nebo `?people=gltf`; bez přepínače se nestáhne žádné `.glb` ani glTF loader; měření lagu a úroveň detailu pózy glTF učitelů v DECISIONS „Učitelé zase z kostiček, glTF lidé za přepínačem“; snímky `screenshots/teacher-lowpoly-seated.png`, `teacher-lowpoly-standing.png`, `settings-realistic-people.png`; testy `tests/e2e/people.spec.ts` v obou režimech)

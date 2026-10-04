@@ -8,10 +8,11 @@ import { ModelParts } from "../../rendering/ModelParts";
 import { ModelRegistry } from "../../utils/ModelRegistry";
 import { PeopleLibrary } from "../PeopleLibrary";
 import type { PersonBone } from "../PeopleConfig";
-import { TeacherConfig, type TeacherModelData } from "../TeacherConfig";
+import type { ITeacherModel } from "../ITeacherModel";
+import { TeacherConfig, type GltfTeacherModelData } from "../TeacherConfig";
 import { PersonModel } from "./PersonModel";
 
-const BLUEPRINT = "teacher";
+const BLUEPRINT = "teacherChair";
 const DEG_TO_RAD = Math.PI / 180;
 const TWO_PI = Math.PI * 2;
 /** The head nods at a different rate than it turns, so the motion does not trace a line. */
@@ -44,7 +45,7 @@ interface Side {
   footOffset: Vector3;
 }
 
-export interface TeacherModelOptions {
+export interface GltfTeacherModelOptions {
   /** Person model of `data/people.json` (default: the first teacher's). */
   person?: string;
   /** glTF material → `#rrggbb` / palette key. */
@@ -56,17 +57,18 @@ export interface TeacherModelOptions {
 }
 
 /**
- * A captive teacher (FEEDBACK 2026-10-04): a glTF person (`PersonModel`, Quaternius) tied to a primitive chair
- * (blueprint `teacher`: chair, steel bands round the chest and the backrest, cuffs, a robot trap with a blinking LED).
+ * A captive teacher as a real person (FEEDBACK 2026-10-04), only behind the „realistic people“ setting
+ * (`TeacherModelFactory`; the default is `ProceduralTeacherModel`): a glTF person (`PersonModel`, Quaternius) tied to a
+ * primitive chair (blueprint `teacherChair`: chair, steel bands round the chest and the backrest, cuffs, a robot trap with a blinking LED).
  *
- * The bound pose is procedural (`data/teachers.json → model.seated`): the hips sit on the seat, two-bone IK puts the
+ * The bound pose is procedural (`data/teachers.json → gltfModel.seated`): the hips sit on the seat, two-bone IK puts the
  * ankles in front of the chair and the wrists together behind the backrest, the trunk leans a little and the head
  * hangs; on top of that the chest breathes, the head looks around and now and then at the player. Cuffs, ankle
  * shackles and the trap follow the joints every frame. `setStanding(0…1)` blends to the standing base pose in front of
  * the chair; once up, the figure waves and the idle clip takes over. `setBound(false)` drops the shackles and the trap.
  * Origin = floor under the chair, the teacher faces +z.
  */
-export class TeacherModel {
+export class GltfTeacherModel implements ITeacherModel {
   readonly root: TransformNode;
   readonly meshes: readonly Mesh[];
   /** Top of the head (Head_end joint); the name tag hangs above it. */
@@ -76,7 +78,7 @@ export class TeacherModel {
   readonly person: PersonModel;
 
   private readonly built: BuiltModel;
-  private readonly data: TeacherModelData;
+  private readonly data: GltfTeacherModelData;
   private readonly sides: readonly Side[];
   private readonly ankleChain: TransformNode;
   private readonly seatOffset: Vector3;
@@ -90,11 +92,16 @@ export class TeacherModel {
   private ledOn = true;
   private time = 0;
   private viewer: Vector3 | null = null;
+  /** Rendered frames since the pose was last solved (level of detail, `gltfModel.detail`). */
+  private skipped = 0;
+  /** Head top in the world after the last pose (the name tag reads it every frame). */
+  private headTopCache: Vector3 | null = null;
+  private frozen = false;
 
-  constructor(scene: Scene, options: TeacherModelOptions = {}) {
+  constructor(scene: Scene, options: GltfTeacherModelOptions = {}) {
     const config = TeacherConfig.load();
-    this.data = config.model;
-    const fallback = config.teachers[0]!.look;
+    this.data = config.gltfModel;
+    const fallback = config.teachers[0]!.gltfLook;
     const name = options.name ?? BLUEPRINT;
     this.built = BlueprintBuilder.build(scene, BLUEPRINT, { name, lightScale: this.data.lightScale });
     this.root = this.built.root;
@@ -140,6 +147,11 @@ export class TeacherModel {
     this.person.refreshBounds();
   }
 
+  /** A freed teacher stands this far in front of the chair (m). */
+  get standForward(): number {
+    return this.data.standing.forward;
+  }
+
   /** 0 = seated on the chair (bound pose), 1 = standing in front of it. */
   get standing(): number {
     return this.standingAmount;
@@ -154,9 +166,13 @@ export class TeacherModel {
     return this.bound && this.ledOn;
   }
 
-  /** Top of the head in the world, current also between rendered frames (the pose changes in fixed steps). */
+  /**
+   * Top of the head in the world, current also between rendered frames (the pose changes in fixed steps); kept from the
+   * last pose while the figure is frozen (far away, out of sight) instead of walking the bone chain every frame.
+   */
   headTopPosition(): Vector3 {
-    return TeacherModel.worldPosition(this.headTop);
+    if (this.headTopCache === null || (this.person.animating && !this.frozen)) this.headTopCache = GltfTeacherModel.worldPosition(this.headTop);
+    return this.headTopCache.clone();
   }
 
   /** In front of the chest in the world (where the trap hangs while bound), current also between rendered frames. */
@@ -190,11 +206,23 @@ export class TeacherModel {
   animate(time: number, alarm: boolean, viewer: Vector3 | null = null): void {
     this.time = time;
     this.viewer = viewer;
-    this.applyPose();
+    // Level of detail (FEEDBACK 2026-10-04, the glTF people lagged): solving the pose of every teacher every frame cost
+    // ~0.7 ms on an M1 Pro (≈3 ms on a 4× slower CPU). Near the player every frame, farther every `farInterval`
+    // frames, out of sight or beyond `freezeRange` not at all (the idle clips of freed teachers pause too).
+    const detail = this.detail(viewer);
+    this.frozen = detail === "frozen";
+    this.person.setPaused(this.frozen);
+    this.skipped += 1;
+    if (detail === "full" || (detail === "reduced" && this.skipped >= this.data.detail.farInterval)) this.applyPose();
     const { trapBlink } = this.data;
     const period = alarm ? trapBlink.alarmPeriod : trapBlink.period;
     this.ledOn = (time % period) / period < trapBlink.onShare;
     for (const led of this.leds) led.setEnabled(this.bound && this.ledOn);
+  }
+
+  /** Compiles the figure's skinned materials with the room lights attached (no stall on first sight). */
+  prepare(): Promise<void> {
+    return this.person.compileMaterials();
   }
 
   dispose(): void {
@@ -202,8 +230,23 @@ export class TeacherModel {
     this.built.dispose();
   }
 
+  /** How much posing the figure gets now: every frame near the viewer, now and then farther, none out of sight. */
+  private detail(viewer: Vector3 | null): "full" | "reduced" | "frozen" {
+    if (viewer === null) return "full";
+    const { nearRange, freezeRange } = this.data.detail;
+    const distance = Vector3.Distance(viewer, this.root.getAbsolutePosition());
+    if (distance <= nearRange) return "full";
+    if (distance > freezeRange) return "frozen";
+    const camera = this.root.getScene().activeCamera;
+    const body = this.person.meshes[0];
+    if (camera !== null && body !== undefined && !camera.isInFrustum(body)) return "frozen";
+    return "reduced";
+  }
+
   /** Seated (with breath and head), blended towards standing, or handed over to the clips once standing and free. */
   private applyPose(): void {
+    this.skipped = 0;
+    this.headTopCache = null;
     const t = this.standingAmount;
     if (t >= 1 && !this.bound) {
       if (!this.person.animating) {
@@ -284,7 +327,7 @@ export class TeacherModel {
   private glance(): number {
     const { head } = this.data;
     if (this.viewer === null) return 0;
-    const near = Vector3.Distance(this.viewer, TeacherModel.worldPosition(this.root)) <= head.lookRange;
+    const near = Vector3.Distance(this.viewer, this.root.getAbsolutePosition()) <= head.lookRange;
     const cycle = (this.time / head.lookPeriod) % 1;
     if (!near || cycle >= head.lookShare) return 0;
     return Math.sin((Math.PI * cycle) / head.lookShare);
@@ -320,12 +363,12 @@ export class TeacherModel {
 }
 
 ModelRegistry.register({
-  name: "TeacherModel",
-  category: "teacher",
-  title: "Zajatý učitel (glTF postava z data/people.json) svázaný na židli s pouty a robotí pastí",
+  name: "GltfTeacherModel",
+  category: "gltfTeacher",
+  title: "Zajatý učitel jako glTF postava z data/people.json svázaná na židli s pouty a robotí pastí (jen s přepínačem Realistické postavy)",
   preload: (scene) => PeopleLibrary.preload(scene),
   create: (scene, options) =>
-    new TeacherModel(scene, {
+    new GltfTeacherModel(scene, {
       person: typeof options?.person === "string" ? options.person : undefined,
       colors: options?.colors,
       scale: options?.scale,

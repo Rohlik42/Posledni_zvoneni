@@ -10,8 +10,9 @@ import type { Physics } from "../core/Physics";
 import { MatteDefaults } from "../rendering/MatteDefaults";
 import { Palette } from "../utils/Palette";
 import { Texts } from "../utils/Texts";
-import { TeacherModel } from "./models/TeacherModel";
+import type { ITeacherModel } from "./ITeacherModel";
 import type { NametagData, TeacherData, TeachersData } from "./TeacherConfig";
+import { TeacherModelFactory, type TeacherModelKind } from "./TeacherModelFactory";
 
 /** `bound` = tied to the chair with the trap armed; `freed` = the quiz was answered, shackles off. */
 export type TeacherState = "bound" | "freed";
@@ -29,12 +30,12 @@ export interface TeacherPlacement {
 const HALF = 0.5;
 
 /**
- * One captive teacher (DESIGN §3, §6): the glTF person tied to the primitive chair (TeacherModel), a name tag above
- * the head (LEGACY §1: surname + subject, always facing the camera, unlit) and a static collider so the player cannot
+ * One captive teacher (DESIGN §3, §6): the model on its chair (`TeacherModelFactory`: the primitive caricature by
+ * default, the glTF person behind the „realistic people“ setting, FEEDBACK 2026-10-04), a name tag above the head (LEGACY §1: surname + subject, always facing the camera, unlit) and a static collider so the player cannot
  * walk through the chair. `free()` drops the shackles; the teacher then gets up in the fixed step (`update`) and stays in the room.
  */
 export class Teacher {
-  readonly model: TeacherModel;
+  readonly model: ITeacherModel;
   readonly nametag: Mesh;
   /** Model meshes and the name tag (room lighting attaches the model meshes). */
   readonly meshes: readonly AbstractMesh[];
@@ -51,13 +52,9 @@ export class Teacher {
     readonly placement: TeacherPlacement,
     private readonly config: TeachersData,
     physics: Physics | null,
+    kind: TeacherModelKind = TeacherModelFactory.kind,
   ) {
-    this.model = new TeacherModel(scene, {
-      name: `teacher:${data.id}`,
-      person: data.look.person,
-      colors: data.look.colors,
-      scale: data.look.scale,
-    });
+    this.model = TeacherModelFactory.create(scene, data, `teacher:${data.id}`, kind);
     this.model.root.position.copyFrom(placement.position);
     this.model.root.rotation.y = placement.yaw;
     this.tagData = config.nametag;
@@ -98,7 +95,7 @@ export class Teacher {
 
   /** Floor point in front of the chair where dropped rewards land. */
   get dropPosition(): Vector3 {
-    const forward = this.config.model.standing.forward;
+    const forward = this.model.standForward;
     const p = this.placement.position;
     return new Vector3(p.x + Math.sin(this.placement.yaw) * forward, p.y, p.z + Math.cos(this.placement.yaw) * forward);
   }

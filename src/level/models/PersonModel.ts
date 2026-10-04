@@ -68,6 +68,7 @@ export class PersonModel {
   private readonly greet: AnimationGroup | null;
   private readonly groups: AnimationGroup[];
   private playing = false;
+  private paused = false;
 
   constructor(scene: Scene, options: PersonModelOptions = {}) {
     const data = PeopleConfig.load();
@@ -156,9 +157,21 @@ export class PersonModel {
     } else loop();
   }
 
+  /** Pauses the running clips (a figure far away or out of sight) and resumes them; nothing when no clip plays. */
+  setPaused(paused: boolean): void {
+    if (paused === this.paused) return;
+    this.paused = paused;
+    for (const group of this.groups) {
+      if (!group.isStarted) continue;
+      if (paused) group.pause();
+      else group.play(group.loopAnimation);
+    }
+  }
+
   stopAnimations(): void {
     if (!this.playing) return;
     this.playing = false;
+    this.paused = false;
     for (const group of this.groups) {
       group.onAnimationGroupEndObservable.clear();
       group.stop();

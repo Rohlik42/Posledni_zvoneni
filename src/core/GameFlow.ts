@@ -1,6 +1,7 @@
 import { AudioService } from "../audio/AudioService";
 import type { LevelGameplay } from "../level/LevelGameplay";
 import type { LevelProgress } from "../level/LevelProgress";
+import { TeacherModelFactory } from "../level/TeacherModelFactory";
 import { ProgressionConfig } from "../level/ProgressionConfig";
 import type { QuizSystem } from "../quiz/QuizSystem";
 import { QualityManager } from "../rendering/QualityManager";
@@ -181,7 +182,8 @@ export class GameFlow implements MenuActions {
     const progress = this.progress;
     if (progress === null) return;
     const stored = progress.storedDifficulty(DifficultyConfig.load().default);
-    if (stored !== null && this.difficulty !== null && stored !== this.difficulty) {
+    // Another difficulty, or the teachers' model was switched in the settings (built with the level): a fresh build.
+    if (stored !== null && ((this.difficulty !== null && stored !== this.difficulty) || TeacherModelFactory.stale)) {
       this.reload({ difficulty: stored }, CONTINUE_PARAM);
       return;
     }
@@ -230,9 +232,10 @@ export class GameFlow implements MenuActions {
     this.game.setPaused(false);
   }
 
+  /** After a run on this page, or when the teachers' model setting changed since the level was built (FEEDBACK 2026-10-04). */
   private get reloadsForNewGame(): boolean {
     const progress = this.progress;
-    return progress !== null && (progress.begun || progress.ended);
+    return progress !== null && (progress.begun || progress.ended || TeacherModelFactory.stale);
   }
 
   /** Esc / lost pointer lock: the pause menu, unless something else owns the screen. */
