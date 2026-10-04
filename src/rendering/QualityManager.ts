@@ -5,6 +5,7 @@ import { Settings } from "../core/Settings";
 import { TestHooks } from "../core/TestHooks";
 import type { QualityOption } from "../ui/MenuConfig";
 import { QUALITY_PRESETS, QualityConfig, type QualityData, type QualityPreset, type QualityPresetData } from "./QualityConfig";
+import { FrameSampler, type FrameWindow } from "./FrameSampler";
 import { QualityDetector, type QualityMeasurement } from "./QualityDetector";
 import type { RenderPipeline } from "./RenderPipeline";
 import { PIPELINE_PARTS } from "./RenderingConfig";
@@ -32,6 +33,15 @@ export interface QualityStats {
   renderWidth: number;
   renderHeight: number;
   hardwareScaling: number;
+  /**
+   * Phase 25: average CPU time of the whole frame (engine begin → end: game steps, `scene.render`, WebGPU submit) over
+   * the last `game.json → frameTimeSamples` frames, ms. Unlike `fps` / `frameTimeMs` it is not capped by vsync.
+   */
+  cpuFrameMs: number;
+  /** Phase 25: the same for `scene.render` alone (SceneInstrumentation `frameTimeCounter`), ms. */
+  renderCpuMs: number;
+  /** Phase 25: min / avg / max of the CPU times and draw calls of every frame since `startWindow()`. */
+  window: FrameWindow;
 }
 
 /** `window.__game.quality` (phase 21). */
@@ -49,6 +59,8 @@ export interface QualityTestApi {
   /** What is applied: render scale, MSAA, pipeline parts, fog, shadows, particles, skybox. */
   applied: () => QualityPresetData;
   stats: () => QualityStats;
+  /** Phase 25: restarts `stats().window` (a test calls it at the start of its measurement). */
+  startWindow: () => void;
   readonly presets: readonly QualityPreset[];
 }
 
@@ -74,6 +86,8 @@ export class QualityManager {
   private readonly baseScaling: number;
   /** Draw-call counter (SceneInstrumentation, as the plan asks for profiling). */
   private readonly instrumentation: SceneInstrumentation;
+  /** CPU time and draw calls of every frame (phase 25). */
+  private readonly frames: FrameSampler;
   private readonly gpu: string;
   private readonly start: { preset: QualityPreset; hint: string | null };
   private detector: QualityDetector | null = null;
@@ -89,6 +103,7 @@ export class QualityManager {
     this.start = QualityDetector.initial(this.data.autodetect, this.gpu);
     this.baseScaling = game.engine.getHardwareScalingLevel();
     this.instrumentation = new SceneInstrumentation(game.scene);
+    this.frames = new FrameSampler(game.engine, this.instrumentation, game.config.frameTimeSamples);
     const settings = Settings.shared();
     this.choiceValue = settings.values.quality;
     this.current = this.resolve(this.choiceValue);
@@ -202,6 +217,9 @@ export class QualityManager {
       renderWidth: engine.getRenderWidth(),
       renderHeight: engine.getRenderHeight(),
       hardwareScaling: engine.getHardwareScalingLevel(),
+      cpuFrameMs: this.frames.cpuFrameMs(),
+      renderCpuMs: this.frames.renderCpuMs(),
+      window: this.frames.window(),
     };
   }
 
@@ -240,6 +258,7 @@ export class QualityManager {
       }),
       applied: () => structuredClone(manager.preset),
       stats: () => manager.stats(),
+      startWindow: () => manager.frames.startWindow(),
       presets: QUALITY_PRESETS,
     });
   }

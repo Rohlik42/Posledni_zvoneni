@@ -1,6 +1,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { expect, test, type CDPSession, type Page } from "@playwright/test";
 import type { QualityData } from "../../src/rendering/QualityConfig";
+import type { QualityStats } from "../../src/rendering/QualityManager";
 import { ConsoleGuard } from "../support/ConsoleGuard";
 
 // Phase 21: quality presets and performance on the main page at 1920×1080 (the only e2e test at that size). The same
@@ -8,6 +9,10 @@ import { ConsoleGuard } from "../support/ConsoleGuard";
 // whole game running (robots, physics, audio). Vysoké reaches the 60 Hz vsync cap; Nízké with the CPU throttled 4×
 // through CDP (DECISIONS #12, a weak laptop) stays at 30 fps or more. The automatic choice picks a preset and reports
 // it. Results go to test-results/perf.json (PERF.md quotes them).
+// Phase 25: rAF fps stop at the vsync cap, so Vysoké also asserts the CPU time of a frame (`stats().window`, engine
+// begin → end: game steps, render, submit), which the cap does not hide; draw calls are recorded as min / avg / max over
+// the measured frames (the lamp's cube shadow map renders every `rendering.json → shadows.refreshRate` frames, so one
+// frame is not representative). The automatic choice is also checked going down: Střední under a heavy CPU throttle.
 
 const json = <T>(file: string): T => JSON.parse(readFileSync(file, "utf8")) as T;
 const quality = json<QualityData>("data/quality.json");
@@ -22,13 +27,23 @@ const READY_TIMEOUT_MS = 60_000;
 const LOAD_LIMIT_MS = 5_000;
 /** 60 Hz vsync with 5 % for timer jitter. */
 const HIGH_MIN_FPS = 57;
+/**
+ * Phase 25: average CPU time of a Vysoké frame (game steps + render + submit). Measured 7.4–7.7 ms on the M1 Pro
+ * (PERF.md, fáze 25); 12 ms keeps 4.7 ms (28 %) of the 16.7 ms frame free and still allows ~55 % noise above the
+ * measurement, so a regression of more than that fails here long before the fps leave the vsync cap (DECISIONS „Fáze 25“).
+ */
+const HIGH_MAX_CPU_FRAME_MS = 12;
 const LOW_THROTTLED_MIN_FPS = 30;
 const CPU_THROTTLE = 4;
+/** Phase 25: CPU throttle under which Střední measures well below `autodetect.downFps` (12.6 fps measured at 8×, 18 at 6×). */
+const DOWN_CPU_THROTTLE = 8;
 /** Let the preset settle (shaders, shadow maps, JIT) before measuring. */
 const SETTLE_MS = 3_000;
 const MEASURE_MS = 5_000;
 /** The automatic choice: warm-up and sample of every round, plus slack. */
 const DETECT_TIMEOUT_MS = (quality.autodetect.warmupSeconds + quality.autodetect.sampleSeconds) * quality.autodetect.maxRounds * 1000 + 6_000;
+/** Throttled frames are long, but the detection counts game time (frame deltas), so the rounds take about as long. */
+const DOWN_DETECT_TIMEOUT_MS = DETECT_TIMEOUT_MS * 2;
 const HEAL = 10_000;
 const SIGHT_RAYS = 1500;
 const SIGHT_LENGTH_M = 30;
@@ -61,7 +76,7 @@ async function measure(page: Page, ms: number): Promise<number> {
 }
 
 /** The start view again, healed, running; then the preset settles and the fps are measured. */
-async function fpsAt(page: Page, preset: string): Promise<{ fps: number; stats: unknown }> {
+async function fpsAt(page: Page, preset: string): Promise<{ fps: number; stats: QualityStats }> {
   await page.evaluate(
     ({ preset, camera, heal }) => {
       const g = window.__game!;
@@ -74,12 +89,22 @@ async function fpsAt(page: Page, preset: string): Promise<{ fps: number; stats: 
     { preset, camera, heal: HEAL },
   );
   await page.waitForTimeout(SETTLE_MS);
-  await page.evaluate((heal) => window.__game!.player!.heal(heal), HEAL);
+  await page.evaluate((heal) => {
+    window.__game!.player!.heal(heal);
+    window.__game!.quality!.startWindow();
+  }, HEAL);
   const fps = await measure(page, MEASURE_MS);
   const after = await page.evaluate(() => ({ paused: window.__game!.paused, health: window.__game!.player!.health, stats: window.__game!.quality!.stats() }));
   expect(after.paused, "the game ran during the measurement").toBe(false);
   expect(after.health, "the player survived the measurement").toBeGreaterThan(0);
+  expect(after.stats.window.frames, "frames sampled in the measurement window").toBeGreaterThan(0);
   return { fps, stats: after.stats };
+}
+
+/** What perf.json keeps of one measurement: fps, CPU frame time and draw calls over the window, and the raw stats. */
+function summary(m: { fps: number; stats: QualityStats }): Record<string, unknown> {
+  const w = m.stats.window;
+  return { fps: m.fps, frames: w.frames, cpuFrameMs: w.cpuFrameMs, renderCpuMs: w.renderCpuMs, drawCalls: w.drawCalls, drawCallModes: w.drawCallModes, stats: m.stats };
 }
 
 test.describe.configure({ mode: "serial" });
@@ -151,13 +176,14 @@ test.describe("quality presets and performance (1920×1080)", () => {
     results.culling = culling;
   });
 
-  test("Vysoké: 60 fps (vsync) at the start view, every part on, shadows of the room's lamps", async () => {
+  test("Vysoké: 60 fps (vsync) and a CPU frame time well under 16.7 ms at the start view, every part on, shadows of the room's lamps", async () => {
     const high = await fpsAt(page, "high");
-    results.high = high;
+    results.high = { ...summary(high), cpuFrameLimitMs: HIGH_MAX_CPU_FRAME_MS };
     const applied = await page.evaluate(() => ({ parts: window.__game!.rendering!.parts(), shadows: window.__game!.visuals!.shadowLights() }));
     for (const [part, on] of Object.entries(quality.presets.high.pipeline)) expect(applied.parts[part as keyof typeof applied.parts], part).toBe(on);
     expect(applied.shadows.length).toBeGreaterThan(0);
     expect(high.fps).toBeGreaterThanOrEqual(HIGH_MIN_FPS);
+    expect(high.stats.window.cpuFrameMs.avg, "average CPU time of a Vysoké frame, ms").toBeLessThanOrEqual(HIGH_MAX_CPU_FRAME_MS);
   });
 
   test("Nízké with the CPU throttled 4×: 30 fps or more at the same view, cheap look applied", async () => {
@@ -167,7 +193,7 @@ test.describe("quality presets and performance (1920×1080)", () => {
     await cdp.send("Emulation.setCPUThrottlingRate", { rate: CPU_THROTTLE });
     const low = await fpsAt(page, "low");
     await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 });
-    results.lowThrottled = { ...low, cpuThrottle: CPU_THROTTLE };
+    results.lowThrottled = { ...summary(low), cpuThrottle: CPU_THROTTLE };
     const applied = await page.evaluate(() => ({
       parts: window.__game!.rendering!.parts(),
       shadows: window.__game!.visuals!.shadowLights(),
@@ -180,6 +206,47 @@ test.describe("quality presets and performance (1920×1080)", () => {
     expect(applied.sky).toBe(quality.presets.low.skybox);
     expect(applied.scaling).toBeCloseTo(1 / quality.presets.low.renderScale, 3);
     expect(low.fps).toBeGreaterThanOrEqual(LOW_THROTTLED_MIN_FPS);
+    expect(guard.problems).toEqual([]);
+  });
+
+  test("the automatic choice steps down: Střední under a heavy CPU throttle measures below downFps and settles on Nízké", async () => {
+    cdp ??= await page.context().newCDPSession(page);
+    await page.evaluate(
+      ({ camera, heal }) => {
+        const g = window.__game!;
+        g.player!.teleport(camera.feet[0]!, camera.feet[1]!, camera.feet[2]!);
+        g.player!.lookAt(camera.look[0]!, camera.look[1]!, camera.look[2]!);
+        g.player!.heal(heal);
+        g.setPaused(false);
+      },
+      { camera, heal: HEAL },
+    );
+    await cdp.send("Emulation.setCPUThrottlingRate", { rate: DOWN_CPU_THROTTLE });
+    try {
+      // The previous test left the choice on Nízké, so `auto` restarts the detection from its start preset.
+      await page.evaluate(() => window.__game!.quality!.set("auto"));
+      const started = await page.evaluate(() => ({ choice: window.__game!.quality!.choice, detection: window.__game!.quality!.detection() }));
+      expect(started.choice).toBe("auto");
+      expect(started.detection.done).toBe(false);
+      expect(started.detection.measurements).toEqual([]);
+      await page.waitForFunction(() => window.__game!.quality!.detection().done, undefined, { timeout: DOWN_DETECT_TIMEOUT_MS });
+      await page.evaluate((heal) => window.__game!.player!.heal(heal), HEAL);
+    } finally {
+      await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 });
+    }
+    const down = await page.evaluate(() => ({
+      preset: window.__game!.quality!.preset,
+      autodetected: window.__game!.quality!.autodetected,
+      detection: window.__game!.quality!.detection(),
+    }));
+    results.autodetectDown = { ...down, cpuThrottle: DOWN_CPU_THROTTLE };
+    const first = down.detection.measurements[0]!;
+    expect(first.preset).toBe(down.detection.start);
+    expect(first.fps).toBeLessThan(quality.autodetect.downFps);
+    expect(first.next).toBe(quality.order[quality.order.indexOf(first.preset) - 1]);
+    expect(down.preset).toBe("low");
+    expect(down.autodetected).toBe("low");
+    expect(await page.evaluate(() => window.__game!.player!.health)).toBeGreaterThan(0);
     expect(guard.problems).toEqual([]);
   });
 });
