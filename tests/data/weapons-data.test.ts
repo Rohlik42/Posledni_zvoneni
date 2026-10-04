@@ -72,7 +72,7 @@ test("weapons.json: phase 13 weapons carry the numbers and looks their classes r
   need("extinguisher", ["beamRadius", "aimAssistDeg", "slowStrength", "slowSeconds", "refillRadius", "refillCharges"]);
   need("waterBalloons", ["aoeRadius", "aoeEdgeDamage", "throwSpeed", "throwUpDeg", "projectileRadius", "projectileMass", "maxFlightTime", "projectileScale", "regrowTime"]);
   need("taser", ["arcAngleDeg", "maxTargets", "stunSeconds", "stunStrength"]);
-  need("railgun", ["chargeTime", "pierce", "aimAssistDeg", "chargeDrainPerSecond"]);
+  need("railgun", ["pierce", "aimAssistDeg"]);
   need("hose", ["grabDistance", "releaseDistance", "slowStrength", "slowSeconds"]);
   for (const id of ["extinguisher", "taser", "railgun"]) assert.ok(WeaponConfig.weapon(id).effect !== undefined, `${id} needs an effect block`);
   for (const id of ["waterBalloons", "hose", "extinguisher"]) assert.ok(WeaponConfig.weapon(id).stream !== undefined, `${id} needs a stream block`);

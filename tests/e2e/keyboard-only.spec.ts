@@ -197,17 +197,15 @@ test("weapons scene: F fires at a robot, held F charges the railgun, [ ] and Tab
   await tap(page, NEXT_B, SWITCH_MS);
   expect(await active()).toBe("extinguisher");
 
-  // 5 = railgun; holding F charges it and the release fires (press / hold / release as with the mouse button).
+  // 5 = railgun; a press of F fires at once, like a click (no charging since FEEDBACK 2026-10-04).
   const railgun = weapon("railgun");
   await tap(page, `Digit${railgun.slot}`, SWITCH_MS);
   expect(await active()).toBe(railgun.id);
   await page.evaluate((id) => window.__game!.player!.aimAt(window.__game!.enemies!.get(id)!), target);
   const railShots = await page.evaluate((id) => window.__game!.weapons!.state(id)!.shots, railgun.id);
   await page.keyboard.down(FIRE);
-  await page.evaluate((ms) => window.__game!.step(ms), railgun.params.chargeTime! * 1000 + 100);
-  expect(await page.evaluate((id) => window.__game!.weapons!.state(id)!.shots, railgun.id)).toBe(railShots);
-  await page.keyboard.up(FIRE);
   await page.evaluate((ms) => window.__game!.step(ms), STEP_MS * 2);
+  await page.keyboard.up(FIRE);
   expect(await page.evaluate((id) => window.__game!.weapons!.state(id)!.shots, railgun.id)).toBe(railShots + 1);
   const full = railgun.damage * (enemies.humanoid.resistances[railgun.damageType] ?? 1);
   expect(await robotHealth()).toBeCloseTo(Math.max(0, afterPistol - full), 3);

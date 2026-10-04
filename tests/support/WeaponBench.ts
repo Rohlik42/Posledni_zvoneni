@@ -25,7 +25,6 @@ export interface BenchPlan {
   slot: number;
   fireRate: number;
   automatic: boolean;
-  chargeMs: number;
   subject: string;
   distance: number;
   offsetDeg: number;
@@ -76,7 +75,6 @@ export class WeaponBench {
       slot: weapon.slot,
       fireRate: weapon.fireRate,
       automatic: weapon.automatic,
-      chargeMs: (weapon.params.chargeTime ?? 0) * 1000,
       subject,
       distance,
       offsetDeg,
@@ -147,19 +145,14 @@ export class WeaponBench {
     await this.setup(plans);
     const p = plans[0]!;
     return this.page.evaluate(
-      ([ids, chargeMs, step, settle]) => {
+      ([ids, step, settle]) => {
         const g = window.__game!;
         const before = ids.map((id) => g.enemies!.get(id)!.health);
-        if (chargeMs > 0) {
-          g.input!.simulate("fire", chargeMs + 2 * step);
-          g.step(step);
-        } else {
-          g.input!.simulate("fire", step);
-        }
+        g.input!.simulate("fire", step);
         g.step(settle);
         return ids.map((id, i) => before[i]! - g.enemies!.get(id)!.health);
       },
-      [plans.map((q) => q.subject), p.chargeMs, STEP_MS, p.weapon === "waterBalloons" ? BALLOON_SETTLE_MS : 2 * STEP_MS] as const,
+      [plans.map((q) => q.subject), STEP_MS, p.weapon === "waterBalloons" ? BALLOON_SETTLE_MS : 2 * STEP_MS] as const,
     );
   }
 
@@ -178,12 +171,7 @@ export class WeaponBench {
         while (g.enemies!.get(p.subject)!.alive && t < limit) {
           g.player!.heal(1e6);
           g.player!.aimAt(g.enemies!.get(p.subject)!);
-          if (p.chargeMs > 0) {
-            // Railgun: hold until fully charged, then release.
-            if ((g.weapons!.state(p.weapon)!.extra.charge ?? 0) >= 1) g.step(step);
-            else g.input!.simulate("fire", step);
-            t += step;
-          } else if (p.automatic) {
+          if (p.automatic) {
             g.input!.simulate("fire", step);
             t += step;
           } else {

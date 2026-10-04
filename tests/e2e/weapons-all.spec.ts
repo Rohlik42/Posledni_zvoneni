@@ -350,7 +350,7 @@ test("taser: the charge drops per zap, a too-low charge clicks empty, then it re
   expect((await state(taser.id)).magazine).toBe(taser.ammo.capacity);
 });
 
-test("railgun: a short press does not fire; a full charge pierces up to `pierce` robots in a line and reloads", async () => {
+test("railgun: a press fires at once, pierces up to `pierce` robots in a line, then recharges before the next shot", async () => {
   // Four robots in a line straight ahead, stunned so the line holds.
   const line = { [A]: { x: 0, y: 0, z: -1.5 }, [B]: { x: 0, y: 0, z: 0.5 }, [C]: { x: 0, y: 0, z: 2.5 }, [D]: { x: 0, y: 0, z: 4.5 } };
   await setup(railgun.slot, line, true);
@@ -358,16 +358,13 @@ test("railgun: a short press does not fire; a full charge pierces up to `pierce`
   const before = await state(railgun.id);
   expect(before.magazine).toBe(railgun.ammo.capacity);
 
-  await page.evaluate((ms) => window.__game!.input!.simulate("fire", ms), railgun.params.chargeTime! * 1000 * 0.4);
-  await page.evaluate(() => window.__game!.step(100));
-  expect((await state(railgun.id)).shots).toBe(before.shots);
-  expect((await state(railgun.id)).extra.charge).toBeLessThan(0.4);
+  expect(before.extra.readiness).toBe(1);
 
+  // No charging: one short press (a single step) fires, and the recharge sound starts right away.
   const charges = await plays(railgun.sounds.reload);
-  await page.evaluate((ms) => window.__game!.input!.simulate("fire", ms), railgun.params.chargeTime! * 1000 + 100);
-  expect((await state(railgun.id)).shots).toBe(before.shots);
-  expect(await plays(railgun.sounds.reload)).toBeGreaterThan(charges);
+  await page.evaluate(() => window.__game!.input!.simulate("fire", 1000 / 60));
   await page.evaluate(() => window.__game!.step(1000 / 60));
+  expect(await plays(railgun.sounds.reload)).toBeGreaterThan(charges);
   const fired = await state(railgun.id);
   expect(fired.shots).toBe(before.shots + 1);
   expect(fired.extra.lastPierced).toBe(Math.min(railgun.params.pierce!, 4));
@@ -382,9 +379,12 @@ test("railgun: a short press does not fire; a full charge pierces up to `pierce`
   }
   for (const id of lineIds.slice(railgun.params.pierce!)) expect((await robot(id)).health, id).toBe(humanoid.health);
 
-  // One shot per magazine: it reloads from the reserve straight away.
+  // One shot per magazine: it recharges from the reserve straight away; pressing again meanwhile does nothing.
   expect(fired.reloading).toBe(true);
-  await page.evaluate((ms) => window.__game!.step(ms), railgun.ammo.reloadTime * 1000 + 100);
+  expect(fired.extra.readiness).toBeLessThan(1);
+  await page.evaluate((ms) => window.__game!.input!.simulate("fire", ms), railgun.ammo.reloadTime * 1000 * 0.5);
+  expect((await state(railgun.id)).shots).toBe(fired.shots);
+  await page.evaluate((ms) => window.__game!.step(ms), railgun.ammo.reloadTime * 1000 * 0.5 + 100);
   const reloaded = await state(railgun.id);
   expect(reloaded.magazine).toBe(railgun.ammo.capacity);
   expect(reloaded.reserve).toBe(before.reserve! - railgun.ammo.capacity);

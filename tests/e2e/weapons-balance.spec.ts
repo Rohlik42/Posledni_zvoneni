@@ -67,9 +67,8 @@ test.afterAll(async () => {
 
 /** Seconds between two shots while firing without a break. */
 function cycle(weapon: BenchWeapon): number {
-  const charge = weapon.params.chargeTime ?? 0;
   const reload = weapon.ammo.capacity === 1 ? weapon.ammo.reloadTime : 0;
-  return Math.max(1 / weapon.fireRate, charge + reload);
+  return Math.max(1 / weapon.fireRate, reload);
 }
 
 /** Largest sideways aim offset (deg) that still damages the subject at `distance`; null when even a centred shot misses. */

@@ -196,16 +196,19 @@
       "kind": "beam",
       "damage": 120,
       "damageType": "electric",
-      "fireRate": 0.6,
+      "fireRate": 0.833,
       "automatic": false,
       "range": 300,
       "spreadDeg": 0,
-      "ammo": { "capacity": 1, "perShot": 1, "reserveStart": 3, "reserveMax": 10, "infiniteReserve": false, "reloadTime": 1.6, "autoReload": true, "rechargePerSecond": 0, "rechargeDelay": 0 },
+      "ammo": { "capacity": 1, "perShot": 1, "reserveStart": 3, "reserveMax": 10, "infiniteReserve": false, "reloadTime": 1.2, "autoReload": true, "rechargePerSecond": 0, "rechargeDelay": 0 },
       "model": "RailgunModel",
       "sounds": { "fire": "railgunShot", "empty": "emptyClick", "impact": "spark", "reload": "charge" },
       "viewmodel": { "variant": "default", "scale": 0.85, "lightScale": 0.4, "position": [0.19, -0.2, 0.38], "rotationDeg": [0, -4, 0], "swayPerRadPerSec": 0.018, "swayMax": 0.045, "swayReturn": 6, "recoilKick": 0.09, "recoilPitchDeg": 9, "recoilReturn": 8, "bobAmplitude": 0.009, "bobStepsPerMeter": 0.75, "switchDrop": 0.4, "pumpTravel": 0, "moveSwayPerMps": 0.004, "moveSwayMax": 0.02, "strafeRollDeg": 3, "recoilRollDeg": 0, "pumpShotTravel": 0 },
       "effect": { "//": "Paprsek: válec z ústí ke zdi tloušťky width m s vnější září glowWidth × width, svítí glow (bloom) a zhasne za time s; particles = jiskry podél paprsku.", "color": "neon.electric", "colorEnd": "accent.violet", "glow": 4, "particles": 60, "size": [0.03, 0.07], "life": [0.2, 0.5], "speed": [0.4, 1.6], "gravity": 0.5, "time": 0.4, "width": 0.04, "glowWidth": 2.5 },
-      "params": { "chargeTime": 1.0, "pierce": 3, "aimAssistDeg": 1.25, "chargeDrainPerSecond": 2.5, "chargeShake": 0.004 }
+      "params": {
+    "pierce": 3,
+    "aimAssistDeg": 1.25
+  }
     },
     {
       "id": "hose",

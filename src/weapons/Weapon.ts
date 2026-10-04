@@ -344,8 +344,7 @@ export abstract class Weapon {
   protected animate(_dt: number): void {}
 
   /**
-   * Whether the trigger asks for a shot this step: held (automatic) or pressed (single shots). The railgun overrides it
-   * to charge while held and fire on release (phase 13).
+   * Whether the trigger asks for a shot this step: held (automatic) or pressed (single shots).
    */
   protected wantsToFire(trigger: TriggerState, _dt: number): boolean {
     return this.data.automatic ? trigger.held : trigger.pressed;
