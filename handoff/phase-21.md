@@ -22,3 +22,20 @@ Base: main @ d05ca2a (worktree cut from stale 6e5ac74, fast-forwarded to main).
 - Fix 1 (done, uncommitted at this milestone → committed with it): `src/enemies/ai/LineOfSight.ts` own pick loop over a
   cached list of non-damageable meshes + world bounding-sphere pre-test → 48 fps in the same spot.
 - Skybox 1024² variant: `tools/prague-skybox.json → variants` writes `public/textures/sky/prague-1k_*.jpg` (done).
+
+## Milestone 2/5 — implemented (2026-10-04), committed
+- `data/quality.json` + `src/rendering/QualityConfig.ts` (low/medium/high: renderScale, msaaSamples, pipeline parts,
+  ssaoSamples, fog range, shadows {enabled,maxLights} — only high per DECISIONS #11, particles, skybox face, cullingDepth;
+  autodetect params). `src/rendering/QualityDetector.ts` (engine-free), `src/rendering/QualityManager.ts`
+  (`QualityManager.for(game)` in `MainScene` only; dev scenes keep rendering.json). `__game.quality`.
+- Targets: `LevelAtmosphere.applyQuality` (PointShadows.configure, FireEffects.setDensity), skybox
+  (`Skybox.setFaceSize`, `data/sky.json → faceSize, variants`), `RoomCulling` depth, pipeline (`RenderPipeline.setMsaaSamples /
+  setSsaoSamples / setFogRange`, `Game.onPipelineChanged`).
+- Perf: `src/enemies/ai/LineOfSight.ts` (cached boxes grouped by root, per-step refresh via `EnemyManager.update →
+  beginStep`, nearest-first exact tests, `TriangleGrid` for frozen meshes ≥ 48 triangles; `__game.enemies.sightCheck`
+  = 3000 random rays vs Babylon pickWithRay: 0 mismatches incl. normals), `src/level/RoomCulling.ts`
+  (`scene.getActiveMeshCandidates` override; contents of rooms > depth passages away not drawn; shell always;
+  `__game.culling`), `Game`: `scene.skipPointerMovePicking = true`.
+- Menu: legacy link via `import.meta.env.BASE_URL` (menu.spec checks pathname), quality page shows „· teď STŘEDNÍ“ for auto.
+- Probe numbers (1920×1080, učebna 30 start view = heaviest of 11 rooms surveyed): high 60 fps (vsync), every room 60;
+  low + CPU 4× ≈ 33–38 fps (was 8). Active meshes 1821 → ~620 (low) / ~900 (high).

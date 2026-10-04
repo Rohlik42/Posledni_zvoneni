@@ -42,6 +42,16 @@ export class PointShadows {
     return this.enabled;
   }
 
+  /** Quality presets (phase 21): shadows on or off and at most `maxLights` lights; 0 lights = off. */
+  configure(enabled: boolean, maxLights: number): void {
+    this.settings.maxLights = maxLights;
+    this.setEnabled(enabled && maxLights > 0);
+  }
+
+  get maxLights(): number {
+    return this.settings.maxLights;
+  }
+
   /** Switches all shadows on or off (quality presets, phase 21). */
   setEnabled(enabled: boolean): void {
     this.enabled = enabled;

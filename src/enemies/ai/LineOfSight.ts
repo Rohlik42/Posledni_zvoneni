@@ -1,12 +1,39 @@
-import type { PickingInfo } from "@babylonjs/core/Collisions/pickingInfo";
 import { Ray } from "@babylonjs/core/Culling/ray";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
+import type { Node } from "@babylonjs/core/node";
 import type { Scene } from "@babylonjs/core/scene";
 import { DamageTargets } from "../../core/DamageTargets";
+import { TriangleGrid } from "./TriangleGrid";
 
-/** Slack (m) of the bounding-sphere pre-test, so rounding never rejects a mesh the exact test would hit. */
-const SPHERE_SLACK = 0.01;
+/** Slack (m) of the bounding-box pre-test, so rounding never rejects a mesh the exact test would hit. */
+const BOX_SLACK = 0.01;
+/** Floats per box in the cache: min x, y, z, max x, y, z. */
+const BOX_FLOATS = 6;
+/** Direction components smaller than this are treated as parallel to a slab. */
+const PARALLEL = 1e-9;
+/** Frozen meshes with at least this many triangles get a `TriangleGrid` for the exact test. */
+const GRID_MIN_TRIANGLES = 48;
+const XYZ = 3;
+
+/** Distances closer than this count as the same answer in `selfCheck` (float32 boxes vs Babylon's float64 math). */
+const CHECK_TOLERANCE = 1e-3;
+/** Normals agree when |cos| of their angle is at least this (`probe` turns them towards the ray). */
+const NORMAL_AGREEMENT = 0.99;
+
+/** Result of `selfCheck`: rays compared with `scene.pickWithRay` and those that answered differently. */
+export interface SightCheck {
+  rays: number;
+  hits: number;
+  mismatches: { origin: number[]; direction: number[]; length: number; ours: number | null; babylon: number | null }[];
+}
+
+/** The closest blocking hit of a ray. */
+interface Hit {
+  distance: number;
+  /** World normal of the hit surface (either side), or null when it cannot be told. */
+  normal: () => Vector3 | null;
+}
 
 /**
  * Line-of-sight queries against the rendered scene for AI vision and cover: visible, pickable meshes of the world
@@ -14,22 +41,41 @@ const SPHERE_SLACK = 0.01;
  * rendering group) do not, so robots see past each other and the player's gun never hides the player.
  *
  * Phase 21 (performance): drones cast several rays per fixed step, and `scene.pickWithRay` runs a predicate and a
- * world-matrix inversion over every mesh of the scene for each one (a third of the frame in the start room). The rays
- * here go through a cached list of the scene's meshes without damageable owners (rebuilt when a mesh is added or
- * removed) and test each mesh's world bounding sphere against the ray's segment before the exact triangle test. A mesh
- * the segment misses cannot be hit, so the answers are the same as `pickWithRay` with the predicate.
+ * world-matrix inversion over every mesh of the scene for each one (a third of the frame in the start room). Here the
+ * world bounding boxes of all pickable meshes without a damageable owner are cached in flat arrays, grouped by root
+ * node with a box around each group (rebuilt when a mesh is added or removed; boxes of groups that can move are
+ * refreshed by `beginStep` once per fixed step, frozen level geometry never moves). A ray tests the boxes first and runs
+ * the visibility checks and the exact test only on boxes it passes through, nearest first; large frozen meshes use a
+ * `TriangleGrid` instead of walking all their triangles. A mesh whose box the ray misses cannot be hit, so the answers
+ * are those of `pickWithRay` with the predicate (`selfCheck`, `__game.enemies.sightCheck`).
  */
 export class LineOfSight {
   private casts = 0;
-  /** The segment of the ray being cast, for the bounding-sphere pre-test. */
-  private readonly from = new Vector3();
-  private readonly to = new Vector3();
-  private candidates: AbstractMesh[] = [];
+  /** Candidate meshes, the members of each group (same root node) next to each other. */
+  private meshes: AbstractMesh[] = [];
+  /** Position of each candidate in `scene.meshes` (ties go to the earlier one, as in `pickWithRay`). */
+  private sceneOrder = new Int32Array(0);
+  /** Group g holds `meshes[groupStart[g] .. groupStart[g + 1])`. */
+  private groupStart = new Int32Array(1);
+  /** Groups with a mesh whose world matrix is not frozen (their boxes are re-read every step). */
+  private moving: number[] = [];
+  private boxes = new Float32Array(0);
+  private groupBoxes = new Float32Array(0);
   private dirty = true;
+  private stale = true;
+  /** Boxes a ray passes through (reused between rays). */
+  private readonly hits: { index: number; near: number }[] = [];
+  /** Triangle grids of large frozen meshes (built on their first exact test); null = not worth one / unreadable. */
+  private readonly grids = new WeakMap<AbstractMesh, TriangleGrid | null>();
 
   constructor(private readonly scene: Scene) {
     scene.onNewMeshAddedObservable.add(() => (this.dirty = true));
     scene.onMeshRemovedObservable.add(() => (this.dirty = true));
+  }
+
+  /** Start of a fixed step: boxes of meshes that can move are re-read before the next ray. */
+  beginStep(): void {
+    this.stale = true;
   }
 
   /** Distance to the first blocking surface along `direction` (normalised) within `length`, or null. */
@@ -45,7 +91,7 @@ export class LineOfSight {
   probe(origin: Vector3, direction: Vector3, length: number): { distance: number; normal: Vector3 } | null {
     const pick = this.pick(origin, direction, length);
     if (pick === null) return null;
-    const normal = pick.getNormal(true, true) ?? direction.scale(-1);
+    const normal = pick.normal() ?? direction.scale(-1);
     if (Vector3.Dot(normal, direction) > 0) normal.scaleInPlace(-1);
     return { distance: pick.distance, normal };
   }
@@ -58,59 +104,209 @@ export class LineOfSight {
     return this.firstHit(from, delta.scaleInPlace(1 / length), length) !== null;
   }
 
+  /**
+   * Regression check of the cached search (phase 21): `rays` rays from `origins` in seeded random directions, each
+   * answered by `firstHit` and by Babylon's `pickWithRay` with the same predicate; distances must agree.
+   */
+  selfCheck(origins: readonly Vector3[], rays: number, length: number, seed: number): SightCheck {
+    let state = seed >>> 0 || 1;
+    const random = (): number => {
+      state = (state * 1664525 + 1013904223) >>> 0;
+      return state / 0x100000000;
+    };
+    const result: SightCheck = { rays: 0, hits: 0, mismatches: [] };
+    for (let i = 0; i < rays && origins.length > 0; i++) {
+      const origin = origins[i % origins.length]!;
+      const z = random() * 2 - 1;
+      const angle = random() * Math.PI * 2;
+      const r = Math.sqrt(1 - z * z);
+      const direction = new Vector3(r * Math.cos(angle), z, r * Math.sin(angle));
+      const probe = this.probe(origin, direction, length);
+      const ours = probe?.distance ?? null;
+      const pick = this.scene.pickWithRay(new Ray(origin, direction, length), (mesh) => this.blocks(mesh));
+      const babylon = pick?.hit === true ? pick.distance : null;
+      result.rays += 1;
+      if (babylon !== null) result.hits += 1;
+      const babylonNormal = pick?.hit === true ? pick.getNormal(true, true) : null;
+      const sameNormal = probe === null || babylonNormal === null || Math.abs(Vector3.Dot(probe.normal, babylonNormal)) >= NORMAL_AGREEMENT;
+      const same = (ours === null || babylon === null ? ours === babylon : Math.abs(ours - babylon) <= CHECK_TOLERANCE) && sameNormal;
+      if (!same) result.mismatches.push({ origin: origin.asArray(), direction: direction.asArray(), length, ours, babylon });
+    }
+    return result;
+  }
+
   /** Rays cast so far (perf check: vision is throttled by `senses.visionInterval`). */
   get castCount(): number {
     return this.casts;
   }
 
-  /** The closest blocking hit (ties keep scene order, as `pickWithRay`), or null. */
-  private pick(origin: Vector3, direction: Vector3, length: number): PickingInfo | null {
+  /**
+   * The closest blocking hit (ties keep scene order, as `pickWithRay`), or null. Group boxes first (a teacher's or a
+   * door's parts share one), then the boxes of the meshes inside; the meshes whose boxes the segment passes are tested
+   * nearest first, and the search stops at the first box that starts beyond the best hit.
+   */
+  private pick(origin: Vector3, direction: Vector3, length: number): Hit | null {
     this.casts++;
-    this.from.copyFrom(origin);
-    direction.scaleToRef(length, this.to).addInPlace(origin);
-    const ray = new Ray(origin, direction, length);
-    let best: PickingInfo | null = null;
-    for (const mesh of this.meshes()) {
+    this.refresh();
+    const { boxes, groupBoxes, groupStart, meshes } = this;
+    const hits = this.hits;
+    hits.length = 0;
+    for (let g = 0; g + 1 < groupStart.length; g++) {
+      const from = groupStart[g]!;
+      const to = groupStart[g + 1]!;
+      const groupNear = LineOfSight.slab(groupBoxes, g * BOX_FLOATS, origin, direction, length);
+      if (groupNear < 0) continue;
+      if (to - from === 1) {
+        hits.push({ index: from, near: groupNear });
+        continue;
+      }
+      for (let i = from; i < to; i++) {
+        const near = LineOfSight.slab(boxes, i * BOX_FLOATS, origin, direction, length);
+        if (near >= 0) hits.push({ index: i, near });
+      }
+    }
+    if (hits.length === 0) return null;
+    const order = this.sceneOrder;
+    hits.sort((a, b) => a.near - b.near || order[a.index]! - order[b.index]!);
+    let ray: Ray | null = null;
+    let best: Hit | null = null;
+    let bestOrder = -1;
+    for (const { index, near } of hits) {
+      if (best !== null && near > best.distance + BOX_SLACK) break;
+      const mesh = meshes[index]!;
       if (!this.blocks(mesh)) continue;
-      const info =
-        mesh.hasThinInstances && (mesh as { thinInstanceEnablePicking?: boolean }).thinInstanceEnablePicking === true
-          ? this.scene.pickWithRay(ray, (m) => m === mesh)
-          : ray.intersectsMesh(mesh, false);
-      if (info?.hit === true && (best === null || info.distance < best.distance)) best = info;
+      let hit: Hit | null;
+      const grid = this.grid(mesh);
+      if (grid !== null) {
+        const h = grid.intersect(origin, direction, length);
+        hit = h === null ? null : { distance: h.distance, normal: () => h.normal };
+      } else {
+        ray ??= new Ray(origin, direction, length);
+        const info =
+          mesh.hasThinInstances && (mesh as { thinInstanceEnablePicking?: boolean }).thinInstanceEnablePicking === true
+            ? this.scene.pickWithRay(ray, (m) => m === mesh)
+            : ray.intersectsMesh(mesh, false);
+        hit = info?.hit === true ? { distance: info.distance, normal: () => info.getNormal(true, true) } : null;
+      }
+      if (hit === null) continue;
+      if (best === null || hit.distance < best.distance || (hit.distance === best.distance && order[index]! < bestOrder)) {
+        best = hit;
+        bestOrder = order[index]!;
+      }
     }
     return best;
   }
 
-  private meshes(): readonly AbstractMesh[] {
+  /** Where the segment from `o` along unit `d` within `length` enters the box at `b` (widened by the slack), or −1. */
+  private static slab(boxes: Float32Array, b: number, o: Vector3, d: Vector3, length: number): number {
+    // Per axis: [near, far] shrinks to where the segment is inside both slabs (no allocation: called per box per ray).
+    let near = 0;
+    let far = length;
+    for (let a = 0; a < XYZ; a++) {
+      const p = a === 0 ? o.x : a === 1 ? o.y : o.z;
+      const v = a === 0 ? d.x : a === 1 ? d.y : d.z;
+      const lo = boxes[b + a]! - BOX_SLACK;
+      const hi = boxes[b + a + XYZ]! + BOX_SLACK;
+      if (Math.abs(v) < PARALLEL) {
+        if (p < lo || p > hi) return -1;
+        continue;
+      }
+      const t1 = (lo - p) / v;
+      const t2 = (hi - p) / v;
+      near = Math.max(near, Math.min(t1, t2));
+      far = Math.min(far, Math.max(t1, t2));
+      if (near > far) return -1;
+    }
+    return near;
+  }
+
+  /**
+   * Rebuilds the cache after meshes came or went (meshes ordered by root node, so each group is one run); re-reads the
+   * boxes of groups that can move once per step.
+   */
+  private refresh(): void {
     if (this.dirty) {
       this.dirty = false;
-      this.candidates = this.scene.meshes.filter((mesh) => DamageTargets.find(mesh) === null);
+      this.stale = false;
+      // Meshes that are never pickable (effects, pickups, the weapon in hand) or have an owner never block; the flags are
+      // checked again per ray, so this only shortens the list.
+      const byRoot = new Map<Node, { mesh: AbstractMesh; order: number }[]>();
+      this.scene.meshes.forEach((mesh, order) => {
+        if (!mesh.isPickable || mesh.renderingGroupId !== 0 || DamageTargets.find(mesh) !== null) return;
+        let root: Node = mesh;
+        while (root.parent !== null) root = root.parent;
+        const members = byRoot.get(root);
+        if (members === undefined) byRoot.set(root, [{ mesh, order }]);
+        else members.push({ mesh, order });
+      });
+      const groups = [...byRoot.values()];
+      this.meshes = groups.flatMap((members) => members.map((m) => m.mesh));
+      this.sceneOrder = Int32Array.from(groups.flatMap((members) => members.map((m) => m.order)));
+      this.groupStart = new Int32Array(groups.length + 1);
+      groups.forEach((members, g) => (this.groupStart[g + 1] = this.groupStart[g]! + members.length));
+      this.boxes = new Float32Array(this.meshes.length * BOX_FLOATS);
+      this.groupBoxes = new Float32Array(groups.length * BOX_FLOATS);
+      this.moving = [];
+      for (let g = 0; g < groups.length; g++) {
+        if (groups[g]!.some((m) => !m.mesh.isWorldMatrixFrozen)) this.moving.push(g);
+        this.readGroup(g);
+      }
+      return;
     }
-    return this.candidates;
+    if (this.stale) {
+      this.stale = false;
+      for (const g of this.moving) this.readGroup(g);
+    }
   }
 
-  /** Cheap flags first, then the bounding sphere, the owner lookup last (a mesh may be attached after it was added). */
+  /** Boxes of a group's meshes and their union. */
+  private readGroup(g: number): void {
+    const from = this.groupStart[g]!;
+    const to = this.groupStart[g + 1]!;
+    const u = g * BOX_FLOATS;
+    for (let a = 0; a < XYZ; a++) {
+      this.groupBoxes[u + a] = Infinity;
+      this.groupBoxes[u + a + XYZ] = -Infinity;
+    }
+    for (let i = from; i < to; i++) {
+      this.readBox(i);
+      const b = i * BOX_FLOATS;
+      for (let a = 0; a < XYZ; a++) {
+        this.groupBoxes[u + a] = Math.min(this.groupBoxes[u + a]!, this.boxes[b + a]!);
+        this.groupBoxes[u + a + XYZ] = Math.max(this.groupBoxes[u + a + XYZ]!, this.boxes[b + a + XYZ]!);
+      }
+    }
+  }
+
+  private readBox(i: number): void {
+    const mesh = this.meshes[i]!;
+    mesh.computeWorldMatrix();
+    const box = mesh.getBoundingInfo().boundingBox;
+    const b = i * BOX_FLOATS;
+    this.boxes[b] = box.minimumWorld.x;
+    this.boxes[b + 1] = box.minimumWorld.y;
+    this.boxes[b + 2] = box.minimumWorld.z;
+    this.boxes[b + 3] = box.maximumWorld.x;
+    this.boxes[b + 4] = box.maximumWorld.y;
+    this.boxes[b + 5] = box.maximumWorld.z;
+  }
+
+  /** A triangle grid for a large mesh that never moves (frozen world matrix), else null (Babylon's exact test). */
+  private grid(mesh: AbstractMesh): TriangleGrid | null {
+    if (!mesh.isWorldMatrixFrozen || mesh.hasThinInstances || mesh.getTotalIndices() / XYZ < GRID_MIN_TRIANGLES) return null;
+    let grid = this.grids.get(mesh);
+    if (grid === undefined) {
+      grid = TriangleGrid.build(mesh);
+      this.grids.set(mesh, grid);
+    }
+    return grid;
+  }
+
+  /** Visibility flags, then the owner lookup (a mesh may get an owner after it was added). */
   private blocks(mesh: AbstractMesh): boolean {
     if (!mesh.isPickable || !mesh.isVisible || mesh.visibility <= 0 || mesh.renderingGroupId !== 0) return false;
-    if (mesh.isDisposed() || !this.segmentNearSphere(mesh) || !mesh.isEnabled()) return false;
+    if (mesh.isDisposed() || !mesh.isEnabled()) return false;
     return DamageTargets.find(mesh) === null;
   }
-
-  private segmentNearSphere(mesh: AbstractMesh): boolean {
-    mesh.computeWorldMatrix();
-    const sphere = mesh.getBoundingInfo().boundingSphere;
-    const c = sphere.centerWorld;
-    const a = this.from;
-    const b = this.to;
-    const abx = b.x - a.x;
-    const aby = b.y - a.y;
-    const abz = b.z - a.z;
-    const lengthSq = abx * abx + aby * aby + abz * abz;
-    const t = lengthSq <= 0 ? 0 : Math.min(1, Math.max(0, ((c.x - a.x) * abx + (c.y - a.y) * aby + (c.z - a.z) * abz) / lengthSq));
-    const dx = a.x + abx * t - c.x;
-    const dy = a.y + aby * t - c.y;
-    const dz = a.z + abz * t - c.z;
-    const r = sphere.radiusWorld + SPHERE_SLACK;
-    return dx * dx + dy * dy + dz * dz <= r * r;
-  }
 }
+

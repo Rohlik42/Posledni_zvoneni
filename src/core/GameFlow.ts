@@ -3,6 +3,7 @@ import type { LevelGameplay } from "../level/LevelGameplay";
 import type { LevelProgress } from "../level/LevelProgress";
 import { ProgressionConfig } from "../level/ProgressionConfig";
 import type { QuizSystem } from "../quiz/QuizSystem";
+import { QualityManager } from "../rendering/QualityManager";
 import { MenuConfig, type MenuData } from "../ui/MenuConfig";
 import { MenuOverlay, type MenuView } from "../ui/MenuOverlay";
 import { MenuPages, type MenuActions, type MenuPageId } from "../ui/MenuPages";
@@ -202,6 +203,10 @@ export class GameFlow implements MenuActions {
 
   storedCheckpoint(): string | null {
     return this.progress?.storedLabel ?? null;
+  }
+
+  autoQuality(): ReturnType<NonNullable<MenuActions["autoQuality"]>> {
+    return QualityManager.existing(this.game)?.autodetected ?? null;
   }
 
   dispose(): void {

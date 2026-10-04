@@ -7,7 +7,9 @@ import type { Physics } from "../core/Physics";
 import { DecalTextures } from "../rendering/DecalTextures";
 import { MaterialLibrary } from "../rendering/MaterialLibrary";
 import { PaletteColor } from "../rendering/PaletteColor";
+import { QualityManager } from "../rendering/QualityManager";
 import { Skybox } from "../rendering/Skybox";
+import { SkyboxConfig } from "../rendering/SkyboxConfig";
 import type { PaletteKey } from "../utils/Palette";
 import { GreyboxConfig, type GreyboxData } from "./GreyboxConfig";
 import { DetailGenerator } from "./DetailGenerator";
@@ -70,8 +72,10 @@ export class LevelBuilder {
     };
     const geometry = StaticGeometry.build(scene, physics, pieces, resolve);
     game.addAmbientLight();
-    // The view out of every window (no per-window pictures).
-    Skybox.create(scene);
+    // The view out of every window (no per-window pictures); its resolution follows the quality preset (phase 21).
+    const quality = QualityManager.existing(game);
+    const skybox = Skybox.create(scene, SkyboxConfig.load(), quality?.preset.skybox);
+    if (skybox !== null) quality?.register({ applyQuality: (preset) => skybox.setFaceSize(preset.skybox) });
     const lightRooms = new Map<PointLight, string[]>();
     const lights = level.lights.map((light) => {
       const room = layout.room(light.room);

@@ -87,13 +87,16 @@ test.describe("menu and game flow", () => {
     const credits = AssetCredits.parse(readFileSync("ASSETS.md", "utf8"));
     expect(await page.evaluate(() => window.__game!.menu!.creditCount)).toBe(credits.length);
     expect(await page.locator("#menu [data-credit-file]").allTextContents()).toEqual(credits.map((c) => c.file));
-    expect(await page.locator('#menu [data-credits="legacy"]').getAttribute("href")).toBe(menuData.legacyUrl);
+    // Under the site's base (phase 21: from /dev/?scene=menu it must not point to /dev/legacy/).
+    const legacyPath = await page.locator('#menu [data-credits="legacy"]').evaluate((a) => new URL((a as HTMLAnchorElement).href).pathname);
+    expect(legacyPath).toBe(`/${menuData.legacyUrl}`);
     await item("back").click();
 
-    // Kvalita: the choice is stored (phase 21 applies it) and marked.
+    // Kvalita: the choice is stored, applied (phase 21) and marked.
     await item("quality").click();
     await item("quality:low").click();
     expect(await page.evaluate(() => window.__game!.settings!.values().quality)).toBe("low");
+    expect(await page.evaluate(() => window.__game!.quality!.preset)).toBe("low");
     expect((await menuView()).items.find((i) => i.key === "quality:low")?.selected).toBe(true);
     await item("quality:auto").click();
     await page.keyboard.press("Escape");

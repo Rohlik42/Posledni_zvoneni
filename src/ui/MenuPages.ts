@@ -32,6 +32,8 @@ export interface MenuActions {
   toMainMenu(): void;
   /** Label of the stored checkpoint (`start`, `red`, …) or null when there is none. */
   storedCheckpoint(): string | null;
+  /** The preset the automatic quality choice is at (phase 21), or null (picked by hand, or no quality manager). */
+  autoQuality?(): Exclude<QualityOption, "auto"> | null;
 }
 
 export type MenuPageId = "main" | "pause" | "settings" | "quality" | "controls" | "credits";
@@ -146,10 +148,13 @@ export class MenuPages {
   private quality(): MenuPage {
     const t = this.data.texts.quality;
     const chosen = this.settings.values.quality;
+    const detected = this.actions.autoQuality?.() ?? null;
+    const detail = (option: QualityOption): string =>
+      option === "auto" && detected !== null ? Texts.format(t.autoNow, { detail: t.details.auto, value: t.options[detected] }) : t.details[option];
     const items: MenuItem[] = this.data.qualityOptions.map((option: QualityOption) => ({
       key: `quality:${option}`,
       label: t.options[option],
-      detail: t.details[option],
+      detail: detail(option),
       selected: option === chosen,
       action: () => {
         this.settings.set({ quality: option });
@@ -190,7 +195,8 @@ export class MenuPages {
     }
     const count = this.cell(Texts.format(t.count, { count: this.credits.length }), { fontSize: `${this.data.layout.noteSize}px`, color: Palette.hex(c.kicker) });
     const legacy = document.createElement("a");
-    legacy.href = this.data.legacyUrl;
+    // From the site's base, so the link works from /dev/?scene=menu and under a GitHub Pages sub-path too.
+    legacy.href = `${import.meta.env.BASE_URL}${this.data.legacyUrl}`;
     legacy.target = "_blank";
     legacy.rel = "noopener";
     legacy.textContent = t.legacy;
