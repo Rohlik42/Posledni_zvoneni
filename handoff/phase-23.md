@@ -3,7 +3,10 @@
 Branch `worktree-wf_3a0b54f2-e76-2`, worktree `.claude/worktrees/wf_3a0b54f2-e76-2`, port 5303 (vite preview, killed).
 Base: main @ d7e5ef3 (worktree cut from stale 6e5ac74, fast-forwarded to main).
 
-## Status: VISUAL DONE, quick gate pending (milestone 4/5)
+## Status: DONE (milestone 5/5, 2026-10-04)
+
+Quick gate green: `npm run typecheck` exit 0; `npm test` → `test:data` 111/111, Playwright smoke 6/6 (5.3 s).
+Full suite NOT run (shift gate, per brief).
 
 ## What changed
 - **`.github/workflows/pages.yml`** (new): `on: push [main]` + `workflow_dispatch`; permissions `contents: read`,
