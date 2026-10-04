@@ -40,17 +40,12 @@ export interface ProgressionData {
   stations: { probeHeight: number; probeDistance: number; wallGap: number };
   checkpoint: { storageKey: string; version: number; restoreDelay: number; minHealth: number };
   levelEnd: { lock: LockColor };
-  /** Robot count delta until the difficulty sets it (phase 17). */
-  countDelta: number;
   screen: ScreenData;
 }
 
 const metres = (): SchemaNode => Schema.number({ min: 0.001 });
 const px = (): SchemaNode => Schema.number({ min: 1 });
 const LOCKS = ["none", "red", "yellow", "blue", "exit"];
-/** Range of `enemyCountDelta` (legacy `extra`, LEGACY §2). */
-const COUNT_DELTA_MIN = -1;
-const COUNT_DELTA_MAX = 4;
 
 /** Typed loader for `data/progression.json` (level stations, checkpoints, level end, story screens; phase 16). */
 export class ProgressionConfig {
@@ -65,7 +60,6 @@ export class ProgressionConfig {
       minHealth: Schema.number({ min: 1 }),
     }),
     levelEnd: Schema.object({ lock: Schema.enumOf(LOCKS) }),
-    countDelta: Schema.integer({ min: COUNT_DELTA_MIN, max: COUNT_DELTA_MAX }),
     screen: Schema.object({
       fontFamily: Schema.string(),
       textFamily: Schema.string(),

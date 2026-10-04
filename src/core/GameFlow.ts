@@ -6,8 +6,11 @@ import type { QuizSystem } from "../quiz/QuizSystem";
 import { MenuConfig, type MenuData } from "../ui/MenuConfig";
 import { MenuOverlay, type MenuView } from "../ui/MenuOverlay";
 import { MenuPages, type MenuActions, type MenuPageId } from "../ui/MenuPages";
+import { DifficultyPicker } from "../ui/DifficultyPicker";
 import { ScreenOverlay } from "../ui/ScreenOverlay";
 import { Texts } from "../utils/Texts";
+import { Difficulty } from "./Difficulty";
+import { DifficultyConfig } from "./DifficultyConfig";
 import type { Game } from "./Game";
 import { Settings, type SettingsValues } from "./Settings";
 import { TestHooks } from "./TestHooks";
@@ -19,7 +22,7 @@ const NO_VALUE = "–";
 export const NEW_GAME_PARAM = "new";
 /** `/?continue=1` continues from the stored checkpoint at once (phase 16 deep link). */
 export const CONTINUE_PARAM = "continue";
-/** `&difficulty=<id>` travels with `new=1` once phase 17 chooses one. */
+/** `&difficulty=<id>` travels with `new=1` / `continue=1` when the level must be built for another difficulty (phase 17). */
 export const DIFFICULTY_PARAM = "difficulty";
 
 /** What „Nová hra“ starts with (phase 17 adds the difficulty). */
@@ -87,6 +90,8 @@ export class GameFlow implements MenuActions {
   private progress: LevelProgress | null = null;
   private quiz: QuizSystem | null = null;
   private newGameStep: NewGameStep | null = null;
+  /** Id of the difficulty the level was built with (phase 17), null before `useDifficulty`. */
+  private difficulty: string | null = null;
 
   constructor(private readonly game: Game) {
     this.data = MenuConfig.load();
@@ -135,6 +140,22 @@ export class GameFlow implements MenuActions {
     this.newGameStep = step;
   }
 
+  /**
+   * Phase 17: „Nová hra“ opens the difficulty picker (marked: the last choice, else the level's difficulty). The level
+   * was built for `current`; another choice reloads the page with `?new=1&difficulty=<id>`, the same one starts in place.
+   * „Pokračovat“ reloads with the stored checkpoint's difficulty when it differs from `current`.
+   */
+  useDifficulty(current: Difficulty): void {
+    this.difficulty = current.id;
+    const picker = new DifficultyPicker(this.overlay, Difficulty.remembered() ?? current.id);
+    this.setNewGameStep((start, back) =>
+      picker.open(
+        (id) => start({ difficulty: id }),
+        back,
+      ),
+    );
+  }
+
   // ---- MenuActions ----
 
   ready(): boolean {
@@ -154,7 +175,13 @@ export class GameFlow implements MenuActions {
 
   continueGame(trusted: boolean): void {
     const progress = this.progress;
-    if (progress === null || !progress.continueStored()) return;
+    if (progress === null) return;
+    const stored = progress.storedDifficulty(DifficultyConfig.load().default);
+    if (stored !== null && this.difficulty !== null && stored !== this.difficulty) {
+      this.reload({ difficulty: stored }, CONTINUE_PARAM);
+      return;
+    }
+    if (!progress.continueStored()) return;
     this.overlay.hide();
     this.deathScreen.hide();
     this.play(trusted);
@@ -185,7 +212,7 @@ export class GameFlow implements MenuActions {
   private startNew(choice: NewGameChoice): void {
     const progress = this.progress;
     if (progress === null) return;
-    if (this.reloadsForNewGame || choice.difficulty !== undefined) {
+    if (this.reloadsForNewGame || (choice.difficulty !== undefined && choice.difficulty !== this.difficulty)) {
       this.reload(choice);
       return;
     }
@@ -264,10 +291,13 @@ export class GameFlow implements MenuActions {
     return text.charAt(0).toLocaleUpperCase() + text.slice(1);
   }
 
-  private reload(choice: NewGameChoice): void {
+  /** Reloads into a new run (`new=1`) or the stored checkpoint (`continue=1`), with the difficulty to build. */
+  private reload(choice: NewGameChoice, flag: typeof NEW_GAME_PARAM | typeof CONTINUE_PARAM = NEW_GAME_PARAM): void {
     const url = new URL(window.location.href);
     url.searchParams.delete(CONTINUE_PARAM);
-    url.searchParams.set(NEW_GAME_PARAM, "1");
+    url.searchParams.delete(NEW_GAME_PARAM);
+    url.searchParams.delete(DIFFICULTY_PARAM);
+    url.searchParams.set(flag, "1");
     if (choice.difficulty !== undefined) url.searchParams.set(DIFFICULTY_PARAM, choice.difficulty);
     window.location.assign(url.toString());
   }

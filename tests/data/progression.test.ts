@@ -1,7 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { LevelEnemySpawns } from "../../src/enemies/LevelEnemySpawns";
 import { GreyboxConfig } from "../../src/level/GreyboxConfig";
 import { LevelConfig } from "../../src/level/LevelConfig";
 import { LevelLayout } from "../../src/level/LevelLayout";
@@ -23,11 +22,10 @@ const layout = new LevelLayout(level, GreyboxConfig.load());
 const teachers = TeacherConfig.load().teachers;
 const weapons = WeaponConfig.load().weapons;
 
-test("progression.json: schema, palette keys, the level-end lock exists in level.json, the start delta selects robots", () => {
+test("progression.json: schema, palette keys, the level-end lock exists in level.json", () => {
   for (const ref of PaletteRefs.collect(data, ProgressionConfig.schema)) assert.ok(Palette.has(ref), `unknown palette key ${ref}`);
   assert.ok(level.doors.some((d) => d.lock === data.levelEnd.lock && d.kind === "door"), "the level-end lock is on a door with a leaf");
   assert.ok(data.checkpoint.minHealth > 0 && data.checkpoint.restoreDelay >= 0);
-  assert.ok(LevelEnemySpawns.select(level.spawns.enemies, data.countDelta).length > 0);
 });
 
 test("teacher rewards: weapons are real enabled weapons, the key teachers give the keys of level.json, nobody gives the hose", () => {

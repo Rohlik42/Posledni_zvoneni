@@ -340,8 +340,10 @@ test.describe.serial("playthrough of the level on the main page", () => {
     await page.goto("/");
     await page.waitForFunction(() => window.__game?.ready === true || window.__game?.error != null, undefined, { timeout: READY_TIMEOUT_MS });
     expect(await page.evaluate(() => window.__game?.error ?? null)).toBeNull();
-    // Phase 18: `/` opens the main menu; „Nová hra“ starts the run (story screen, start checkpoint).
+    // Phase 18: `/` opens the main menu; „Nová hra“ → the difficulty picker (phase 17, default marked, the level is
+    // built for it) → „Jdeme do školy“ starts the run in place (story screen, start checkpoint).
     await page.evaluate(() => window.__game!.menu!.newGame());
+    expect(await page.evaluate(() => window.__game!.menu!.click("start"))).toBe(true);
     await page.evaluate(() => window.__game!.setPaused(true));
     const rooms = level.rooms.map((r) => {
       const floor = level.floors.find((f) => f.id === r.floor)!;

@@ -55,7 +55,14 @@ export interface MenuPage {
   wide?: boolean;
   /** Esc on this page (sub-pages go back); none = Esc does nothing. */
   onBack?: () => void;
+  /** Items side by side instead of one under another (the difficulty picker's start / back, phase 17). */
+  inlineItems?: boolean;
+  /** Gets the focus when the page opens (instead of the first enabled item). */
+  focus?: HTMLElement;
 }
+
+/** Content buttons with this data attribute join the ↑/↓ navigation (before the items), e.g. difficulty rows. */
+export const NAV_ATTRIBUTE = "menuNav";
 
 /** What tests read from the open page. */
 export interface MenuView {
@@ -167,6 +174,8 @@ export class MenuOverlay {
     this.buttons = page.items.map((item) => this.button(item));
     this.list.replaceChildren(...this.buttons);
     this.list.style.display = this.buttons.length > 0 ? "flex" : "none";
+    this.list.style.flexDirection = page.inlineItems === true ? "row" : "column";
+    this.list.style.alignItems = page.inlineItems === true ? "center" : "stretch";
     this.note.textContent = page.note ?? "";
     this.note.style.display = page.note === undefined ? "none" : "block";
     this.panel.scrollTop = 0;
@@ -175,7 +184,7 @@ export class MenuOverlay {
       window.addEventListener("keydown", this.onKeyDown, { capture: true });
       window.addEventListener("keyup", this.onKeyUp, { capture: true });
     }
-    this.buttons.find((b) => !b.disabled)?.focus({ preventScroll: true });
+    (page.focus ?? this.buttons.find((b) => !b.disabled))?.focus({ preventScroll: true });
   }
 
   hide(): void {
@@ -262,7 +271,8 @@ export class MenuOverlay {
     const onSlider = event.target instanceof HTMLInputElement && event.target.type === "range";
     if (onSlider || (event.code !== NAV_NEXT && event.code !== NAV_PREV)) return;
     event.preventDefault();
-    const enabled = this.buttons.filter((b) => !b.disabled);
+    const contentNav = [...this.content.querySelectorAll<HTMLButtonElement>("button")].filter((b) => b.dataset[NAV_ATTRIBUTE] !== undefined);
+    const enabled = [...contentNav, ...this.buttons].filter((b) => !b.disabled);
     if (enabled.length === 0) return;
     const index = enabled.indexOf(document.activeElement as HTMLButtonElement);
     const step = event.code === NAV_NEXT ? 1 : -1;

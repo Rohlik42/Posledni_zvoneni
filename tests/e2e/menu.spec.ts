@@ -107,6 +107,9 @@ test.describe("menu and game flow", () => {
 
   test("Nová hra → story → game; Esc → pause; Hlavní menu → Pokračovat loads the checkpoint", async () => {
     await item("newGame").click();
+    // Phase 17: the difficulty picker; the default is marked and the level is built for it, so the run starts here.
+    expect((await menuView()).page).toBe("difficulty");
+    await item("start").click();
     const started = await page.evaluate(() => ({
       menu: window.__game!.menu!.visible,
       intro: window.__game!.progress!.intro.visible,
@@ -278,7 +281,8 @@ test.describe("menu and game flow", () => {
     expect(await page.evaluate(() => window.__game!.menu!.pause())).toBe(true);
     await item("mainMenu").click();
     expect(await page.evaluate(() => window.__game!.menu!.reloadsForNewGame)).toBe(true);
-    await Promise.all([page.waitForURL((url) => url.searchParams.get("new") === "1"), item("newGame").click()]);
+    await item("newGame").click();
+    await Promise.all([page.waitForURL((url) => url.searchParams.get("new") === "1"), item("start").click()]);
     await ready();
     const fresh = await page.evaluate(() => ({
       menu: window.__game!.menu!.visible,

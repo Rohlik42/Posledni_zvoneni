@@ -1,9 +1,12 @@
 import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import type { TransformNode } from "@babylonjs/core/Meshes/transformNode";
+import { Difficulty } from "../core/Difficulty";
+import type { DifficultyLevel } from "../core/DifficultyConfig";
 import type { Game } from "../core/Game";
 import { Physics } from "../core/Physics";
 import { TestHooks } from "../core/TestHooks";
 import type { Enemy } from "../enemies/Enemy";
+import { EnemyConfig, type EnemiesData } from "../enemies/EnemyConfig";
 import { EnemyManager } from "../enemies/EnemyManager";
 import { DEFAULT_COUNT_DELTA, LevelEnemySpawns } from "../enemies/LevelEnemySpawns";
 import { Inventory } from "../player/Inventory";
@@ -19,6 +22,7 @@ import { LevelLayout } from "./LevelLayout";
 import { LevelProgress } from "./LevelProgress";
 import { LevelStations } from "./LevelStations";
 import { NavMeshService } from "./NavMeshService";
+import { PickupConfig } from "./PickupConfig";
 import { PickupField } from "./PickupField";
 import { ProgressionConfig } from "./ProgressionConfig";
 import { PropColliders } from "./PropColliders";
@@ -49,9 +53,14 @@ export interface LevelGameplayOptions {
   resume?: boolean;
   /** The main menu decides how the run starts (phase 18): `LevelProgress` waits for `begin` / `continueStored`. */
   deferStart?: boolean;
-  /** Robot count delta of the difficulty (phase 17); default `data/progression.json → countDelta`. */
+  /**
+   * The difficulty of the run (phase 17, data/difficulty.json): player max health, robots' data and count, quiz trap,
+   * pickup amounts, the end screen and the checkpoint. Default Záškoláček (every multiplier 1, delta 0).
+   */
+  difficulty?: Difficulty;
+  /** Overrides the difficulty's robot count delta (dev `&delta=<n>`). */
   countDelta?: number;
-  /** Name of the difficulty for the level-end screen (phase 17); default `texts.json → levelEnd.difficulty`. */
+  /** Overrides the difficulty's name on the level-end screen. */
   difficultyName?: string;
 }
 
@@ -85,10 +94,33 @@ export interface FurnitureTestApi {
   colliders: () => number;
 }
 
+/** `window.__game.difficulty` — the difficulty this level was built with and what it changed (phase 17). */
+export interface DifficultyTestApi {
+  readonly id: string;
+  readonly name: string;
+  /** The level of data/difficulty.json (a copy). */
+  level: () => DifficultyLevel;
+  /** Ids of all levels in menu order. */
+  ids: () => string[];
+  /** Max health of the player now. */
+  readonly playerMaxHealth: number;
+  /** Robot count delta used for the level spawns. */
+  readonly enemyCountDelta: number;
+  /** Robots placed in the level. */
+  readonly robots: number;
+  /** The quiz trap multiplier (null without the full game). */
+  readonly quizMultiplier: number | null;
+  /** Health, attack damage, speed and pace of each robot type as the robots use them. */
+  enemyStats: () => Record<"humanoid" | "quadruped" | "drone", { health: number; damage: number; speed: number; windup: number; cooldown: number }>;
+  /** How much of an item `give(item)` adds now (data/pickups.json amount × the difficulty). */
+  pickupAmount: (item: string) => number;
+}
+
 declare module "../core/TestHooks" {
   interface GameTestModules {
     lighting: LightingTestApi;
     furniture: FurnitureTestApi;
+    difficulty: DifficultyTestApi;
   }
 }
 
@@ -112,6 +144,8 @@ export class LevelGameplay {
     readonly lighting: RoomLighting,
     readonly enemies: EnemyManager | null,
     readonly game: GameParts | null,
+    readonly difficulty: Difficulty,
+    private readonly countDelta: number,
   ) {}
 
   static async create(game: Game, options: LevelGameplayOptions = {}): Promise<LevelGameplay> {
@@ -124,10 +158,13 @@ export class LevelGameplay {
     const colliders = props === null ? null : PropColliders.build(game.scene, physics, props.props);
     const navmesh = await NavMeshService.create(game.scene, [...level.getNavigableMeshes(), ...(colliders?.meshes ?? [])], { obstacles: true });
     const spawn = LevelGameplay.spawn(level, options);
+    const difficulty = options.difficulty ?? Difficulty.standard;
     const player = Player.create(game, physics, spawn);
+    player.health.reset(difficulty.playerMaxHealth(player.health.max));
     level.attachPlayer(player);
     const weapons = WeaponInventory.create(game, player);
     const inventory = Inventory.create(game, player, weapons, level.layout.level.keys);
+    inventory.setAmountScale((kind, amount) => difficulty.pickupAmount(kind, amount));
     const hud = Hud.create(game, player, weapons);
     hud.attachItems(inventory);
     const lighting = new RoomLighting(game, level);
@@ -143,15 +180,19 @@ export class LevelGameplay {
     pickups.spawnLevel(level.layout);
     // Props are lit by their room's lamps.
     for (const [room, meshes] of props?.meshesByRoom ?? []) lighting.attach(meshes, [room]);
-    const countDelta = options.countDelta ?? ProgressionConfig.load().countDelta;
-    const enemies = LevelGameplay.enemies(game, player, navmesh, level, options.enemies ?? (play ? "all" : null), countDelta);
+    const countDelta = options.countDelta ?? difficulty.enemyCountDelta;
+    const robotData = difficulty.enemies(EnemyConfig.load());
+    const enemies = LevelGameplay.enemies(game, player, navmesh, level, options.enemies ?? (play ? "all" : null), countDelta, robotData);
     if (enemies !== null) {
       enemies.onEnemyDeath.add((enemy) => weapons.feedback.robotDestroyed(enemy.position));
       pickups.attachDrops(enemies.enemies);
       for (const enemy of enemies.enemies) lighting.track(() => LevelGameplay.robotMeshes(enemy), () => enemy.position);
     }
     const furniture = props !== null && colliders !== null ? { props, colliders } : null;
-    const parts = furniture !== null ? LevelGameplay.play(game, physics, level, navmesh, player, weapons, inventory, hud, doors, pickups, lighting, enemies, furniture, options) : null;
+    const parts =
+      furniture !== null
+        ? LevelGameplay.play(game, physics, level, navmesh, player, weapons, inventory, hud, doors, pickups, lighting, enemies, furniture, options, difficulty, robotData)
+        : null;
     if (parts === null) {
       // The bare level (geometry tests): back to the start at once. The full game goes back to its checkpoint.
       player.health.onDeath.add(() => {
@@ -159,17 +200,18 @@ export class LevelGameplay {
         enemies?.respawnAll();
       });
     }
-    const gameplay = new LevelGameplay(level, navmesh, player, weapons, inventory, hud, doors, pickups, lighting, enemies, parts);
+    const gameplay = new LevelGameplay(level, navmesh, player, weapons, inventory, hud, doors, pickups, lighting, enemies, parts, difficulty, countDelta);
     gameplay.registerTestHooks();
     return gameplay;
   }
 
-  /** Options from the page URL: `?room=<id>&yaw=<deg>&enemies=e01,e04|all&play=1&intro=1&continue=1&delta=<n>`. */
+  /** Options from the page URL: `?room=<id>&yaw=<deg>&enemies=e01,e04|all&play=1&intro=1&continue=1&delta=<n>&difficulty=<id>`. */
   static optionsFromUrl(search: string): LevelGameplayOptions {
     const params = new URLSearchParams(search);
     const yaw = params.get("yaw");
     const enemies = params.get("enemies");
     const delta = params.get("delta");
+    const difficulty = params.get("difficulty");
     const flag = (name: string): boolean => params.get(name) === "1";
     return {
       room: params.get("room"),
@@ -179,6 +221,7 @@ export class LevelGameplay {
       intro: flag("intro"),
       resume: flag("continue"),
       countDelta: delta === null ? undefined : Number(delta),
+      difficulty: difficulty === null ? undefined : Difficulty.resolve(difficulty),
     };
   }
 
@@ -198,9 +241,12 @@ export class LevelGameplay {
     enemies: EnemyManager | null,
     furniture: { props: PlacedProps; colliders: PropColliders },
     options: LevelGameplayOptions,
+    difficulty: Difficulty,
+    robotData: EnemiesData,
   ): GameParts {
     const data = ProgressionConfig.load();
     const quiz = QuizSystem.create(game, player, inventory, (item, amount, at) => pickups.spawn(item, at, { amount }));
+    quiz.damageMultiplier = difficulty.quizDamageMultiplier;
     const teachers = TeacherSystem.create(game, physics, player, quiz, TeacherSystem.levelSpecs(level.layout), lighting);
     doors.yieldInteract(() => teachers.takesInteract);
     hud.setHintSource(() => teachers.hint ?? doors.hint);
@@ -212,12 +258,12 @@ export class LevelGameplay {
       if (room !== null) lighting.attach(station.model.meshes, [room]);
     }
     // No robots asked for (`?enemies=` with unknown ids): an empty manager keeps checkpoints uniform.
-    const robots = enemies ?? EnemyManager.create(game, player, navmesh, { navExclude: [], enemies: [], coverPoints: [] });
+    const robots = enemies ?? EnemyManager.create(game, player, navmesh, { navExclude: [], enemies: [], coverPoints: [] }, true, robotData);
     const progress = new LevelProgress(
       game,
       { player, inventory, weapons, hud, doors, pickups, teachers, quiz, enemies: robots, stations },
-      { intro: options.intro === true, resume: options.resume === true, deferred: options.deferStart === true },
-      options.difficultyName ?? null,
+      { intro: options.intro === true, resume: options.resume === true, deferred: options.deferStart === true, difficulty: difficulty.id },
+      options.difficultyName ?? difficulty.name,
     );
     return { ...furniture, quiz, teachers, stations, progress };
   }
@@ -237,6 +283,7 @@ export class LevelGameplay {
     level: Level,
     ids: readonly string[] | "all" | null,
     countDelta: number = DEFAULT_COUNT_DELTA,
+    data: EnemiesData | null = null,
   ): EnemyManager | null {
     if (ids === null) return null;
     const layout: LevelLayout = level.layout;
@@ -247,7 +294,7 @@ export class LevelGameplay {
       const p = LevelLayout.toWorld(point.x, layout.floorY(layout.room(point.room)), point.z);
       return { id: `cover-${i}`, position: [p.x, p.y, p.z] as [number, number, number] };
     });
-    return EnemyManager.create(game, player, navmesh, { navExclude: [], enemies: chosen, coverPoints });
+    return EnemyManager.create(game, player, navmesh, { navExclude: [], enemies: chosen, coverPoints }, true, data);
   }
 
   /** The current model meshes of a robot (models are rebuilt on respawn). */
@@ -257,6 +304,36 @@ export class LevelGameplay {
   }
 
   private registerTestHooks(): void {
+    const gameplay = this;
+    const difficulty = this.difficulty;
+    TestHooks.register("difficulty", {
+      id: difficulty.id,
+      name: difficulty.name,
+      level: () => ({ ...difficulty.level }),
+      ids: () => Difficulty.levels.map((l) => l.id),
+      get playerMaxHealth() {
+        return gameplay.player.health.max;
+      },
+      enemyCountDelta: this.countDelta,
+      get robots() {
+        return gameplay.enemies?.enemies.length ?? 0;
+      },
+      get quizMultiplier() {
+        return gameplay.game?.quiz.damageMultiplier ?? null;
+      },
+      enemyStats: () => {
+        const d = gameplay.enemies?.config ?? difficulty.enemies(EnemyConfig.load());
+        return {
+          humanoid: { health: d.humanoid.health, damage: d.humanoid.attack.damage, speed: d.humanoid.movement.runSpeed, windup: d.humanoid.attack.windup, cooldown: d.humanoid.attack.cooldown },
+          quadruped: { health: d.quadruped.health, damage: d.quadruped.lunge.damage, speed: d.quadruped.movement.runSpeed, windup: d.quadruped.lunge.windup, cooldown: d.quadruped.lunge.recover },
+          drone: { health: d.drone.health, damage: d.drone.attack.damage, speed: d.drone.flight.chaseSpeed, windup: d.drone.attack.windup, cooldown: d.drone.attack.cooldown },
+        };
+      },
+      pickupAmount: (item) => {
+        const data = PickupConfig.item(item);
+        return difficulty.pickupAmount(data.kind, data.amount ?? 0);
+      },
+    });
     const lighting = this.lighting;
     const level = this.level;
     TestHooks.register("lighting", {

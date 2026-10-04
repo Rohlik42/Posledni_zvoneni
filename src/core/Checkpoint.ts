@@ -8,6 +8,8 @@ export interface CheckpointState {
   version: number;
   /** Why it was saved: `start` or the key colour (`red`, `yellow`, `blue`). */
   label: string;
+  /** Difficulty id of the run (phase 17); missing in checkpoints saved before it (= the default level). */
+  difficulty?: string;
   player: { position: [number, number, number]; yaw: number; health: number };
   inventory: InventorySnapshot;
   weapons: WeaponsSnapshot;
