@@ -302,3 +302,22 @@ test.describe("menu and game flow", () => {
     expect((await menuView()).page).toBe("main");
   });
 });
+
+// Phase 26: the phase-21 fix of the old-game link (`import.meta.env.BASE_URL`) was checked only on `/`; the bug was on
+// the dev scene, where a relative href resolved to /dev/legacy/index.html (404, phase-23 handoff).
+test("dev menu scene: ZDROJE → old-game link points under the site base, not /dev/", async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+  const page = await context.newPage();
+  const guard = new ConsoleGuard(page);
+  await page.goto("/dev/?scene=menu");
+  await page.waitForFunction(() => window.__game?.ready === true || window.__game?.error != null, undefined, { timeout: READY_TIMEOUT_MS });
+  expect(await page.evaluate(() => window.__game?.error ?? null)).toBeNull();
+  expect(await page.evaluate(() => window.__game?.scene)).toBe("menu");
+  await page.locator('#menu [data-menu-item="credits"]').click();
+  const link = page.locator('#menu [data-credits="legacy"]');
+  await expect(link).toBeVisible();
+  const legacyPath = await link.evaluate((a) => new URL((a as HTMLAnchorElement).href).pathname);
+  expect(legacyPath).toBe(`/${menuData.legacyUrl}`);
+  expect(guard.problems).toEqual([]);
+  await context.close();
+});
