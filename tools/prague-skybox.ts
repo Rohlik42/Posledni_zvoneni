@@ -19,10 +19,11 @@
 //      it the image fades within a 1–2° band into dark night haze; `down` = the same haze;
 //   5. output: `public/textures/sky/prague_{px,nx,py,ny,pz,nz}.jpg` at `size`², written only when bytes change; every
 //      entry of `variants` also writes a downscaled copy `prague<suffix>_*.jpg` (phase 21: 1024² for the Nízké preset).
-import { readFileSync } from "node:fs";
+import { mkdirSync, readFileSync } from "node:fs";
+import { dirname } from "node:path";
 import sharp from "sharp";
 import { writeIfChanged } from "./lib/ImageOps";
-import { FacadeRing, type FacadeRingConfig } from "./lib/FacadeRing";
+import { SkylineBand } from "./lib/SkylineBand";
 import { Palette } from "../src/utils/Palette";
 
 const CONFIG_PATH = "tools/prague-skybox.json";
@@ -117,8 +118,10 @@ interface Config {
     seed: number;
     elDeg: Range;
   };
-  /** Real house facades below the parapet (FEEDBACK 2026-10-04) instead of plain haze; see tools/lib/FacadeRing.ts. */
-  facades?: FacadeRingConfig & { rectifyConfig: string };
+  /** The city painted in below the parapet (FEEDBACK 2026-10-04) instead of plain haze: tools/outpaint-skyline.ts config. */
+  skyline?: string;
+  /** Where to write the parapet curve (input of tools/outpaint-skyline.ts). */
+  curveOut?: string;
 }
 
 const config = JSON.parse(readFileSync(CONFIG_PATH, "utf8")) as Config;
@@ -369,10 +372,10 @@ interface SideResult {
 }
 
 /**
- * Puts the facade ring into the photo strip below the parapet curve (before any blur, so the window masks and the
- * night grade treat the facades exactly like the photo's own houses). Returns the facade coverage per strip pixel.
+ * Puts the painted city into the photo strip below the parapet curve (before any blur, so the window masks and the
+ * night grade treat it exactly like the photo's own houses). Returns its coverage per strip pixel.
  */
-function injectFacades(strip: Buffer, ring: FacadeRing, curve: Float64Array): Float32Array {
+function injectSkyline(strip: Buffer, band: SkylineBand, curve: Float64Array): Float32Array {
   const cover = new Float32Array(SW * N);
   for (let y = 0; y < N; y++) {
     for (let sx = 0; sx < SW; sx++) {
@@ -380,7 +383,7 @@ function injectFacades(strip: Buffer, ring: FacadeRing, curve: Float64Array): Fl
       const { az, el } = sideAngles(k, sx - PAD - k * N, y);
       const below = smoothstep(curveAt(curve, az) + parapet.aboveDeg, curveAt(curve, az) - parapet.bandDeg, el);
       if (below <= 0) continue;
-      const hit = ring.sample(az, el);
+      const hit = band.sample(az, el);
       if (hit === null || hit.alpha <= 0) continue;
       const a = hit.alpha * below;
       const i = (y * SW + sx) * CHANNELS;
@@ -391,7 +394,7 @@ function injectFacades(strip: Buffer, ring: FacadeRing, curve: Float64Array): Fl
   return cover;
 }
 
-/** One graded side face (linear light) and its sky mask; `cover` = facade coverage per strip pixel (no haze there). */
+/** One graded side face (linear light) and its sky mask; `cover` = painted-city coverage per strip pixel (no haze there). */
 function gradeSide(k: number, photo: Buffer, cls: Buffer, fine: Buffer, coarse: Buffer, curve: Float64Array, cover: Float32Array): SideResult {
   const rgb = new Float32Array(N * N * CHANNELS);
   const skyMask = new Float32Array(N * N);
@@ -418,7 +421,7 @@ function gradeSide(k: number, photo: Buffer, cls: Buffer, fine: Buffer, coarse: 
       const lit = windowShape * facade * chosen * inBand * (1 - sky) * windows.strength;
       const skyColour = skyAt(az, el, photoLuma);
 
-      // Below the parapet curve: the terrace fades into the night haze, except where the facade ring covers it.
+      // Below the parapet curve: the terrace fades into the night haze, except where the painted city covers it.
       const top = curveAt(curve, az);
       const below = smoothstep(top + parapet.aboveDeg, top - parapet.bandDeg, el) * (1 - cover[y * SW + PAD + k * N + x]!);
       const haze = hazeAt(az, el);
@@ -484,9 +487,14 @@ async function encode(bytes: Buffer, rotate: number, size: number): Promise<Buff
 
 const sideBuffers = await Promise.all(SIDE_FILES.map((file) => readFace(file)));
 const strip = buildStrip(sideBuffers);
-// The parapet curve comes from the terrace photo alone; the facades then go below it and the masks are blurred again.
+// The parapet curve comes from the terrace photo alone; the painted city then goes below it and the masks are blurred again.
 const curve = parapetCurve(await blurStrip(strip, config.blur.class));
-const cover = config.facades === undefined ? new Float32Array(SW * N) : injectFacades(strip, await FacadeRing.load(config.facades, config.facades.rectifyConfig), curve);
+// The curve is also the boundary for tools/outpaint-skyline.ts (what lies below it gets painted in).
+if (config.curveOut !== undefined) {
+  mkdirSync(dirname(config.curveOut), { recursive: true });
+  writeIfChanged(config.curveOut, Buffer.from(`${JSON.stringify({ binDeg: parapet.binDeg, elevationDeg: Array.from(curve, (v) => Number(v.toFixed(3))) })}\n`));
+}
+const cover = config.skyline === undefined ? new Float32Array(SW * N) : injectSkyline(strip, await SkylineBand.load(config.skyline), curve);
 const [cls, fine, coarse] = await Promise.all([blurStrip(strip, config.blur.class), blurStrip(strip, config.blur.fine), blurStrip(strip, config.blur.coarse)]);
 if (process.env.DEBUG_DIR !== undefined) {
   const every = Math.round(10 / parapet.binDeg);

@@ -1,0 +1,15 @@
+{
+  "//": "Parametry tools/outpaint-skyline.ts: domalování panorámatu z terasy pod linií atiky (FEEDBACK 2026-10-04) obrazovým modelem Gemini. Pohledy dokola (views) postupně: každý další vidí už domalovaný kus souseda, poslední uzavírá kruh. Výsledek = pás ve tvaru equirect (azimut 0–360°, elevace elTop…elBottom), který čte tools/prague-skybox.ts. Odpovědi modelu se ukládají do cacheDir, další běh bez --regenerate API nevolá.",
+  "panorama": "reference/matterport/panoramas_4k/terasa_vyhled",
+  "curve": "reference/matterport/outpaint/parapet.json",
+  "out": "reference/matterport/outpaint/band.webp",
+  "webpQuality": 90,
+  "cacheDir": "reference/matterport/outpaint/views",
+  "model": "gemini-3.1-flash-image",
+  "band": { "pxPerDeg": 18, "elTopDeg": 1, "elBottomDeg": -48 },
+  "view": { "width": 1536, "height": 1024, "aspect": "3:2", "hfovDeg": 75, "pitchDeg": -14, "jpegQuality": 92 },
+  "views": { "startAzDeg": 90, "stepDeg": 45, "count": 8 },
+  "feather": { "edgePx": 90, "aboveCurveDeg": 0.6, "alphaWeight": 0.6 },
+  "mask": "#ff00ff",
+  "prompt": "This is a daytime photo taken from a rooftop terrace in Prague's Malá Strana (Lesser Town). The solid bright magenta area is missing image content. Fill ONLY the magenta area with a seamless, photorealistic continuation of the city below the roofline: red clay-tile roofs of the neighbouring old baroque houses, chimneys, dormer windows, gables, copper gutters and the upper floors of pastel plastered facades with windows, seen from slightly above, receding naturally downwards into narrow streets and courtyards. Match the existing photo exactly: same camera, same perspective and lens, same overcast daylight, same colours and level of detail. The boundary with the existing image must be invisible. Keep every non-magenta pixel unchanged. No people, no text, no terrace, no furniture, no railings, no magenta left."
+}
