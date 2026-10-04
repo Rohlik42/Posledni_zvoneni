@@ -90,7 +90,7 @@ export interface StreamData {
 export interface EffectData {
   color: string;
   colorEnd: string;
-  /** Colour of the weapon's own glowing parts (the BFG's ribs, core and vents); `color` when omitted. */
+  /** Colour of the weapon's own glowing parts (the BFG's ribs and core); `color` when omitted. */
   partColor?: string;
   /** Colour multiplier of the particles (above 1 reaches the bloom threshold). */
   glow: number;

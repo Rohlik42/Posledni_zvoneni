@@ -58,7 +58,7 @@ interface BlastInfo {
  * fire charges it in stages of `params.stageTime` s, one capacitor of the reserve shared with the railgun (`ammoType`)
  * per stage, up to `params.maxStages` — or fewer when the reserve holds fewer (the charge stops there, a deny click
  * plays, the extra ribs stay dark). The four ribs of the front block light up one per stage, back to front (the rib
- * charging ramps up, completed ones stay lit); the core and vents glow with the charge, a rising whine plays per stage
+ * charging ramps up, completed ones stay lit); the core in the muzzle glows with the charge, a rising whine plays per stage
  * and the gun trembles more with every stage. Release fires a plasma ball (`PlasmaBalls`) of the completed stages n,
  * spending n capacitors; released before the first stage nothing fires and nothing is spent. Fully charged it waits,
  * pulsing softly (no overcharge). Switching weapons cancels the charge. The ball flies straight until it strikes
@@ -66,17 +66,16 @@ interface BlastInfo {
  * it and within `params.empVertical` m of its height (the same floor; walls do not stop it) takes `damage` electric —
  * enough for any robot on any difficulty — and robots farther out up to `params.stunRadiusN` freeze for
  * `params.stunSeconds`. The player and the teachers are never hurt. After a shot a short cooldown (1 / `fireRate`)
- * with the ribs, core and vents dark; then a chime (`sounds.ready`).
+ * with the ribs and the core dark; then a chime (`sounds.ready`).
  */
 export class Bfg9000 extends Weapon {
   private readonly balls: PlasmaBalls;
   private readonly blast: EmpBlast;
   private readonly effect: EffectData;
-  /** Glow colour of the ribs, core and vents (`effect.partColor`, else the ball's colour). */
+  /** Glow colour of the ribs and the core (`effect.partColor`, else the ball's colour). */
   private readonly partColor: string;
   private readonly core: Glowing;
   private readonly ribs: Glowing[];
-  private readonly vents: Glowing[];
   private readonly shakeRandom: Random;
   private readonly stageTime: number;
   private readonly maxStages: number;
@@ -89,7 +88,6 @@ export class Bfg9000 extends Weapon {
   private readonly stunStrength: number;
   private readonly ribGlow: number;
   private readonly coreGlow: number;
-  private readonly ventGlow: number;
   private readonly idleGlow: number;
   private readonly fullPulse: number;
   private readonly glowFade: number;
@@ -103,7 +101,7 @@ export class Bfg9000 extends Weapon {
   /** The cap the deny click was played for (−1 = not yet). */
   private deniedAt = -1;
   private cooling = false;
-  /** Shown glow 0–1 of the core and vents, and of each rib: rises with the charge at once, fades back (`glowFade`). */
+  /** Shown glow 0–1 of the core and of each rib: rises with the charge at once, fades back (`glowFade`). */
   private coreLevel = 0;
   private readonly ribLevels: number[];
   private charges = 0;
@@ -133,7 +131,6 @@ export class Bfg9000 extends Weapon {
     this.stunStrength = param("stunStrength");
     this.ribGlow = param("ribGlow");
     this.coreGlow = param("coreGlow");
-    this.ventGlow = param("ventGlow");
     this.idleGlow = param("idleGlow");
     this.fullPulse = param("fullPulse");
     this.glowFade = param("glowFade");
@@ -166,7 +163,6 @@ export class Bfg9000 extends Weapon {
     let index = 0;
     this.core = this.ownMaterial(model.core, index++);
     this.ribs = model.ribs.map((mesh) => this.ownMaterial(mesh, index++));
-    this.vents = model.vents.map((mesh) => this.ownMaterial(mesh, index++));
     this.ribLevels = this.ribs.map(() => 0);
     this.updateGlow();
   }
@@ -282,7 +278,7 @@ export class Bfg9000 extends Weapon {
   override dispose(): void {
     this.balls.dispose();
     this.blast.dispose();
-    for (const { material } of [this.core, ...this.ribs, ...this.vents]) material.dispose();
+    for (const { material } of [this.core, ...this.ribs]) material.dispose();
     super.dispose();
   }
 
@@ -448,7 +444,7 @@ export class Bfg9000 extends Weapon {
 
   /**
    * Target glow per part this step — charging: completed ribs lit, the rib charging ramps up with its stage, ribs
-   * beyond the cap dark, the core and vents with the whole charge; ready: the core and vents faintly (`idleGlow`);
+   * beyond the cap dark, the core with the whole charge; ready: the core faintly (`idleGlow`);
    * cooling down: dark, the core coming back towards the idle glow — and the shown glow follows: up at once, down
    * fading by `glowFade` per second (a released charge fades back).
    */
@@ -476,7 +472,6 @@ export class Bfg9000 extends Weapon {
       material.emissiveColor = level > 0 ? base.add(PaletteColor.emissive(this.partColor, full * level * pulse)) : base;
     };
     apply(this.core, this.coreLevel, this.coreGlow);
-    for (const vent of this.vents) apply(vent, this.coreLevel, this.ventGlow);
     this.ribs.forEach((rib, i) => apply(rib, this.ribLevels[i]!, this.ribGlow));
   }
 }

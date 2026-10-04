@@ -6,17 +6,16 @@ import { ModelParts } from "../../rendering/ModelParts";
 import { ModelRegistry } from "../../utils/ModelRegistry";
 
 const BLUEPRINT = "bfg9000";
-/** Parts that glow with the charge: the emitter in the muzzle, the four ribs of the charge band (back to front), the vents. */
+/** Parts that glow with the charge: the emitter in the muzzle and the four ribs of the charge block (back to front). */
 const CORE = "core";
 const RIBS = ["rib1", "rib2", "rib3", "rib4"];
-const VENTS = ["ventL", "ventR"];
 
 /**
- * BFG 9000 (weapon 6, FEEDBACK 2026-10-04): the Classic BFG-9000 — a wide off-white receiver covered in circuitry (top
- * rails with green capsules, a black channel, brass capacitors, red lamps, side LED panel and button), a white charge
- * band cut by four ribs and a black ribbed muzzle block (blueprint `bfg9000`). Parameters: variant, colour overrides,
- * scale, light scale. Exposes the muzzle and the glowing parts — the emitter core in the muzzle, the four ribs of the
- * charge band (one lights up per charge stage, back to front) and the green capsules on the top rails (vents) — which
+ * BFG 9000 (weapon 6, FEEDBACK 2026-10-04): the side-view BFG 9000 concept — a long silver-grey receiver (side LED panel,
+ * round button, top tubes over the whole length, front grip, skeleton stock), a white charge block whose four ribs
+ * stand proud only on its sides (green and white stripes from the side) and a big black ribbed muzzle block (blueprint
+ * `bfg9000`). Parameters: variant, colour overrides, scale, light scale. Exposes the muzzle and the glowing parts — the
+ * emitter core in the muzzle and the four ribs (one lights up per charge stage, back to front) — which
  * src/weapons/Bfg9000.ts lights with the charge and darkens after a shot.
  */
 export class Bfg9000Model {
@@ -24,10 +23,9 @@ export class Bfg9000Model {
   readonly meshes: readonly Mesh[];
   readonly muzzle: TransformNode;
   readonly core: Mesh;
-  /** The charge band's ribs, back (`rib1`) to front (`rib4`): one per charge stage. */
+  /** The charge block's ribs, back (`rib1`) to front (`rib4`): one per charge stage. */
   readonly ribs: readonly Mesh[];
-  readonly vents: readonly Mesh[];
-  /** Every glowing part: the core, the ribs, the vents. */
+  /** Every glowing part: the core and the ribs. */
   readonly glowing: readonly Mesh[];
   private readonly built: BuiltModel;
 
@@ -39,8 +37,7 @@ export class Bfg9000Model {
     this.muzzle = parts.anchor("muzzle");
     this.core = parts.part(CORE);
     this.ribs = RIBS.map((name) => parts.part(name));
-    this.vents = VENTS.map((name) => parts.part(name));
-    this.glowing = [this.core, ...this.ribs, ...this.vents];
+    this.glowing = [this.core, ...this.ribs];
   }
 
   dispose(): void {
