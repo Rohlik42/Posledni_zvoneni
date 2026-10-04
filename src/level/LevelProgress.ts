@@ -22,8 +22,6 @@ import type { TeacherSystem } from "./TeacherSystem";
 const SECONDS_PER_MINUTE = 60;
 const TIME_PAD = 2;
 const START_LABEL = "start";
-/** The hose belongs to the hydrant, never to a checkpoint (it is let go on restore). */
-const HOSE_WEAPON = "hose";
 
 /** The systems of the playable level that a checkpoint saves and restores. */
 export interface ProgressParts {
@@ -273,7 +271,7 @@ export class LevelProgress {
       ...(this.difficultyId === null ? {} : { difficulty: this.difficultyId }),
       player: { position: [p.x, p.y, p.z], yaw: player.camera.yaw, health: player.health.health },
       inventory: inventory.snapshot(),
-      weapons: weapons.snapshot([HOSE_WEAPON]),
+      weapons: weapons.snapshot(),
       teachers: teachers.freedIds(),
       doors: doors.openIds(),
       enemies: enemies.deadIds(),

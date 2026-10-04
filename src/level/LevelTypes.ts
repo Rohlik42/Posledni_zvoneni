@@ -215,10 +215,9 @@ export type PickupItem =
   | "energy-drink"
   | "rubber-boots"
   | "extinguisher-refill"
-  | "weapon-balloons"
-  | "ammo-balloons"
-  | "ammo-railgun"
-  | "weapon-hose";
+  | "extinguisher"
+  | "balloons"
+  | "capacitors";
 
 export interface Pickup {
   id: string;

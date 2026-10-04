@@ -51,7 +51,7 @@ export interface LevelGameplayOptions {
    */
   enemies?: readonly string[] | "all" | null;
   /**
-   * The full game (phase 16, `/`): captive teachers and the quiz, robots, wall extinguishers and the hydrant,
+   * The full game (phase 16, `/`): captive teachers and the quiz, robots, wall extinguishers,
    * checkpoints, the level end. Without it the level stays bare for geometry tests (`?scene=level`).
    */
   play?: boolean;
@@ -136,7 +136,7 @@ declare module "../core/TestHooks" {
  * The playable school (phase 10): greybox level, tile-cache navmesh with closed doors cut out, player with weapons,
  * inventory and HUD, doors, pickups from level.json and robot drops, and room lighting for everything that is not
  * level geometry. `/` and the dev scene `level` both start here. With `play` (phase 16, `/`) it is the whole game:
- * captive teachers with the quiz, the robots of the difficulty, wall extinguishers and the gym hydrant, checkpoints, the
+ * captive teachers with the quiz, the robots of the difficulty, wall extinguishers, checkpoints, the
  * story screen and the level end (`LevelProgress`).
  */
 export class LevelGameplay {
@@ -283,8 +283,8 @@ export class LevelGameplay {
     hud.setHintSource(() => teachers.hint ?? doors.hint);
     hud.showMessages(quiz.onMessage);
     hud.showMessages(teachers.onMessage);
-    const stations = WeaponStations.create(game, player, weapons, LevelStations.placements(game.scene, level.layout, data.stations));
-    for (const station of [...stations.refills, ...stations.hydrants]) {
+    const stations = WeaponStations.create(game, player, weapons, LevelStations.placements(game.scene, level.layout, data.stations), inventory);
+    for (const station of stations.refills) {
       const room = lighting.roomAt(station.position);
       if (room !== null) lighting.attach(station.model.meshes, [room]);
     }

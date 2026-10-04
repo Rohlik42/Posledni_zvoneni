@@ -28,37 +28,73 @@ test("progression.json: schema, palette keys, the level-end lock exists in level
   assert.ok(data.checkpoint.minHealth > 0 && data.checkpoint.restoreDelay >= 0);
 });
 
-test("teacher rewards: weapons are real enabled weapons, the key teachers give the keys of level.json, nobody gives the hose", () => {
+test("teacher rewards: only special weapons (taser, railgun, BFG), keys and power-ups; the key teachers give the keys of level.json", () => {
   for (const teacher of teachers) {
     for (const reward of teacher.rewards) {
       const item = PickupConfig.item(reward.item);
       if (item.kind === "weapon") {
         const weapon = weapons.find((w) => w.id === item.weapon);
         assert.ok(weapon?.enabled === true, `${teacher.id}: ${reward.item} is not an enabled weapon`);
-        assert.notEqual(weapon.class, "Hose", "the hose comes only from the hydrant");
+        // FEEDBACK 2026-10-04: the extinguisher and the balloons are picked up on the corridors, never given.
+        assert.ok(["taser", "railgun", "bfg9000"].includes(weapon.id), `${teacher.id} gives ${weapon.id}`);
       }
+      assert.ok(item.grantsWeapon !== true, `${teacher.id}: ${reward.item} is a corridor pickup`);
     }
   }
   for (const key of level.keys) {
     const teacher = teachers.find((t) => t.slot === key.teacherSlot)!;
     assert.ok(teacher.rewards.some((r) => r.item === `key-${key.color}`), `${teacher.id} gives the ${key.color} key`);
   }
-  // Evidence → Progrese: weapons 2, 4, 5 come from teachers 1, 4, 7; the balloons lie on the corridor.
+  // Evidence → Progrese: weapons 4, 5, 6 come from teachers 4, 7, 8; the extinguisher and the balloons lie on the
+  // floor-4 corridor, nobody gives the hose (gone, FEEDBACK 2026-10-04).
   const weaponOf = (slot: number) =>
     teachers.find((t) => t.slot === slot)!.rewards.map((r) => PickupConfig.item(r.item)).filter((i) => i.kind === "weapon").map((i) => i.weapon);
-  assert.deepEqual(weaponOf(1), ["extinguisher"]);
+  for (const slot of [1, 2, 3, 5, 6, 9]) assert.deepEqual(weaponOf(slot), [], `slot ${slot} gives no weapon`);
   assert.deepEqual(weaponOf(4), ["taser"]);
   assert.deepEqual(weaponOf(7), ["railgun"]);
-  assert.ok(level.pickups.some((p) => p.item === "weapon-balloons" && p.room === "f4-corridor"));
+  assert.deepEqual(weaponOf(8), ["bfg9000"]);
+  assert.equal(teachers.find((t) => t.slot === 8)!.subject, "Matematika", "the BFG belongs to mathematics");
+  assert.ok(!weapons.some((w) => w.id === "hose"), "the hose is gone");
+  assert.ok(level.pickups.some((p) => p.item === "balloons" && p.room === "f4-corridor"));
+  assert.ok(level.pickups.some((p) => p.item === "extinguisher" && p.room === "f4-corridor"));
 });
 
-test("stations: wall extinguishers on every floor's corridor, the hydrant in the gym (the hose exists only there)", () => {
+test("route: the extinguisher lies before the first robot of the corridor, the BFG (slot 8) comes after the railgun (slot 7)", () => {
+  const route = level.route;
+  const roomAt = (slot: number): number => route.findIndex((p) => p.room === level.teachers.find((t) => t.slot === slot)!.room);
+  assert.ok(roomAt(8) > roomAt(7), `route order: slot 8 (${roomAt(8)}) after slot 7 (${roomAt(7)})`);
+  // The floor extinguisher lies on the route line (picked up walking) and before the corridor's first robot patrol.
+  const extinguisher = level.pickups.find((p) => p.item === "extinguisher")!;
+  const robots = level.spawns.enemies.filter((e) => e.room === extinguisher.room);
+  const firstRobotX = Math.min(...robots.map((e) => Math.min(e.x, ...(e.patrol ?? []).map((p) => p.x))));
+  assert.ok(extinguisher.x < firstRobotX, `extinguisher at x ${extinguisher.x} before the first robot at x ${firstRobotX}`);
+  const pickup = PickupConfig.load().pickup.collectRadius;
+  const enter = route.findIndex((p) => p.room === extinguisher.room);
+  const along = route.slice(enter).find((p) => p.room === extinguisher.room && p.x > extinguisher.x)!;
+  assert.ok(Math.abs(along.z - extinguisher.z) < pickup, "the extinguisher lies on the route line");
+  assert.ok(enter < roomAt(1), "it lies before the first corridor teacher");
+});
+
+test("capacitors: the shared reserve and the pickups on the route let the BFG fire at least twice in the gym", () => {
+  const railgun = weapons.find((w) => w.id === "railgun")!;
+  const bfg = weapons.find((w) => w.id === "bfg9000")!;
+  assert.equal(railgun.ammoType, "capacitor");
+  assert.equal(bfg.ammoType, "capacitor");
+  const max = WeaponConfig.ammoType("capacitor").reserveMax;
+  const item = PickupConfig.item("capacitors");
+  const fromTeachers = teachers.flatMap((t) => t.rewards).filter((r) => r.item === "capacitors").length * item.amount!;
+  const onFloor = level.pickups.filter((p) => p.item === "capacitors").length * item.amount!;
+  // Without any railgun shot: what the BFG holds loaded plus the capped reserve, in BFG shots.
+  const capacitors = Math.min(max, railgun.ammo.reserveStart + fromTeachers + onFloor) + bfg.ammo.capacity;
+  assert.ok(capacitors / bfg.ammo.perShot >= 3, `${capacitors} capacitors = ${capacitors / bfg.ammo.perShot} BFG shots`);
+  assert.ok(level.pickups.some((p) => p.item === "capacitors" && p.room === "f2-gym"), "a capacitor pack in the gym");
+});
+
+test("stations: wall extinguishers on every floor's corridor (they hand over the extinguisher or refill it)", () => {
   const refills = level.pickups.filter((p) => p.item === "extinguisher-refill");
-  const hydrants = level.pickups.filter((p) => p.item === "weapon-hose");
   assert.deepEqual([...new Set(refills.map((p) => p.floor))].sort(), level.floors.map((f) => f.id).sort());
-  assert.deepEqual(hydrants.map((p) => p.room), ["f2-gym"]);
   // A station stands by a wall of its room and not in front of a window of it.
-  for (const p of [...refills, ...hydrants]) {
+  for (const p of refills) {
     const room = layout.room(p.room);
     const r = room.rect;
     const edge = Math.min(p.x - r.x0, r.x1 - p.x, p.z - r.z0, r.z1 - p.z);

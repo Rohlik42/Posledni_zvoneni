@@ -120,6 +120,35 @@ export class AreaQuery {
     return hits.sort((a, b) => a.distance - b.distance);
   }
 
+  /**
+   * An EMP (BFG 9000, FEEDBACK 2026-10-04): living targets accepted by `filter` whose bounding box is within `radius` of
+   * `center` and whose vertical span reaches within `vertical` m of it (the same floor — slabs block it, walls do not).
+   * No line of sight is needed; each hit is built on the target's box: its point nearest to the centre, its normal
+   * facing the centre. Nearest first.
+   */
+  within(center: Vector3, radius: number, vertical: number, filter: (target: IDamageable) => boolean): AreaHit[] {
+    const hits: AreaHit[] = [];
+    for (const { node, target } of DamageTargets.attached(this.scene)) {
+      if (!target.alive || !node.isEnabled() || !filter(target)) continue;
+      if (!(node instanceof TransformNode)) continue;
+      const bounds = AreaQuery.bounds(node);
+      if (bounds === null) continue;
+      if (center.y < bounds.min.y - vertical || center.y > bounds.max.y + vertical) continue;
+      const closest = Vector3.Clamp(center, bounds.min, bounds.max);
+      const distance = Vector3.Distance(center, closest);
+      if (distance > radius) continue;
+      const mesh = node.getChildMeshes(false, (m) => m.isEnabled() && m.isVisible)[0];
+      if (mesh === undefined) continue;
+      const middle = bounds.min.add(bounds.max).scale(1 / 2);
+      const towards = center.subtract(middle);
+      const normal = towards.lengthSquared() > 0 ? towards.normalize() : Vector3.Up();
+      // The arc lands on the body's centre line at the blast's height (clamped into the box).
+      const point = new Vector3(middle.x, Math.min(bounds.max.y, Math.max(bounds.min.y, center.y)), middle.z);
+      hits.push({ target, hit: { point, normal, distance, mesh, target }, distance });
+    }
+    return hits.sort((a, b) => a.distance - b.distance);
+  }
+
   /** The first thing a ray meets, if it belongs to `target` (nothing solid in between). */
   private sees(origin: Vector3, direction: Vector3, length: number, target: IDamageable): HitResult | null {
     const hit = this.hitscan.cast(origin, direction, length);

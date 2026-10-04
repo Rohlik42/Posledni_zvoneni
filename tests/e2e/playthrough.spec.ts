@@ -71,10 +71,11 @@ const pickupsData = JSON.parse(readFileSync("data/pickups.json", "utf8")) as {
   external: string[];
 };
 const weaponsData = JSON.parse(readFileSync("data/weapons.json", "utf8")) as {
-  weapons: { id: string; slot: number; ammo: { reserveStart: number } }[];
+  weapons: { id: string; slot: number; ammoType?: string; ammo: { reserveStart: number; reserveMax: number; capacity: number; perShot: number; reloadTime: number }; params: Record<string, number> }[];
+  ammoTypes: Record<string, { reserveMax: number; hudLabel: string }>;
   switchTime: number;
 };
-const feel = JSON.parse(readFileSync("data/feel.json", "utf8")) as { hud: { infiniteSymbol: string } };
+const bfgData = weaponsData.weapons.find((w) => w.id === "bfg9000")!;
 const player = JSON.parse(readFileSync("data/player.json", "utf8")) as { body: { eyeHeight: number } };
 
 const READY_TIMEOUT_MS = 60_000;
@@ -421,7 +422,6 @@ test.describe.serial("playthrough of the level on the main page", () => {
         teachers: g.teachers!.list().map((t) => ({ id: t.id, room: t.room, state: t.state })),
         enemies: g.enemies!.list().length,
         refills: g.weaponStations!.refills(),
-        hydrants: g.weaponStations!.hydrants(),
         pickups: g.pickups!.list().map((p) => p.id),
         weapons: g.weapons!.list().filter((w) => w.owned).map((w) => w.id),
         furniture: g.furniture!.instances(),
@@ -444,10 +444,10 @@ test.describe.serial("playthrough of the level on the main page", () => {
     }
     // Robots of the default difficulty (enemyCountDelta 0: spawns without a gate or with a gate ≤ 0).
     expect(state.enemies).toBe(level.spawns.enemies.filter((e) => (e.minCountDelta ?? -Infinity) <= 0).length);
-    // Wall extinguishers and the hydrant stand against a wall of their room, inside it.
+    // Wall extinguishers stand against a wall of their room, inside it (the gym hydrant is gone, FEEDBACK 2026-10-04).
     const external = level.pickups.filter((p) => pickupsData.external.includes(p.item));
-    expect(state.refills.length + state.hydrants.length).toBe(external.length);
-    for (const station of [...state.refills, ...state.hydrants]) {
+    expect(state.refills.length).toBe(external.length);
+    for (const station of state.refills) {
       const pickup = level.pickups.find((p) => p.id === station.id)!;
       const rect = level.rooms.find((r) => r.id === pickup.room)!.rect;
       const x = station.position.x;
@@ -458,11 +458,10 @@ test.describe.serial("playthrough of the level on the main page", () => {
       expect(z).toBeLessThan(rect.z1 + 0.01);
       expect(Math.min(x - rect.x0, rect.x1 - x, z - rect.z0, rect.z1 - z), station.id).toBeLessThan(0.6);
     }
-    expect(state.hydrants.map((h) => level.pickups.find((p) => p.id === h.id)!.room)).toEqual(["f2-gym"]);
     expect(state.pickups.sort()).toEqual(level.pickups.filter((p) => !pickupsData.external.includes(p.item)).map((p) => p.id).sort());
     expect(state.weapons).toEqual(["waterPistol"]);
     // Props of data/props.json furnish the rooms (phase 15 → 16), lit by the rooms' lamps, clear of the teacher chairs
-    // and the stations (wall extinguishers, hydrant) where they really stand.
+    // and the wall extinguishers where they really stand.
     expect(new Set(state.furniture.map((p) => p.room)).size).toBeGreaterThanOrEqual(PROP_ROOMS_MIN);
     expect(state.furnitureMeshes).toBeGreaterThan(0);
     expect(state.furnitureTriangles).toBeGreaterThan(0);
@@ -474,7 +473,7 @@ test.describe.serial("playthrough of the level on the main page", () => {
       for (const slot of level.teachers.filter((t) => t.room === prop.room)) {
         expect(covers(prop.footprint, slot.chair.x, slot.chair.z, PROP_CLEARANCE_M), `${prop.blueprint} on teacher ${slot.slot}`).toBe(false);
       }
-      for (const station of [...state.refills, ...state.hydrants].filter((st) => level.pickups.find((p) => p.id === st.id)!.room === prop.room)) {
+      for (const station of state.refills.filter((st) => level.pickups.find((p) => p.id === st.id)!.room === prop.room)) {
         expect(covers(prop.footprint, station.position.x, -station.position.z, PROP_CLEARANCE_M), `${prop.room} ${prop.blueprint} on ${station.id}`).toBe(false);
       }
     }
@@ -502,7 +501,7 @@ test.describe.serial("playthrough of the level on the main page", () => {
     expect(bump).toBeLessThan(desk.footprint.x0);
   });
 
-  test("floor 4: Hudebka, Zeměpis (one wrong answer → extinguisher), balloons on the corridor, Matematika → red key + checkpoint", async () => {
+  test("floor 4: Hudebka, the extinguisher on the corridor, Zeměpis (one wrong answer → medkit + drink), balloons on the corridor, Dějepis → red key + checkpoint", async () => {
     test.setTimeout(RUN_TIMEOUT_MS);
     // A robot standing in a doorway keeps the door open (critique of shift 3): the hudebna quadruped, stunned there.
     const hudebnaDoor = route.findIndex((p) => p.door === "d-f4-hudebna");
@@ -531,24 +530,37 @@ test.describe.serial("playthrough of the level on the main page", () => {
 
     await walk(hudebnaDoor, routeIndex("učitel 3"));
     await free(3);
+    // FEEDBACK 2026-10-04: the extinguisher lies on the corridor on the way to teacher 1 (no teacher gives it any more):
+    // walking over it hands over weapon 2 with a full tank.
+    const extinguisherPickup = level.pickups.find((p) => p.item === "extinguisher")!;
     await walk(routeIndex("učitel 3") + 1, routeIndex("učitel 1"));
+    const corridor = await page.evaluate((id) => {
+      const g = window.__game!;
+      return { owned: g.inventory!.weapons, state: g.weapons!.state("extinguisher"), pickup: g.pickups!.list().find((p) => p.id === id) };
+    }, extinguisherPickup.id);
+    expect(corridor.pickup?.collected).toBe(true);
+    expect(corridor.owned).toContain("extinguisher");
+    expect(corridor.state?.magazine).toBeGreaterThan(0);
     const first = await free(1, true);
     expect(first.wrong).toBe(1);
     expect(first.asked).toBe(2);
-    expect(await page.evaluate(() => window.__game!.weapons!.list().filter((w) => w.owned).map((w) => w.id))).toContain("extinguisher");
+    // Teacher 1 gives power-ups now, no weapon.
+    expect(await page.evaluate(() => window.__game!.inventory!.powerUps().map((p) => p.id))).toContain("energyDrink");
 
-    // Balloons on the corridor (Evidence → Progrese): the weapon with its starting reserve, through the inventory, plus
-    // balloon ammo a robot dropped before (kept in the inventory's stash until the weapon comes, phase 10).
+    // Balloons on the corridor (Evidence → Progrese) are ammo and weapon in one: the pack hands over weapon 3 with its
+    // balloons, or adds them when a robot's dropped pack already did.
     await walk(routeIndex("učitel 1") + 1, routeIndex("vodní balónky") - 1);
-    const stashed = await page.evaluate(() => window.__game!.inventory!.stash().waterBalloons ?? 0);
+    const pre = await page.evaluate(() => window.__game!.weapons!.state("waterBalloons")?.reserve ?? null);
     await walk(routeIndex("vodní balónky"), routeIndex("vodní balónky"));
     const balloons = await page.evaluate(() => {
       const g = window.__game!;
       return { state: g.weapons!.state("waterBalloons"), owned: g.inventory!.weapons, pickup: g.pickups!.list().find((p) => p.id === "pk01") };
     });
+    const pack = pickupsData.items["balloons"]!.amount!;
+    const balloonMax = weaponsData.weapons.find((w) => w.id === "waterBalloons")!.ammo.reserveMax;
     expect(balloons.pickup?.collected).toBe(true);
     expect(balloons.owned).toContain("waterBalloons");
-    expect(balloons.state?.reserve).toBe(weaponsData.weapons.find((w) => w.id === "waterBalloons")!.ammo.reserveStart + stashed);
+    expect(balloons.state?.reserve).toBe(pre === null ? pack : Math.min(balloonMax, pre + pack));
     expect(await page.evaluate(() => window.__game!.inventory!.stash().waterBalloons ?? 0)).toBe(0);
 
     await walk(routeIndex("vodní balónky") + 1, routeIndex("učitel 2"));
@@ -559,7 +571,7 @@ test.describe.serial("playthrough of the level on the main page", () => {
     expect(checkpoint?.inventory.keys).toEqual(["red"]);
     expect(checkpoint?.teachers.sort()).toEqual([teacherOfSlot(1), teacherOfSlot(2), teacherOfSlot(3)].sort());
     expect(checkpoint?.weapons.weapons.map((w) => w.id)).toEqual(expect.arrayContaining(["waterPistol", "extinguisher", "waterBalloons"]));
-    expect(checkpoint?.doors).toEqual(expect.arrayContaining(["d-f4-u30", "d-f4-hudebna", "d-f4-kab-zem", "d-f4-kab-mat"]));
+    expect(checkpoint?.doors).toEqual(expect.arrayContaining(["d-f4-u30", "d-f4-hudebna", "d-f4-kab-zem", "d-f4-kab-dej"]));
     expect(checkpoint?.enemies.length).toBeGreaterThan(0);
     expect(await page.evaluate(() => window.__game!.hud!.toasts())).toContain(texts.checkpoint.saved);
   });
@@ -620,7 +632,7 @@ test.describe.serial("playthrough of the level on the main page", () => {
 
     // Ammo for the balloons (pickup pk10 on this corridor): +amount into the reserve; one thrown takes one away; the HUD
     // shows the reserve (no magazine) as the big number.
-    const ammo = pickupsData.items["ammo-balloons"]!.amount!;
+    const ammo = pickupsData.items["balloons"]!.amount!;
     const pk10 = level.pickups.find((p) => p.id === "pk10")!;
     const before = await page.evaluate(() => window.__game!.weapons!.state("waterBalloons")!.reserve!);
     expect(await page.evaluate((p) => window.__pt!.walkTo({ x: p.x, y: 5, z: -p.z }, 0.3), pk10)).toBe(true);
@@ -692,45 +704,88 @@ test.describe.serial("playthrough of the level on the main page", () => {
     await second.close();
   });
 
-  test("floors 3 → 2: yellow door, Fyzika (railgun), Dějepis, šatna, gym: hydrant hose (HUD ∞), Tělocvik → blue key", async () => {
+  test("floors 3 → 2: yellow door, Fyzika (railgun), Matematika (BFG 9000 after the railgun), šatna, gym: the BFG clears the gym, Tělocvik → blue key", async () => {
     test.setTimeout(RUN_TIMEOUT_MS);
     await walk(routeIndex("učitel 5") + 1, routeIndex("učitel 7"));
     await free(7);
     expect(await page.evaluate(() => window.__game!.weapons!.list().filter((w) => w.owned).map((w) => w.id))).toContain("railgun");
+    expect(await page.evaluate(() => window.__game!.weapons!.list().filter((w) => w.owned).map((w) => w.id))).not.toContain("bfg9000");
     await walk(routeIndex("učitel 7") + 1, routeIndex("učitel 8"));
     await free(8);
+    // FEEDBACK 2026-10-04: the mathematician gives the BFG 9000 (after the railgun on the route) and capacitors; both
+    // weapons read the same capacitor reserve.
+    const armed = await page.evaluate(() => {
+      const g = window.__game!;
+      return { owned: g.weapons!.list().filter((w) => w.owned).map((w) => w.id), bfg: g.weapons!.state("bfg9000"), railgun: g.weapons!.state("railgun"), pools: g.weapons!.pools() };
+    });
+    expect(armed.owned).toContain("bfg9000");
+    expect(armed.bfg?.magazine).toBe(bfgData.ammo.capacity);
+    expect(armed.bfg?.reserve).toBe(armed.railgun?.reserve);
+    expect(armed.pools[bfgData.ammoType!]).toBe(armed.bfg?.reserve);
     await walk(routeIndex("učitel 8") + 1, routeIndex("šatna"));
-    await walk(routeIndex("šatna") + 1, routeIndex("učitel 9") - 1);
-    // Clear the gym before the teacher and the hydrant.
+    // Up to the gym door, still closed: the gym's robots have not seen the player yet.
+    const gymDoor = route.findIndex((p, i) => i > routeIndex("šatna") && p.door === "d-f2-gym");
+    await walk(routeIndex("šatna") + 1, gymDoor - 1);
+
+    // The finale: the door opens, the BFG 9000 spins up and its plasma ball bursts among the gym's robots.
+    const pickupCapacitors = pickupsData.items["capacitors"]!.amount!;
+    const gym = await page.evaluate(
+      ({ switchMs, settleMs }) => {
+        const g = window.__game!;
+        if (!window.__pt!.openDoor("d-f2-gym")) return null;
+        const floor = g.player!.position.y;
+        const gymRobots = () => g.enemies!.list().filter((e) => e.alive && Math.abs(e.position.y - (e.altitude ?? 0) - floor) < 1.5 && -e.position.z > 22.75);
+        const before = gymRobots().map((e) => e.id);
+        g.player!.heal(1000);
+        g.weapons!.select(6);
+        g.step(switchMs);
+        const target = gymRobots().sort((a, b) => b.position.x - a.position.x)[0];
+        if (target !== undefined) g.player!.aimAt(target);
+        const state0 = g.weapons!.state("bfg9000")!;
+        g.input!.simulate("fire", 1000 / 60);
+        g.step(settleMs);
+        g.player!.heal(1000);
+        const state1 = g.weapons!.state("bfg9000")!;
+        return { before, after: gymRobots().map((e) => e.id), bursts: state1.extra.bursts! - state0.extra.bursts!, kills: state1.extra.lastKills!, reserve: state1.reserve, magazine: state1.magazine, reloading: state1.reloading };
+      },
+      { switchMs: weaponsData.switchTime * 1000 + 50, settleMs: (bfgData.params.spinUpTime! + 2) * 1000 },
+    );
+    expect(gym).not.toBeNull();
+    console.log(`gym BFG: robots ${gym!.before.join(",")} → left ${gym!.after.join(",") || "none"}, kills ${gym!.kills}`);
+    expect(gym!.before.length).toBeGreaterThanOrEqual(2);
+    expect(gym!.bursts).toBe(1);
+    expect(gym!.kills).toBeGreaterThanOrEqual(2);
+    expect(gym!.after.length).toBeLessThan(gym!.before.length);
+    expect(gym!.reloading).toBe(true);
+    // Enough capacitors for more BFG shots in the finale (the gym's own pack lies on the way in).
+    expect(gym!.reserve! + pickupCapacitors).toBeGreaterThanOrEqual(2 * bfgData.ammo.perShot);
+
+    await walk(gymDoor, routeIndex("učitel 9") - 1);
+    // Clear what is left of the gym before the teacher.
     await page.evaluate(() => {
       const g = window.__game!;
       const gymFloor = g.player!.position.y;
       const left = g.enemies!.list().filter((e) => e.alive && Math.abs(e.position.y - (e.altitude ?? 0) - gymFloor) < 1).map((e) => e.id);
       return window.__pt!.killAll(left);
     });
-
-    // The hose exists only at the hydrant (phase 13): E there, the HUD shows the endless supply as ∞ (critique of shift 3).
-    const hydrant = (await page.evaluate(() => window.__game!.weaponStations!.hydrants()[0]!))!;
-    expect(await page.evaluate((h) => window.__pt!.walkTo({ x: h.position.x + 1.0, y: h.position.y, z: h.position.z }, 0.35), hydrant)).toBe(true);
-    const hose = await page.evaluate(
-      ({ h, switchMs }) => {
+    // The BFG is ready again after its long recharge; the HUD labels the shared capacitors.
+    const recharged = await page.evaluate(
+      ({ reloadMs, switchMs }) => {
         const g = window.__game!;
-        g.player!.lookAt(h.position.x, h.position.y + 1, h.position.z);
-        g.input!.simulate("interact", 1000 / 60);
+        g.step(reloadMs);
+        g.weapons!.select(6);
         g.step(switchMs);
-        const state = { active: g.weapons!.active, grabbed: g.weaponStations!.hydrants()[0]!.grabbed, hud: g.hud!.ammoText };
-        g.input!.simulate("interact", 1000 / 60);
+        const state = g.weapons!.state("bfg9000")!;
+        const hud = g.hud!.ammoText;
+        g.weapons!.select(1);
         g.step(switchMs);
-        return { ...state, after: g.weapons!.active, released: !g.weaponStations!.hydrants()[0]!.grabbed };
+        return { state, hud };
       },
-      { h: hydrant, switchMs: weaponsData.switchTime * 1000 + 50 },
+      { reloadMs: bfgData.ammo.reloadTime * 1000, switchMs: weaponsData.switchTime * 1000 + 50 },
     );
-    expect(hose.active).toBe("hose");
-    expect(hose.grabbed).toBe(true);
-    expect(hose.hud.startsWith(feel.hud.infiniteSymbol)).toBe(true);
-    expect(hose.hud).not.toContain("Infinity");
-    expect(hose.released).toBe(true);
-    expect(hose.after).not.toBe("hose");
+    expect(recharged.state.magazine).toBe(bfgData.ammo.capacity);
+    expect(recharged.state.extra.readiness).toBe(1);
+    expect(recharged.hud).toContain(weaponsData.ammoTypes[bfgData.ammoType!]!.hudLabel);
 
     await walk(routeIndex("učitel 9") - 1, routeIndex("učitel 9"));
     await free(9);
@@ -738,7 +793,8 @@ test.describe.serial("playthrough of the level on the main page", () => {
     const checkpoint = await page.evaluate(() => window.__game!.progress!.stored());
     expect(checkpoint?.label).toBe("blue");
     expect(checkpoint?.inventory.keys.sort()).toEqual(["blue", "red", "yellow"]);
-    expect(checkpoint?.weapons.weapons.map((w) => w.id)).not.toContain("hose");
+    expect(checkpoint?.weapons.weapons.map((w) => w.id)).toEqual(expect.arrayContaining(["railgun", "bfg9000"]));
+    expect(checkpoint?.weapons.pools?.[bfgData.ammoType!]).toBeGreaterThanOrEqual(0);
   });
 
   test("main entrance with the blue key ends the level: end screen with time, kills, answers, difficulty", async () => {

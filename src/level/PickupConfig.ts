@@ -18,6 +18,12 @@ export interface ItemData {
   powerUp?: string;
   /** Weapon id from data/weapons.json (weapon, ammo). */
   weapon?: string;
+  /** Ammo: a shared ammo type of data/weapons.json → ammoTypes instead of one weapon (capacitors). */
+  ammoType?: string;
+  /** Ammo: hands over its weapon when the player has not got it (balloons, extinguisher; FEEDBACK 2026-10-04). */
+  grantsWeapon?: boolean;
+  /** Extra height of the model above the pickup hover (m), for models whose origin is not at their bottom. */
+  lift?: number;
   key?: KeyColor;
   /** Model class registered in ModelRegistry (src/level/models/); without it the item can only be handed over. */
   model?: string;
@@ -47,7 +53,7 @@ const REQUIRED: Record<ItemKind, (keyof ItemData)[]> = {
   health: ["amount"],
   powerUp: ["powerUp"],
   weapon: ["weapon"],
-  ammo: ["weapon", "amount"],
+  ammo: ["amount"],
   key: ["key"],
 };
 
@@ -73,12 +79,15 @@ export class PickupConfig {
           amount: Schema.integer({ min: 1 }),
           powerUp: Schema.string(),
           weapon: Schema.string(),
+          ammoType: Schema.string(),
+          grantsWeapon: Schema.boolean(),
+          lift: Schema.number({ min: 0, max: 2 }),
           key: Schema.enumOf(KEY_COLORS),
           model: Schema.string(),
           variant: Schema.string(),
           scale: Schema.number({ min: 0.1, max: 10 }),
         },
-        ["amount", "powerUp", "weapon", "key", "model", "variant", "scale"],
+        ["amount", "powerUp", "weapon", "ammoType", "grantsWeapon", "lift", "key", "model", "variant", "scale"],
       ),
     ),
     external: Schema.array(Schema.string()),
@@ -104,6 +113,10 @@ export class PickupConfig {
         for (const field of REQUIRED[item.kind]) {
           if (item[field] === undefined) throw new DataError(PickupConfig.file, `items.${id}.${field}`, `is required for kind "${item.kind}"`);
         }
+        if (item.kind === "ammo" && (item.weapon === undefined) === (item.ammoType === undefined)) {
+          throw new DataError(PickupConfig.file, `items.${id}`, "ammo needs exactly one of weapon and ammoType");
+        }
+        if (item.grantsWeapon === true && item.weapon === undefined) throw new DataError(PickupConfig.file, `items.${id}.grantsWeapon`, "needs a weapon");
         if (item.powerUp !== undefined && data.powerUps[item.powerUp] === undefined) {
           throw new DataError(PickupConfig.file, `items.${id}.powerUp`, `"${item.powerUp}" is not in powerUps`);
         }

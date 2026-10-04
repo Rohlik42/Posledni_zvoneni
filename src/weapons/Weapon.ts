@@ -6,7 +6,9 @@ import type { Scene } from "@babylonjs/core/scene";
 import type { SynthSounds } from "../audio/SynthSounds";
 import type { Game } from "../core/Game";
 import type { Player } from "../player/Player";
+import { ShaderPrewarm } from "../rendering/ShaderPrewarm";
 import type { Random } from "../utils/Random";
+import { AmmoReserve } from "./AmmoReserve";
 import type { IDamageable } from "../core/IDamageable";
 import type { AreaQuery } from "./AreaQuery";
 import type { HitResult, Hitscan } from "./Hitscan";
@@ -22,6 +24,8 @@ const COOLDOWN_EPSILON = 1e-6;
 const STEPS_PER_BOB_CYCLE = 2;
 /** Longer frames (hitches) are clamped so the viewmodel springs stay stable. */
 const MAX_FRAME_DT = 0.05;
+/** During the load-time shader warm-up a preloaded viewmodel is drawn this far behind the camera (m, clipped by the GPU). */
+const PREWARM_BEHIND = 4;
 
 /** Everything a weapon needs from the game around it. */
 export interface WeaponContext {
@@ -37,6 +41,8 @@ export interface WeaponContext {
   feel: FeelData;
   /** Shared seeded RNG for aim spread (deterministic shots in tests). */
   aimRandom: Random;
+  /** The shared reserve of the weapon's `ammoType` (capacitors), or null for a weapon with a reserve of its own. */
+  sharedReserve: (data: WeaponData) => AmmoReserve | null;
 }
 
 /** The trigger state for one fixed step. */
@@ -92,7 +98,8 @@ export abstract class Weapon {
   protected readonly pivot: TransformNode;
   protected model: WeaponViewModel;
   protected magazineAmmo: number;
-  protected reserveAmmo: number;
+  /** Reserve ammo: the weapon's own, or the shared reserve of its `ammoType` (FEEDBACK 2026-10-04 BFG). */
+  protected readonly ammoReserve: AmmoReserve;
   protected reloadRemaining = 0;
   protected shotCount = 0;
 
@@ -124,7 +131,7 @@ export abstract class Weapon {
     readonly data: WeaponData,
   ) {
     this.magazineAmmo = data.ammo.capacity;
-    this.reserveAmmo = data.ammo.infiniteReserve ? Number.POSITIVE_INFINITY : data.ammo.reserveStart;
+    this.ammoReserve = context.sharedReserve(data) ?? new AmmoReserve(data.ammo.reserveMax, data.ammo.infiniteReserve, data.ammo.reserveStart);
     this.soundInterval = data.params.soundInterval ?? 0;
     this.assistAngle = (data.params.aimAssistDeg ?? 0) * DEG_TO_RAD;
     this.beamRadius = data.params.beamRadius ?? 0;
@@ -148,12 +155,30 @@ export abstract class Weapon {
 
   /** Ammo in the magazine (or tank); for weapons without a magazine, the reserve. */
   get magazine(): number {
-    return this.data.ammo.capacity > 0 ? this.magazineAmmo : this.reserveAmmo;
+    return this.data.ammo.capacity > 0 ? this.magazineAmmo : this.ammoReserve.amount;
   }
 
-  /** Ammo left to reload from; `Infinity` for an endless reserve. */
+  /** Ammo left to reload from; `Infinity` for an endless reserve. Shared with other weapons of the same `ammoType`. */
   get reserve(): number {
-    return this.reserveAmmo;
+    return this.ammoReserve.amount;
+  }
+
+  /** The reserve itself (shared by weapons of one `ammoType`). */
+  get reserveStore(): AmmoReserve {
+    return this.ammoReserve;
+  }
+
+  /**
+   * A tank without a reserve that nothing refills by itself (the extinguisher): ammo for it goes straight into the tank.
+   */
+  get usesTank(): boolean {
+    const { ammo } = this.data;
+    return ammo.capacity > 0 && ammo.reloadTime <= 0 && ammo.rechargePerSecond <= 0 && !ammo.infiniteReserve && this.data.ammoType === undefined && ammo.reserveMax === 0;
+  }
+
+  /** How much ammo still fits: into the tank for `usesTank`, else into the reserve. */
+  get ammoRoom(): number {
+    return this.usesTank ? Math.max(0, this.data.ammo.capacity - this.magazineAmmo) : this.ammoReserve.room;
   }
 
   get reloading(): boolean {
@@ -183,12 +208,43 @@ export abstract class Weapon {
     return this.holsterAmount;
   }
 
-  /** Adds reserve ammo up to `reserveMax`; returns how much was taken. */
+  /** Adds reserve ammo up to its limit (a tank weapon fills its tank); returns how much was taken. */
   addAmmo(amount: number): number {
-    if (this.data.ammo.infiniteReserve) return 0;
-    const taken = Math.max(0, Math.min(amount, this.data.ammo.reserveMax - this.reserveAmmo));
-    this.reserveAmmo += taken;
+    if (!this.usesTank) return this.ammoReserve.add(amount);
+    const taken = Math.max(0, Math.min(amount, this.ammoRoom));
+    this.magazineAmmo += taken;
     return taken;
+  }
+
+  /**
+   * The weapon is handed to the player: full magazine, no reload or cooldown left, and its `reserveStart` — its own
+   * reserve is set to it, a shared one gets it added (capped).
+   */
+  arm(): void {
+    const { ammo } = this.data;
+    this.magazineAmmo = ammo.capacity;
+    this.reloadRemaining = 0;
+    this.cooldown = 0;
+    if (this.ammoReserve.type === null) this.ammoReserve.set(ammo.reserveStart);
+    else this.ammoReserve.add(ammo.reserveStart);
+  }
+
+  /**
+   * A preloaded weapon (`preload`, BFG 9000) draws its viewmodel once in the load-time warm-up, behind the camera, so
+   * its materials are built before the player first raises it.
+   */
+  prewarmViewmodel(): void {
+    const { root } = this.model;
+    ShaderPrewarm.for(this.context.scene).addAction(() => {
+      const enabled = this.pivot.isEnabled(false);
+      const z = root.position.z;
+      root.position.z -= PREWARM_BEHIND;
+      this.pivot.setEnabled(true);
+      return () => {
+        root.position.z = z;
+        this.pivot.setEnabled(enabled);
+      };
+    });
   }
 
   /**
@@ -198,7 +254,7 @@ export abstract class Weapon {
   setAmmo(magazine: number, reserve: number): void {
     const { ammo } = this.data;
     this.magazineAmmo = Math.min(ammo.capacity, Math.max(0, magazine));
-    if (!ammo.infiniteReserve) this.reserveAmmo = Math.min(ammo.reserveMax, Math.max(0, reserve));
+    this.ammoReserve.set(reserve);
     this.reloadRemaining = 0;
   }
 
@@ -245,9 +301,7 @@ export abstract class Weapon {
     this.cooldown = Math.max(0, this.cooldown) + interval;
     this.sinceShot = 0;
     this.shotCount++;
-    this.recoil += 1;
-    this.recoilRoll += this.recoilRollSign;
-    this.recoilRollSign = -this.recoilRollSign;
+    if (this.recoilOnPress) this.kick();
     if (this.sinceFireSound >= this.soundInterval) {
       this.sinceFireSound = 0;
       this.context.sounds.play(this.data.sounds.fire);
@@ -257,6 +311,16 @@ export abstract class Weapon {
 
   /** One fixed step while the weapon is owned but not in hand (thrown balloons keep flying; phase 13). */
   idle(_dt: number): void {}
+
+  /**
+   * Timers that keep running while the weapon is not in hand (the BFG's capacitors recharge in the background):
+   * the fire-rate cooldown and a reload in progress.
+   */
+  protected tickHolstered(dt: number): void {
+    this.cooldown = Math.max(-COOLDOWN_EPSILON, this.cooldown - dt);
+    this.sinceShot += dt;
+    this.updateReload(dt);
+  }
 
   /** One rendered frame: sway, bob, recoil and switch offset of the viewmodel. */
   frame(): void {
@@ -324,6 +388,18 @@ export abstract class Weapon {
 
   /** What one shot does: rays, projectiles, effects. Ammo, sound and recoil are already handled. */
   protected abstract shoot(aim: { origin: Vector3; direction: Vector3 }): void;
+
+  /** Whether the press itself kicks the gun back (the BFG kicks when its ball leaves, after the spin-up). */
+  protected get recoilOnPress(): boolean {
+    return true;
+  }
+
+  /** One recoil kick: back, up and a roll alternating left and right. */
+  protected kick(): void {
+    this.recoil += 1;
+    this.recoilRoll += this.recoilRollSign;
+    this.recoilRollSign = -this.recoilRollSign;
+  }
 
   /** Recoil left from recent shots: +1 per shot, decays with `recoilReturn` (subclasses animate with it). */
   protected get recoilAmount(): number {
@@ -397,7 +473,7 @@ export abstract class Weapon {
 
   protected startReload(): void {
     const { ammo } = this.data;
-    if (ammo.capacity === 0 || ammo.reloadTime <= 0 || this.magazineAmmo >= ammo.capacity || this.reserveAmmo <= 0) return;
+    if (ammo.capacity === 0 || ammo.reloadTime <= 0 || this.magazineAmmo >= ammo.capacity || this.ammoReserve.amount <= 0) return;
     this.reloadRemaining = ammo.reloadTime;
     this.context.sounds.play(this.data.sounds.reload);
     this.onReloadStart.notifyObservers();
@@ -408,25 +484,27 @@ export abstract class Weapon {
     this.reloadRemaining -= dt;
     if (this.reloadRemaining > 0) return;
     this.reloadRemaining = 0;
-    const taken = Math.min(this.data.ammo.capacity - this.magazineAmmo, this.reserveAmmo);
-    this.magazineAmmo += taken;
-    this.reserveAmmo -= taken;
+    this.magazineAmmo += this.ammoReserve.take(this.data.ammo.capacity - this.magazineAmmo);
+    this.reloaded();
   }
+
+  /** A reload (recharge) just finished (the BFG chimes). */
+  protected reloaded(): void {}
 
   protected hasAmmo(): boolean {
     const { ammo } = this.data;
     if (ammo.capacity > 0) return this.magazineAmmo >= ammo.perShot;
-    return this.reserveAmmo >= ammo.perShot;
+    return this.ammoReserve.amount >= ammo.perShot;
   }
 
   private consumeAmmo(): void {
     const { ammo } = this.data;
     if (ammo.capacity > 0) this.magazineAmmo -= ammo.perShot;
-    else this.reserveAmmo -= ammo.perShot;
+    else this.ammoReserve.take(ammo.perShot);
   }
 
   /** Ray from the simulated eye along the view, with the weapon's random spread. */
-  private aim(): { origin: Vector3; direction: Vector3 } {
+  protected aim(): { origin: Vector3; direction: Vector3 } {
     const { player, aimRandom } = this.context;
     const spread = this.data.spreadDeg * DEG_TO_RAD;
     const yaw = player.camera.yaw + aimRandom.range(-spread, spread);

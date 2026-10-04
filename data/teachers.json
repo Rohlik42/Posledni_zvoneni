@@ -2,13 +2,13 @@
   "//": "Zajatí učitelé a kvíz (fáze 11; src/level/TeacherConfig.ts, Teacher.ts, TeacherSystem.ts, models/TeacherModel.ts, src/quiz/*). 'teachers': 8 učitelů z LEGACY §1 beze změny příjmení a předmětů + nový fiktivní fyzikář (DECISIONS #1); slot a room odpovídají data/level.json → teachers (Evidence → Progrese), rewards = id věcí z data/pickups.json (Inventory.give), look = učitel z kostiček (výchozí): varianta saka podle LEGACY §1 (pořadí v rosteru % 3: violet, orange, sea), barvy dalších slotů (klíče palety) a features (účesy, brýle, vousy z model.features); gltfLook = glTF postava z data/people.json (person), přebarvení jejích materiálů (colors) a měřítko (scale) — jen s přepínačem „Realistické postavy učitelů“ (nastavení realisticPeople v data/menu.json, URL ?people=gltf / ?people=lowpoly; FEEDBACK 2026-10-04: glTF postavy jsou náročnější, výchozí jsou zase kostičky). greeting = věta nad otázkou, wrongLine = po špatné odpovědi, freedLine = po osvobození (i při dalším oslovení E).",
   "teachers": [
     {
-      "id": "siklova", "slot": 2, "surname": "Šiklová", "subject": "Matematika", "room": "f4-kabinet-matematika",
-      "rewards": [{ "item": "key-red" }],
+      "id": "siklova", "slot": 8, "surname": "Šiklová", "subject": "Matematika", "room": "f2-kabinet-matematika",
+      "rewards": [{ "item": "weapon-bfg" }, { "item": "capacitors" }],
       "look": { "variant": "violet", "colors": { "hair": "teacher.hairGrey", "tie": "accent.red" }, "features": ["bun", "glasses"] },
       "gltfLook": { "person": "woman-suit", "scale": 0.95, "colors": { "Hair_Blond": "#8c8781" } },
-      "greeting": "Past má čtyři dráty a správný je jen jeden. Pravděpodobnost úspěchu? Ta záleží na tobě.",
+      "greeting": "Pan kolega Voltr ti dal railgun? Roztomilé. Odpověz a ukážu ti, co svede abstraktní matematika.",
       "wrongLine": "Chyba ve výpočtu! Tohle by ti neodpustila ani kalkulačka od Neuralithu.",
-      "freedLine": "Q.E.D.! Tady máš červený klíč, otevře prostřední schodiště. A pamatuj: robot plus voda rovná se šrot."
+      "freedLine": "Q.E.D.! Fyzika je jen aplikovaná matematika. Tady máš BFG 9000 a kondenzátory — čtyři na ránu, tak počítej. Jedna rána a v okruhu dvanácti metrů platí: robot rovná se nula."
     },
     {
       "id": "komon", "slot": 5, "surname": "Komoň", "subject": "Čeština", "room": "f3-kabinet-cestina",
@@ -30,12 +30,12 @@
     },
     {
       "id": "lambertova", "slot": 1, "surname": "Lambertová", "subject": "Zeměpis", "room": "f4-kabinet-zemepis",
-      "rewards": [{ "item": "weapon-extinguisher" }],
+      "rewards": [{ "item": "medkit" }, { "item": "energy-drink" }],
       "look": { "variant": "violet", "colors": { "hair": "teacher.hairRed" }, "features": ["short", "glasses"] },
       "gltfLook": { "person": "woman-adventurer", "scale": 0.94 },
       "greeting": "Konečně někdo! Ti plecháči mi zabavili atlas. Zkus tohle, ať vím, že se ve světě vyznáš.",
       "wrongLine": "Au! S takovou orientací bys nenašel ani východ z vlastní třídy.",
-      "freedLine": "Tady máš hasičák z kabinetu. Míř na ty plecháče — voda teče z kopce a roboti padají taky."
+      "freedLine": "Díky! Vezmi si lékárničku a energeťák na cestu. Hasičáky visí na chodbách — míř na plecháče, voda teče z kopce a roboti padají taky."
     },
     {
       "id": "tausl", "slot": 9, "surname": "Taušl", "subject": "Tělocvik", "room": "f2-gym",
@@ -44,16 +44,16 @@
       "gltfLook": { "person": "man-beach", "scale": 0.97 },
       "greeting": "Rozcvička skončila! Plecháč mě přikurtoval k židli. Odpověz, a pak hurá na ně!",
       "wrongLine": "Faul! Za tohle deset kliků. Past ti je rovnou odečetla ze zdraví.",
-      "freedLine": "Paráda! Modrý klíč odemkne hlavní vchod. Vezmi si hadici z tělocvičny a zalej je jako trávník!"
+      "freedLine": "Paráda! Modrý klíč odemkne hlavní vchod. Poslední kolo, hurá na ně!"
     },
     {
-      "id": "dolezalova", "slot": 8, "surname": "Doležalová", "subject": "Dějepis", "room": "f2-kabinet-dejepis",
-      "rewards": [{ "item": "medkit" }, { "item": "ammo-railgun" }],
+      "id": "dolezalova", "slot": 2, "surname": "Doležalová", "subject": "Dějepis", "room": "f4-kabinet-dejepis",
+      "rewards": [{ "item": "key-red" }],
       "look": { "variant": "sea", "colors": { "hair": "teacher.hairDark", "tie": "accent.copper" }, "features": ["bun", "glasses"] },
       "gltfLook": { "person": "woman-suit", "scale": 0.93, "colors": { "Black": "#6e2131", "Hair_Blond": "teacher.hairDark" } },
       "greeting": "Každá invaze jednou skončí, i tahle. Ale nejdřív mi dokaž, že znáš ty minulé.",
       "wrongLine": "Historická chyba! Kdo nezná dějiny, toho past potrestá hned.",
-      "freedLine": "Výborně! Lékárnička a kondenzátory do railgunu. Dějiny píšou ti, kdo přežijí."
+      "freedLine": "Výborně! Tady máš červený klíč, otevře prostřední schodiště. Dějiny píšou ti, kdo přežijí — a robot plus voda rovná se šrot."
     },
     {
       "id": "ditrichova", "slot": 3, "surname": "Ditrichová", "subject": "Hudebka", "room": "f4-hudebna",
@@ -75,12 +75,12 @@
     },
     {
       "id": "voltr", "slot": 7, "surname": "Voltr", "nickname": "Ampér", "subject": "Fyzika", "room": "f3-kabinet-fyzika",
-      "rewards": [{ "item": "weapon-railgun" }, { "item": "ammo-railgun" }],
+      "rewards": [{ "item": "weapon-railgun" }, { "item": "capacitors" }],
       "look": { "variant": "sea", "colors": { "hair": "teacher.hairGrey", "tie": "neon.electric" }, "features": ["wild", "mustache", "glasses"] },
       "gltfLook": { "person": "man-casual", "scale": 0.96, "colors": { "LightBrown": "#e2e4df" } },
       "greeting": "Voltr, pro studenty Ampér. Tahle past je pod napětím — doslova. Ukaž, co víš o fyzice.",
       "wrongLine": "Zkrat! Vidíš, co udělá chybná teorie v praxi?",
-      "freedLine": "Ohm by měl radost! Tady je railgun z kondenzátorů, co jsme stavěli na kroužku. Nabij, miř, pal."
+      "freedLine": "Ohm by měl radost! Tady je railgun z kondenzátorů, co jsme stavěli na kroužku, a pár kondenzátorů navíc. Miř, pal."
     }
   ],
   "model": {

@@ -40,7 +40,7 @@ export interface LoosePiece {
  * loose` — chairs, rubble chunks, planks and ceiling pieces. A hit pushes them away from the player (impulse =
  * damage × `impulsePerDamage[type]`, capped), the quiz trap and a destroyed robot push everything within
  * `blast.radius`; a hanging ceiling piece is static until the first push, then falls. They are damage targets (shots,
- * the extinguisher cone, balloons and the hose reach them) but never take damage, and robots see and shoot through
+ * the extinguisher jet, balloons and the BFG pulse reach them) but never take damage, and robots see and shoot through
  * them like through other damageables. Placed off the route (data test), lit by the room they are in. Full game only.
  */
 export class LooseDebris {

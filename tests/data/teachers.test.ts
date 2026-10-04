@@ -37,16 +37,16 @@ const LEGACY_ROSTER: readonly [string, string][] = [
   ["Ditrichová", "Hudebka"],
   ["Novotná", "Výtvarka"],
 ];
-/** PLAN Evidence → Progrese: rewards by slot. */
+/** PLAN Evidence → Progrese (2026-10-04: teachers give only special weapons, keys and power-ups): rewards by slot. */
 const PROGRESSION_REWARDS: Readonly<Record<number, string[]>> = {
-  1: ["weapon-extinguisher"],
+  1: ["medkit", "energy-drink"],
   2: ["key-red"],
   3: ["energy-drink", "medkit"],
   4: ["weapon-taser"],
   5: ["key-yellow"],
   6: ["rubber-boots"],
-  7: ["weapon-railgun", "ammo-railgun"],
-  8: ["medkit", "ammo-railgun"],
+  7: ["weapon-railgun", "capacitors"],
+  8: ["weapon-bfg", "capacitors"],
   9: ["key-blue"],
 };
 

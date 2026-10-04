@@ -122,7 +122,7 @@ export class LevelConfig {
     pickups: Schema.array(
       Schema.object({
         id: Schema.string(),
-        item: Schema.enumOf(["medkit", "energy-drink", "rubber-boots", "extinguisher-refill", "weapon-balloons", "ammo-balloons", "ammo-railgun", "weapon-hose"]),
+        item: Schema.enumOf(["medkit", "energy-drink", "rubber-boots", "extinguisher-refill", "extinguisher", "balloons", "capacitors"]),
         floor: FLOOR_ID,
         room: Schema.string(),
         x: Schema.number(),

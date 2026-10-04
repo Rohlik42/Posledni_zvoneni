@@ -85,6 +85,22 @@ Hráč začíná v nejvyšším hratelném patře (zavřený ve třídě po úto
 
 Vodní balónky (zbraň 3) leží na chodbě mezi učiteli 1 a 2. Vodní pistolka (zbraň 1) je od startu. Checkpoint se ukládá po každém klíči a na startu.
 
+**Změna 2026-10-04 (FEEDBACK „hasičák a balónky z chodby, učitelé jen speciální zbraně, BFG 9000 místo hadice“; tabulka výše je historie, platí tohle):**
+
+| # | Učitel | Předmět / kabinet | Odměna | Role |
+| --- | --- | --- | --- | --- |
+| 1 | Lambertová | Zeměpis | lékárnička + energetický drink | hlavní trasa |
+| 2 | Doležalová | Dějepis (`f4-kabinet-dejepis`, dřív kabinet matematiky, učebna č. 35) | **ČERVENÝ klíč** | klíčová |
+| 3 | Ditrichová | Hudebka | energetický drink + lékárnička | volitelná odbočka |
+| 4 | Underlová | Angličtina | Paralyzér (zbraň 4) | hlavní trasa |
+| 5 | Komoň | Čeština | **ŽLUTÝ klíč** | klíčová |
+| 6 | Novotná | Výtvarka | gumáky | volitelná odbočka |
+| 7 | Voltr „Ampér“ | Fyzika | Školní railgun (zbraň 5) + kondenzátory | hlavní trasa |
+| 8 | Šiklová | Matematika (`f2-kabinet-matematika`, dřív kabinet dějepisu, učebna č. 10) | **BFG 9000 (zbraň 6)** + kondenzátory | hlavní trasa, na trase po railgunu |
+| 9 | Taušl | Tělocvik (tělocvična) | **MODRÝ klíč** → hlavní vchod | klíčová, finální aréna (BFG ji vyčistí; hydrant s hadicí zrušen) |
+
+Hasicí přístroj (zbraň 2) leží na chodbě 2. patra hned za schodišťovou halou (`pk21`, před hlídkou prvního robota) a dávají ho i nástěnné hasičáky; vodní balónky (zbraň 3) jsou balíčky na chodbách (`pk01` mezi učiteli 1 a 2) a v dropech robotů — obojí je zbraň i munice v jednom. Kondenzátory jsou společná munice railgunu (1 na výstřel) a BFG 9000 (4 na výstřel), strop 12; leží na západní hale 1. patra, na chodbě vstupního podlaží a v tělocvičně.
+
 ## Phase 1 — Core: Game, data loader, rendering pipeline, dev scény
 
 **Implement**

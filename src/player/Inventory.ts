@@ -9,6 +9,7 @@ import type { KeyColor, KeyDef, LockColor } from "../level/LevelTypes";
 import { PickupConfig, type ItemData, type PickupsData } from "../level/PickupConfig";
 import { Texts, type TextsData } from "../utils/Texts";
 import { WeaponConfig } from "../weapons/WeaponConfig";
+import type { Weapon } from "../weapons/Weapon";
 import type { WeaponInventory } from "../weapons/WeaponInventory";
 import type { Player } from "./Player";
 
@@ -141,7 +142,10 @@ export class Inventory {
       case "health":
         return this.player.health.health < this.player.health.max;
       case "ammo":
-        return this.ammoRoom(item.weapon!) > 0 && (amount ?? item.amount ?? 0) > 0;
+        if ((amount ?? item.amount ?? 0) <= 0) return false;
+        // FEEDBACK 2026-10-04: balloons and the extinguisher are their own ammo — they hand over the weapon.
+        if (this.grants(item)) return true;
+        return this.ammoRoom(item) > 0;
       default:
         return true;
     }
@@ -161,10 +165,11 @@ export class Inventory {
     if (!this.canTake(itemId, amount)) {
       return { taken: false, message: item.kind === "health" ? this.texts.fullHealth : null };
     }
+    const granted = this.grants(item);
     const values = this.apply(item, this.amountScale(item.kind, amount ?? item.amount ?? 0));
     this.counts.set(itemId, (this.counts.get(itemId) ?? 0) + 1);
     SynthSounds.for(this.game).play(item.kind === "key" ? this.data.sounds.key : item.kind === "powerUp" ? this.data.sounds.powerUp : this.data.sounds.item);
-    const template = this.texts.items[itemId];
+    const template = (granted ? this.texts.itemsNew[itemId] : undefined) ?? this.texts.items[itemId];
     const message = template === undefined ? null : Texts.format(template, values);
     if (message !== null) this.onMessage.notifyObservers(message);
     this.onChanged.notifyObservers();
@@ -233,7 +238,8 @@ export class Inventory {
         this.handOver(item.weapon!);
         return {};
       case "ammo":
-        return { amount: this.addAmmo(item.weapon!, amount) };
+        if (this.grants(item)) return { amount: this.grantWith(item.weapon!, amount) };
+        return { amount: this.addAmmo(item, amount) };
       case "powerUp":
         return this.activate(item.powerUp!);
     }
@@ -242,28 +248,61 @@ export class Inventory {
   /** Gives the weapon to `WeaponInventory` (false while it is not implemented) and moves its stashed ammo into it. */
   private handOver(weaponId: string): void {
     if (this.weapons === null || !this.weapons.give(weaponId)) return;
-    const stashed = this.ammoStash.get(weaponId) ?? 0;
     const weapon = this.weapons.weapon(weaponId);
-    if (stashed > 0 && weapon !== undefined) {
+    if (weapon === undefined) return;
+    for (const key of [weaponId, weapon.data.ammoType]) {
+      const stashed = key === undefined ? 0 : (this.ammoStash.get(key) ?? 0);
+      if (key === undefined || stashed <= 0) continue;
       weapon.addAmmo(stashed);
-      this.ammoStash.delete(weaponId);
+      this.ammoStash.delete(key);
     }
   }
 
-  /** Ammo that still fits: into the owned weapon's reserve, else into the stash up to the weapon's `reserveMax`. */
-  private ammoRoom(weaponId: string): number {
-    const weapon = this.weapons?.weapon(weaponId);
-    const data = weapon?.data ?? WeaponConfig.load().weapons.find((w) => w.id === weaponId);
-    if (data === undefined || data.ammo.infiniteReserve) return 0;
-    if (weapon !== undefined) return data.ammo.reserveMax - weapon.reserve;
-    return data.ammo.reserveMax - (this.ammoStash.get(weaponId) ?? 0);
+  /** An ammo item that hands over its weapon now: `grantsWeapon` and the player has not got the weapon yet. */
+  private grants(item: ItemData): boolean {
+    return item.kind === "ammo" && item.grantsWeapon === true && item.weapon !== undefined && this.weapons !== null && !this.weapons.has(item.weapon);
   }
 
-  private addAmmo(weaponId: string, amount: number): number {
-    const taken = Math.min(amount, this.ammoRoom(weaponId));
-    const weapon = this.weapons?.weapon(weaponId);
+  /**
+   * FEEDBACK 2026-10-04 („hasičák a balónky jsou samy náboje“): the weapon of an ammo item, handed over with the item's
+   * ammo — balloons with `amount` of them, a tank weapon (the extinguisher) full. Returns the ammo it holds.
+   */
+  private grantWith(weaponId: string, amount: number): number {
+    this.weaponIds.add(weaponId);
+    if (this.weapons === null || !this.weapons.give(weaponId)) return 0;
+    const weapon = this.weapons.weapon(weaponId)!;
+    if (!weapon.usesTank) weapon.reserveStore.set(amount);
+    this.handOver(weaponId);
+    return weapon.usesTank ? weapon.magazine : weapon.reserve;
+  }
+
+  /** Where an ammo item's ammo goes: the stash key (shared ammo type, else the weapon) and its weapon data, if any. */
+  private target(item: ItemData): { key: string; weapon: Weapon | undefined; max: number } {
+    if (item.ammoType !== undefined) return { key: item.ammoType, weapon: undefined, max: WeaponConfig.ammoType(item.ammoType).reserveMax };
+    const weapon = this.weapons?.weapon(item.weapon!);
+    const data = weapon?.data ?? WeaponConfig.load().weapons.find((w) => w.id === item.weapon);
+    if (data === undefined || data.ammo.infiniteReserve) return { key: item.weapon!, weapon, max: 0 };
+    // A tank weapon (extinguisher) keeps its ammo in the tank; a shared ammo type in its common reserve.
+    const max = data.ammo.reserveMax === 0 && data.ammo.capacity > 0 && data.ammoType === undefined ? data.ammo.capacity : WeaponConfig.reserveMax(data);
+    return { key: data.ammoType ?? item.weapon!, weapon, max };
+  }
+
+  /** Ammo that still fits: into the owned weapon (tank or reserve) or the shared reserve, else into the stash. */
+  private ammoRoom(item: ItemData): number {
+    const { key, weapon, max } = this.target(item);
+    if (weapon !== undefined) return weapon.ammoRoom;
+    const pool = this.weapons?.pool(key);
+    if (pool !== undefined) return pool.room;
+    return Math.max(0, max - (this.ammoStash.get(key) ?? 0));
+  }
+
+  private addAmmo(item: ItemData, amount: number): number {
+    const taken = Math.min(amount, this.ammoRoom(item));
+    const { key, weapon } = this.target(item);
+    const pool = this.weapons?.pool(key);
     if (weapon !== undefined) weapon.addAmmo(taken);
-    else this.ammoStash.set(weaponId, (this.ammoStash.get(weaponId) ?? 0) + taken);
+    else if (pool !== undefined) pool.add(taken);
+    else this.ammoStash.set(key, (this.ammoStash.get(key) ?? 0) + taken);
     return taken;
   }
 

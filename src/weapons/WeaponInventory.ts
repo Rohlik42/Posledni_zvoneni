@@ -9,12 +9,13 @@ import { TestHooks } from "../core/TestHooks";
 import type { Player, Vec3Like } from "../player/Player";
 import { ModelRegistry } from "../utils/ModelRegistry";
 import { Random } from "../utils/Random";
+import { AmmoReserve } from "./AmmoReserve";
 import { AreaQuery } from "./AreaQuery";
 import { FeelConfig } from "./FeelConfig";
 import { HitFeedback, type HitFeedbackStats } from "./HitFeedback";
 import { Hitscan } from "./Hitscan";
 import type { ShotEvent, Weapon, WeaponContext } from "./Weapon";
-import { WeaponConfig, WEAPON_SLOTS, type WeaponsData } from "./WeaponConfig";
+import { WeaponConfig, WEAPON_SLOTS, type WeaponData, type WeaponsData } from "./WeaponConfig";
 import { WeaponFactory } from "./WeaponFactory";
 
 /** Switch progress at which the old weapon is fully lowered and the new one starts rising. */
@@ -72,12 +73,18 @@ export interface WeaponsTestApi {
   state: (id: string) => WeaponStateInfo | null;
   /** Fills an owned weapon's magazine (tank, charge) to capacity like a wall extinguisher; returns the amount added. */
   refill: (id: string) => number;
+  /** Shared reserves by ammo type (capacitors of the railgun and the BFG; FEEDBACK 2026-10-04). */
+  pools: () => Record<string, number>;
+  /** Adds to a shared reserve (`ammoType`); returns how much it took. */
+  addReserve: (type: string, amount: number) => number;
 }
 
 /** Owned weapons and their ammo in a checkpoint (phase 16); `reserve` null = endless. */
 export interface WeaponsSnapshot {
   weapons: { id: string; magazine: number; reserve: number | null }[];
   active: string | null;
+  /** Shared reserves by ammo type (also with none of their weapons owned yet). */
+  pools?: Record<string, number>;
 }
 
 /** `__game.weapons.state(id)`. */
@@ -103,6 +110,9 @@ declare module "../core/TestHooks" {
  * (keys 1–6 and the mouse wheel; the old weapon lowers, the new one rises over `switchTime`). Feeds the trigger
  * (`fire` held/pressed, `reload`) to the active weapon in the fixed step and animates its viewmodel per frame.
  * Only `enabled` weapons with a class in `WeaponFactory` can be owned; the starting weapons are given at once.
+ * Weapons of one `ammoType` share one reserve kept here (capacitors of the railgun and the BFG 9000, FEEDBACK
+ * 2026-10-04), so ammo picked up before any of them waits in it. `preload` weapons are built at load, before the
+ * player has them, so their pooled effects are compiled in the load-time warm-up (no hitch at the first shot).
  */
 export class WeaponInventory {
   /** Every shot of every owned weapon (HUD hitmarker, hit effects). */
@@ -112,6 +122,10 @@ export class WeaponInventory {
   private readonly data: WeaponsData;
   private readonly context: WeaponContext;
   private readonly owned = new Map<string, Weapon>();
+  /** Preloaded weapons the player does not have (yet, or any more after a checkpoint). */
+  private readonly spare = new Map<string, Weapon>();
+  /** Shared reserves by ammo type (`data/weapons.json → ammoTypes`). */
+  private readonly pools = new Map<string, AmmoReserve>();
   private current: Weapon | null = null;
   private pending: Weapon | null = null;
   /** Switch progress: 0–0.5 lowering the old weapon, 0.5–1 raising the new one; 1 = done. */
@@ -142,10 +156,18 @@ export class WeaponInventory {
       config: this.data,
       feel,
       aimRandom: new Random(this.data.aimRandomSeed),
+      sharedReserve: (data) => (data.ammoType === undefined ? null : (this.pools.get(data.ammoType) ?? null)),
     };
+    for (const [type, ammo] of WeaponConfig.ammoTypes()) this.pools.set(type, new AmmoReserve(ammo.reserveMax, false, 0, type));
     this.feedback = new HitFeedback(game.scene, player, sounds, feel, this.data.aimRandomSeed + FEEDBACK_SEED_OFFSET);
     this.onShot.add((shot) => this.feedback.shot(shot));
     game.scene.setRenderingAutoClearDepthStencil(this.data.viewmodelRenderingGroup, true, true, false);
+    for (const data of this.data.weapons) {
+      if (data.preload !== true || !data.enabled || !WeaponFactory.has(data.class)) continue;
+      const weapon = this.build(data);
+      weapon.prewarmViewmodel();
+      this.spare.set(data.id, weapon);
+    }
     for (const id of this.data.startingWeapons) this.give(id);
     this.removeSystem = game.addSystem({ update: (dt) => this.update(dt) });
     this.frameObserver = game.scene.onBeforeRenderObservable.add(() => this.current?.frame());
@@ -174,23 +196,30 @@ export class WeaponInventory {
       .map((w) => ({ slot: w.slot, id: w.id, name: w.name, enabled: w.enabled, owned: this.owned.has(w.id) }));
   }
 
-  /** Gives the player a weapon (or ammo for one already owned is phase 10/13's job). Returns false if it cannot be owned. */
+  /**
+   * Gives the player a weapon, armed (full magazine, `reserveStart` into its reserve). Ammo for one already owned is
+   * phase 10/13's job. Returns false if it cannot be owned.
+   */
   give(id: string): boolean {
     if (this.owned.has(id)) return true;
     const data = this.data.weapons.find((w) => w.id === id);
     if (data === undefined || !data.enabled || !WeaponFactory.has(data.class)) return false;
-    const weapon = WeaponFactory.create(this.context, data);
-    weapon.holster = 1;
-    weapon.onShot.add((shot) => {
-      this.shotTotal++;
-      this.last = shot;
-      // Robots hear the shot (AI hearing, phase 4).
-      this.noise.emit(shot.origin, "gunshot");
-      this.onShot.notifyObservers(shot);
-    });
+    const weapon = this.spare.get(id) ?? this.build(data);
+    this.spare.delete(id);
+    weapon.arm();
     this.owned.set(id, weapon);
     if (this.current === null) this.beginSwitch(weapon);
     return true;
+  }
+
+  /** The shared reserve of ammo type `type` (capacitors), or undefined. */
+  pool(type: string): AmmoReserve | undefined {
+    return this.pools.get(type);
+  }
+
+  /** Adds to the shared reserve of `type`; returns how much it took (0 for an unknown type). */
+  addReserve(type: string, amount: number): number {
+    return this.pools.get(type)?.add(amount) ?? 0;
   }
 
   /** Whether the player owns weapon `id`. */
@@ -214,13 +243,14 @@ export class WeaponInventory {
   }
 
   /**
-   * Takes a weapon away again (the hose when the player leaves the hydrant, phase 13). If it was in hand, `fallback`
+   * Takes a weapon away again (a checkpoint from before the player had it, phase 16). If it was in hand, `fallback`
    * (or the lowest owned slot) is raised at once; a switch towards it is cancelled.
    */
   remove(id: string, fallback: string | null = null): boolean {
     const weapon = this.owned.get(id);
     if (weapon === undefined) return false;
     this.owned.delete(id);
+    weapon.holster = 1;
     if (this.pending === weapon) {
       this.pending = null;
       // Raise the weapon that was being lowered again from the same height.
@@ -234,17 +264,20 @@ export class WeaponInventory {
       if (next !== undefined) this.beginSwitch(next);
       else this.switchProgress = 1;
     }
-    weapon.dispose();
+    // A preloaded weapon is kept for the next give (its effects stay compiled).
+    if (weapon.data.preload === true) this.spare.set(id, weapon);
+    else weapon.dispose();
     return true;
   }
 
-  /** Owned weapons with their ammo and the one in hand (checkpoints, phase 16); `skip` = weapons not to save (the hose). */
+  /** Owned weapons with their ammo, the one in hand and the shared reserves (checkpoints, phase 16); `skip` = weapons not to save. */
   snapshot(skip: readonly string[] = []): WeaponsSnapshot {
     const weapons = [...this.owned.values()]
       .filter((w) => !skip.includes(w.id))
       .map((w) => ({ id: w.id, magazine: w.data.ammo.capacity > 0 ? w.magazine : 0, reserve: Number.isFinite(w.reserve) ? w.reserve : null }));
     const selected = this.selected?.id ?? null;
-    return { weapons, active: selected !== null && !skip.includes(selected) ? selected : null };
+    const pools = Object.fromEntries([...this.pools].map(([type, reserve]) => [type, reserve.amount]));
+    return { weapons, active: selected !== null && !skip.includes(selected) ? selected : null, pools };
   }
 
   /**
@@ -258,6 +291,7 @@ export class WeaponInventory {
       if (!this.give(saved.id)) continue;
       this.owned.get(saved.id)!.setAmmo(saved.magazine, saved.reserve ?? 0);
     }
+    for (const [type, reserve] of this.pools) reserve.set(snapshot.pools?.[type] ?? 0);
     const active = (snapshot.active === null ? undefined : this.owned.get(snapshot.active)) ?? this.lowestOwned();
     if (active === undefined) return;
     if (this.current !== null && this.current !== active) this.current.holster = 1;
@@ -275,11 +309,11 @@ export class WeaponInventory {
     return true;
   }
 
-  /** IDKFA (FEEDBACK 2026-10-04): every enabled weapon, magazine and reserve full. */
+  /** IDKFA (FEEDBACK 2026-10-04): every enabled weapon, magazine and reserve full (shared reserves too). */
   giveArsenal(): void {
     for (const data of this.data.weapons) {
       if (!this.give(data.id)) continue;
-      this.owned.get(data.id)!.setAmmo(data.ammo.capacity, data.ammo.reserveMax);
+      this.owned.get(data.id)!.setAmmo(data.ammo.capacity, WeaponConfig.reserveMax(data));
     }
   }
 
@@ -287,8 +321,9 @@ export class WeaponInventory {
     this.removeSystem();
     this.game.scene.onBeforeRenderObservable.remove(this.frameObserver);
     this.game.cheats.onCheat.remove(this.cheatObserver);
-    for (const weapon of this.owned.values()) weapon.dispose();
+    for (const weapon of [...this.owned.values(), ...this.spare.values()]) weapon.dispose();
     this.owned.clear();
+    this.spare.clear();
     this.onShot.clear();
     this.feedback.dispose();
     this.current = null;
@@ -314,6 +349,20 @@ export class WeaponInventory {
       { held: alive && input.isDown("fire"), pressed: alive && input.wasPressed("fire"), reload: alive && input.wasPressed("reload") },
       alive && !this.switching,
     );
+  }
+
+  /** Builds a weapon (holstered) and passes its shots on. */
+  private build(data: WeaponData): Weapon {
+    const weapon = WeaponFactory.create(this.context, data);
+    weapon.holster = 1;
+    weapon.onShot.add((shot) => {
+      this.shotTotal++;
+      this.last = shot;
+      // Robots hear the shot (AI hearing, phase 4).
+      this.noise.emit(shot.origin, "gunshot");
+      this.onShot.notifyObservers(shot);
+    });
+    return weapon;
   }
 
   private beginSwitch(target: Weapon): void {
@@ -418,6 +467,8 @@ export class WeaponInventory {
       },
       addAmmo: (id, amount) => inventory.addAmmo(id, amount),
       refill: (id) => inventory.owned.get(id)?.refill() ?? 0,
+      pools: () => Object.fromEntries([...inventory.pools].map(([type, reserve]) => [type, reserve.amount])),
+      addReserve: (type, amount) => inventory.addReserve(type, amount),
       state: (id) => {
         const weapon = inventory.owned.get(id);
         if (weapon === undefined) return null;

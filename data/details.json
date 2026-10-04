@@ -141,7 +141,7 @@
     { "room": "f3-wing", "wall": "maxX", "at": 8, "height": 1.5, "width": 1.6, "text": 2 }
   ],
   "loose": {
-    "//": "Dynamická Havok tělesa (jen v celé hře, src/level/LooseDebris.ts): reagují na zásah (impuls od hráče × damage × impulsePerDamage podle typu), výbuch pasti a zničení robota (radiální impuls do radius). 'hanging' kusy stropu visí staticky, dokud je něco netrefí. Židle v tělocvičně stojí na dostřel hadice od hydrantu (fáze 24). Pozice v plánových souřadnicích, mimo trasu (datový test).",
+    "//": "Dynamická Havok tělesa (jen v celé hře, src/level/LooseDebris.ts): reagují na zásah (impuls od hráče × damage × impulsePerDamage podle typu), výbuch pasti a zničení robota (radiální impuls do radius). 'hanging' kusy stropu visí staticky, dokud je něco netrefí. Židle v tělocvičně stojí na dostřel hasičáku (fáze 24; hadice zmizela, FEEDBACK 2026-10-04 BFG). Pozice v plánových souřadnicích, mimo trasu (datový test).",
     "impulsePerDamage": { "water": 1.0, "electric": 1.0, "kinetic": 1.2, "explosion": 1.5, "quiz": 0 },
     "maxImpulse": 40,
     "blast": { "radius": 4.5, "impulse": 30 },

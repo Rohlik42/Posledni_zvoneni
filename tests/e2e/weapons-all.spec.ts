@@ -4,8 +4,8 @@ import { ConsoleGuard } from "../support/ConsoleGuard";
 import { ShotPath } from "../support/ShotPath";
 import { WeaponBench, type BenchWeapon } from "../support/WeaponBench";
 
-// The remaining weapons (phase 13) in their own dev scene `weapons`: box room, five humanoid robots, a wall extinguisher,
-// a gym hydrant and a bucket of balloons. One page for all checks, paused and driven by `__game.step(ms)`. Damage,
+// The remaining weapons (phase 13) in their own dev scene `weapons`: box room, five humanoid robots, a wall extinguisher
+// and a bucket of balloons; the BFG 9000 replaced the hose (FEEDBACK 2026-10-04). One page for all checks, paused and driven by `__game.step(ms)`. Damage,
 // slow, stun, AoE radius, charge and pierce are read from the data files, so retuning keeps the tests valid.
 
 interface Vec {
@@ -21,19 +21,26 @@ interface WeaponJson {
   damageType: "water" | "electric";
   fireRate: number;
   range: number;
+  ammoType?: string;
   ammo: { capacity: number; perShot: number; reserveStart: number; reserveMax: number; reloadTime: number; rechargePerSecond: number; rechargeDelay: number };
-  sounds: { fire: string; empty: string; impact: string; reload: string };
+  sounds: { fire: string; empty: string; impact: string; reload: string; launch?: string; ready?: string };
   params: Record<string, number>;
 }
 
-const weaponsData = JSON.parse(readFileSync("data/weapons.json", "utf8")) as { switchTime: number; ammoPickup: { sound: string }; weapons: WeaponJson[] };
+const weaponsData = JSON.parse(readFileSync("data/weapons.json", "utf8")) as {
+  switchTime: number;
+  ammoPickup: { sound: string };
+  ammoTypes: Record<string, { reserveMax: number }>;
+  weapons: WeaponJson[];
+};
+const textsData = JSON.parse(readFileSync("data/texts.json", "utf8")) as { hud: { spinUp: string } };
 const enemiesData = JSON.parse(readFileSync("data/enemies.json", "utf8")) as {
   humanoid: { health: number; resistances: Record<string, number>; statusResistance: { slow: number; stun: number } };
 };
 const range = JSON.parse(readFileSync("data/weapon-range.json", "utf8")) as {
   bonusAmmo: Record<string, number>;
   encounter: { enemies: { id: string }[] };
-  stations: { refills: { position: number[] }[]; hydrants: { position: number[] }[]; ammoPickups: { position: number[]; amount: number }[] };
+  stations: { refills: { position: number[] }[]; ammoPickups: { position: number[]; amount: number }[] };
 };
 const budgets = (JSON.parse(readFileSync("data/models.json", "utf8")) as { budgets: { weapon: number } }).budgets;
 
@@ -42,7 +49,7 @@ const extinguisher = weapon("extinguisher");
 const balloons = weapon("waterBalloons");
 const taser = weapon("taser");
 const railgun = weapon("railgun");
-const hose = weapon("hose");
+const bfg = weapon("bfg9000");
 const humanoid = enemiesData.humanoid;
 const ROBOTS = range.encounter.enemies.map((e) => e.id);
 const [A, B, C, D, E] = ROBOTS as [string, string, string, string, string];
@@ -131,19 +138,18 @@ test("the scene has every weapon, the stations and the robots; viewmodels stay w
   const list = await page.evaluate(() => window.__game!.weapons!.list());
   expect(list.map((w) => w.slot)).toEqual([1, 2, 3, 4, 5, 6]);
   expect(list.every((w) => w.enabled)).toBe(true);
-  // The hose is not carried: it comes from the hydrant.
-  expect(list.filter((w) => w.owned).map((w) => w.id)).toEqual(["waterPistol", "extinguisher", "waterBalloons", "taser", "railgun"]);
+  // The BFG 9000 took the hose's slot 6 (FEEDBACK 2026-10-04).
+  expect(list.find((w) => w.slot === 6)?.id).toBe(bfg.id);
+  expect(list.filter((w) => w.owned).map((w) => w.id)).toEqual(["waterPistol", "extinguisher", "waterBalloons", "taser", "railgun", "bfg9000"]);
   const stations = await page.evaluate(() => ({
     refills: window.__game!.weaponStations!.refills(),
-    hydrants: window.__game!.weaponStations!.hydrants(),
     pickups: window.__game!.weaponStations!.pickups(),
   }));
   expect(stations.refills).toHaveLength(range.stations.refills.length);
-  expect(stations.hydrants).toHaveLength(range.stations.hydrants.length);
   expect(stations.pickups).toHaveLength(range.stations.ammoPickups.length);
   expect((await page.evaluate(() => window.__game!.enemies!.list())).length).toBe(ROBOTS.length);
 
-  for (const slot of [1, 2, 3, 4, 5]) {
+  for (const slot of [1, 2, 3, 4, 5, 6]) {
     await page.evaluate(([s, ms]) => {
       window.__game!.weapons!.select(s);
       window.__game!.step(ms);
@@ -391,58 +397,200 @@ test("railgun: a press fires at once, pierces up to `pierce` robots in a line, t
   expect(reloaded.extra.beamVisible).toBe(0);
 });
 
-test("hose: E at the hydrant gives the stream, it damages and slows, walking away lets it go", async () => {
-  const hydrant = range.stations.hydrants[0]!.position;
-  const at = { x: hydrant[0]! + 1, y: 0, z: hydrant[2]! };
-  await setup(taser.slot, { [E]: { x: at.x + 3.5, y: 0, z: at.z } });
-  // Too far: E does nothing.
-  await page.evaluate(([p, reach]) => {
-    window.__game!.player!.teleport(p.x + reach + 1, 0, p.z);
-    window.__game!.step(100);
-    window.__game!.input!.simulate("interact", 1000 / 60);
-  }, [at, hose.params.grabDistance!] as const);
-  expect((await page.evaluate(() => window.__game!.weaponStations!.hydrants()))[0]!.grabbed).toBe(false);
+/** The BFG in hand, robots placed, the player at `stand` looking at `look`, the BFG loaded and the capacitors full. */
+async function setupBfg(active: Record<string, Vec>, stand: Vec, look: Vec): Promise<void> {
+  // A ball or a blast left from the previous check is over first, so it cannot hit the robots placed for this one.
+  await page.evaluate((ms) => window.__game!.step(ms), (bfg.params.maxFlightTime! + bfg.params.shellTime! + 1 / bfg.fireRate) * 1000);
+  await setup(bfg.slot, active, true);
+  await page.evaluate(
+    ([s, l, id, settleMs]) => {
+      const g = window.__game!;
+      // God mode: a pulse that clears every robot brings the next wave of the range (waveDelay) while the BFG recharges.
+      if (!g.cheats!.god) g.cheats!.activate("god");
+      g.step(settleMs);
+      g.player!.teleport(s.x, s.y, s.z);
+      g.player!.heal(10_000);
+      g.weapons!.refill(id);
+      g.weapons!.addAmmo(id, 1000);
+      g.player!.lookAt(l.x, l.y, l.z);
+      g.step(1000 / 60);
+    },
+    [stand, look, bfg.id, (1 / bfg.fireRate) * 1000] as const,
+  );
+}
 
-  await page.evaluate(([p, ms]) => {
-    const g = window.__game!;
-    g.player!.teleport(p.x, p.y, p.z);
-    g.step(100);
-    g.input!.simulate("interact", 1000 / 60);
-    g.step(ms);
-  }, [at, SWITCH_MS] as const);
-  expect((await page.evaluate(() => window.__game!.weaponStations!.hydrants()))[0]!.grabbed).toBe(true);
-  expect(await page.evaluate(() => window.__game!.weapons!.active)).toBe(hose.id);
-  const vm = await page.evaluate(() => window.__game!.weapons!.viewmodel());
-  expect(vm?.triangles).toBeLessThanOrEqual(budgets.weapon);
+test("BFG 9000: a press spins it up (no ball before spinUpTime), the ball leaves by itself and flies straight and slow", async () => {
+  await setupBfg({}, STAND, { x: 0, y: 2.5, z: 10 });
+  const before = await state(bfg.id);
+  expect(before.magazine).toBe(bfg.ammo.capacity);
+  expect(before.extra.readiness).toBe(1);
+  const whines = await plays(bfg.sounds.fire);
+  // One short press (released at once): not hold-to-charge.
+  await page.evaluate(() => window.__game!.input!.simulate("fire", 1000 / 60));
+  const spinning = await state(bfg.id);
+  expect(spinning.extra.spinning).toBe(1);
+  expect(spinning.magazine).toBe(bfg.ammo.capacity - bfg.ammo.perShot);
+  expect(await plays(bfg.sounds.fire)).toBe(whines + 1);
+  expect(await page.evaluate(() => window.__game!.hud!.recharge()?.text)).toBe(textsData.hud.spinUp);
+  // Just before the spin-up ends: still no ball.
+  await page.evaluate((ms) => window.__game!.step(ms), bfg.params.spinUpTime! * 1000 - 100);
+  const late = await state(bfg.id);
+  expect(late.extra.launched).toBe(before.extra.launched);
+  expect(late.extra.inFlight).toBe(0);
+  expect(late.extra.spinProgress).toBeGreaterThan(0.8);
+  // The ball leaves after the spin-up even though the trigger was let go long ago.
+  const launches = await plays(bfg.sounds.launch!);
+  await page.evaluate(() => window.__game!.step(150));
+  const flying = await state(bfg.id);
+  expect(flying.extra.launched).toBe(before.extra.launched! + 1);
+  expect(flying.extra.inFlight).toBe(1);
+  expect(flying.extra.spinning).toBe(0);
+  expect(await plays(bfg.sounds.launch!)).toBe(launches + 1);
+  // It flies straight at ballSpeed (no gravity) and the recharge has started from the shared capacitors.
+  const z0 = flying.extra.ballZ!;
+  const y0 = flying.extra.ballY!;
+  await page.evaluate(() => window.__game!.step(200));
+  const later = await state(bfg.id);
+  expect(later.extra.inFlight).toBe(1);
+  expect(later.extra.ballZ! - z0).toBeCloseTo(bfg.params.ballSpeed! * 0.2 * Math.cos(Math.atan2(2.5 - 1.6, 14)), 0);
+  expect(later.extra.ballY!).toBeGreaterThan(y0);
+  expect(later.reloading).toBe(true);
+  expect(later.extra.bursts).toBe(before.extra.bursts);
+  // Screenshot material for the report: the ball in flight.
+  await page.screenshot({ path: ShotPath.of("bfg-ball-flying-range.png") });
+});
 
-  await page.evaluate((id) => {
-    window.__game!.enemies!.applyStatus(id, "stun", 0.01, 1);
-    window.__game!.player!.aimAt(window.__game!.enemies!.get(id)!);
-  }, E);
-  const before = await state(hose.id);
-  await page.evaluate(() => window.__game!.input!.simulate("fire", 250));
-  const after = await state(hose.id);
-  const ticks = after.shots - before.shots;
-  expect(ticks).toBeGreaterThanOrEqual(Math.floor(hose.fireRate * 0.25));
-  expect(after.reserve).toBeNull();
-  const target = await robot(E);
-  expect(target.health).toBeCloseTo(Math.max(0, humanoid.health - ticks * hose.damage * humanoid.resistances[hose.damageType]!), 5);
-  if (target.alive) expect(target.speedFactor).toBeCloseTo(1 - hose.params.slowStrength!, 5);
-  expect((await page.evaluate(() => window.__game!.weapons!.effects())).droplets).toBeGreaterThan(0);
+test("BFG 9000: the ball bursts on the wall; the EMP destroys robots around the impact (walls do not stop it), stuns those a bit farther, spares the player", async () => {
+  // Impact on the north wall (z = 10) at x = 0. A and B near the impact (one behind the pillar line), C near the
+  // player but far from the impact, D just outside the EMP radius (inside the stun radius).
+  const impact = { x: 0, z: 10 };
+  const empR = bfg.params.empRadius!;
+  const stunR = bfg.params.stunRadius!;
+  const dAt = Math.sqrt(((empR + stunR) / 2) ** 2 - 1);
+  const placed = {
+    [A]: { x: 3, y: 0, z: 8 },
+    [B]: { x: -5, y: 0, z: 7.5 },
+    [C]: { x: 0, y: 0, z: -8.5 },
+    [D]: { x: 8.5, y: 0, z: impact.z - Math.min(dAt, 17) },
+  };
+  await setupBfg(placed, STAND, { x: 0, y: 2.5, z: 10 });
+  const healthBefore = await page.evaluate(() => window.__game!.player!.health);
+  const before = await state(bfg.id);
+  const booms = await plays(bfg.sounds.impact);
+  await page.evaluate(() => window.__game!.input!.simulate("fire", 1000 / 60));
+  await page.evaluate((ms) => window.__game!.step(ms), (bfg.params.spinUpTime! + 16 / bfg.params.ballSpeed! + 0.2) * 1000);
+  const after = await state(bfg.id);
+  expect(after.extra.bursts).toBe(before.extra.bursts! + 1);
+  expect(after.extra.inFlight).toBe(0);
+  expect(after.extra.lastBurstZ!).toBeGreaterThan(9.5);
+  expect(Math.abs(after.extra.lastBurstX!)).toBeLessThan(0.5);
+  expect(await plays(bfg.sounds.impact)).toBe(booms + 1);
+  expect(after.extra.blastVisible).toBe(1);
+  for (const id of [A, B]) expect((await robot(id)).alive, `${id} near the impact`).toBe(false);
+  // C stands 4.5 m from the player but far from the impact: the pulse is around the impact, not the player.
+  expect((await robot(C)).health).toBe(humanoid.health);
+  const d = await robot(D);
+  expect(d.health, "outside the EMP radius").toBe(humanoid.health);
+  expect(d.stunned, "inside the stun radius").toBe(true);
+  // A and B, plus the robot parked in the north-east corner (also within the radius of the impact).
+  expect(after.extra.lastKills).toBeGreaterThanOrEqual(2);
+  expect(after.extra.lastStunned).toBeGreaterThanOrEqual(1);
+  expect(await page.evaluate(() => window.__game!.player!.health)).toBe(healthBefore);
+  expect((await page.evaluate(() => window.__game!.weapons!.effects())).droplets, "lightning arcs to the robots").toBeGreaterThan(0);
+});
 
-  // Walking off lets the hose go: the previous weapon comes back and the hose is no longer owned.
-  await page.evaluate(([p, d, ms]) => {
-    const g = window.__game!;
-    g.player!.teleport(p.x + d + 0.5, p.y, p.z);
-    g.step(ms);
-  }, [at, hose.params.releaseDistance!, SWITCH_MS] as const);
-  expect((await page.evaluate(() => window.__game!.weaponStations!.hydrants()))[0]!.grabbed).toBe(false);
-  expect(await page.evaluate(() => window.__game!.weapons!.active)).toBe(taser.id);
-  expect((await page.evaluate(() => window.__game!.weapons!.list())).find((w) => w.id === hose.id)?.owned).toBe(false);
+test("BFG 9000: fired point blank into a wall it bursts at once and the player is not hurt", async () => {
+  const stand = { x: 0, y: 0, z: 9.2 };
+  await setupBfg({ [A]: { x: 2.5, y: 0, z: 7 } }, stand, { x: 0, y: 1.6, z: 11 });
+  const healthBefore = await page.evaluate(() => window.__game!.player!.health);
+  const before = await state(bfg.id);
+  await page.evaluate((ms) => {
+    window.__game!.input!.simulate("fire", 1000 / 60);
+    window.__game!.step(ms);
+  }, bfg.params.spinUpTime! * 1000 + 100);
+  const after = await state(bfg.id);
+  expect(after.extra.bursts).toBe(before.extra.bursts! + 1);
+  expect(after.extra.lastDistance!).toBeLessThan(1.5);
+  expect((await robot(A)).alive).toBe(false);
+  expect(await page.evaluate(() => window.__game!.player!.health)).toBe(healthBefore);
+});
+
+test("BFG 9000: 4 capacitors a shot from the reserve shared with the railgun, a long recharge with a HUD bar, a chime when ready", async () => {
+  await setupBfg({}, STAND, { x: 0, y: 2.5, z: 10 });
+  const pool = weaponsData.ammoTypes[bfg.ammoType!]!.reserveMax;
+  const full = await state(bfg.id);
+  expect(full.reserve).toBe(pool);
+  expect((await state(railgun.id)).reserve, "one reserve for both").toBe(pool);
+  const chimes = await plays(bfg.sounds.ready!);
+  await page.evaluate((ms) => {
+    window.__game!.input!.simulate("fire", 1000 / 60);
+    window.__game!.step(ms);
+  }, bfg.params.spinUpTime! * 1000 + 100);
+  const half = await page.evaluate((ms) => {
+    window.__game!.step(ms);
+    return window.__game!.hud!.recharge();
+  }, bfg.ammo.reloadTime * 500);
+  expect(half?.bar).toBeGreaterThan(0.4);
+  expect(half?.bar).toBeLessThan(0.6);
+  expect(half?.text).toMatch(/\d+ %/);
+  const charging = await state(bfg.id);
+  expect(charging.reloading).toBe(true);
+  expect(charging.extra.readiness).toBeGreaterThan(0.4);
+  // A second press while recharging does nothing.
+  await page.evaluate(() => window.__game!.input!.simulate("fire", 1000 / 60));
+  expect((await state(bfg.id)).shots).toBe(charging.shots);
+  await page.evaluate((ms) => window.__game!.step(ms), bfg.ammo.reloadTime * 500 + 200);
+  const ready = await state(bfg.id);
+  expect(ready.magazine).toBe(bfg.ammo.capacity);
+  expect(ready.reserve).toBe(pool - bfg.ammo.perShot);
+  expect((await state(railgun.id)).reserve).toBe(pool - bfg.ammo.perShot);
+  expect(ready.extra.readiness).toBe(1);
+  expect(await plays(bfg.sounds.ready!)).toBe(chimes + 1);
+  expect(await page.evaluate(() => window.__game!.hud!.recharge())).toBeNull();
+  expect(await page.evaluate(() => window.__game!.hud!.ammoText)).toContain(`· ${pool - bfg.ammo.perShot}`);
+
+  // The railgun drains the shared reserve shot by shot; the BFG then fires what it holds loaded, but with fewer
+  // capacitors than one shot needs it does not start a pointless recharge, and the next press clicks empty.
+  const drained = await page.evaluate(
+    ([rail, slot, switchMs, reloadMs, cap]) => {
+      const g = window.__game!;
+      g.weapons!.select(slot);
+      g.step(switchMs);
+      const log: string[] = [];
+      for (let i = 0; i < 40 && g.weapons!.pools()[cap]! > 0; i++) {
+        g.input!.simulate("fire", 1000 / 60);
+        g.step(reloadMs);
+        const r = g.weapons!.state(rail)!;
+        log.push(`shots=${r.shots} mag=${r.magazine} reloading=${r.reloading} pool=${g.weapons!.pools()[cap]}`);
+      }
+      return { pool: g.weapons!.pools()[cap]!, rail: g.weapons!.state(rail)!.magazine, log };
+    },
+    [railgun.id, railgun.slot, SWITCH_MS, railgun.ammo.reloadTime * 1000 + 100, bfg.ammoType!] as const,
+  );
+  expect(drained.pool, drained.log.join("\n")).toBe(0);
+  const empty = await page.evaluate(
+    ([id, slot, switchMs, spinMs, cooldownMs, click]) => {
+      const g = window.__game!;
+      g.weapons!.select(slot);
+      g.step(switchMs);
+      g.input!.simulate("fire", 1000 / 60);
+      g.step(spinMs);
+      const fired = g.weapons!.state(id)!;
+      g.step(cooldownMs);
+      const clicks = g.audio!.plays(click);
+      g.input!.simulate("fire", 1000 / 60);
+      return { fired, clicked: g.audio!.plays(click) - clicks };
+    },
+    [bfg.id, bfg.slot, SWITCH_MS, bfg.params.spinUpTime! * 1000 + 100, (1 / bfg.fireRate) * 1000, bfg.sounds.empty] as const,
+  );
+  expect(empty.fired.extra.launched).toBeGreaterThan(ready.extra.launched!);
+  expect(empty.fired.magazine).toBe(0);
+  expect(empty.fired.reloading, "no recharge without 4 capacitors").toBe(false);
+  expect(empty.clicked).toBe(1);
 });
 
 test("every new weapon fires its own sound", async () => {
-  for (const w of [extinguisher, balloons, taser, railgun, hose]) {
+  for (const w of [extinguisher, balloons, taser, railgun, bfg]) {
     expect(await plays(w.sounds.fire), w.id).toBeGreaterThan(0);
   }
 });
@@ -526,7 +674,7 @@ test.describe("long hall: ranges, kill times and hit tolerance", () => {
       return result.seconds!;
     };
     const baseline = await ttk(pistol);
-    for (const w of [extinguisher, balloons, taser, railgun, hose]) {
+    for (const w of [extinguisher, balloons, taser, railgun, bfg]) {
       expect(await ttk(longRange(w)), `${w.id} vs pistol ${baseline.toFixed(2)} s`).toBeLessThan(baseline);
     }
   });

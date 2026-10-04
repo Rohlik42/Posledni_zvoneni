@@ -4,7 +4,7 @@ import { ConsoleGuard } from "../support/ConsoleGuard";
 
 // FEEDBACK 2026-10-04: everything must work on a touchpad without mouse buttons. The whole file plays with real key
 // events only (`page.keyboard`); a listener counts every mouse button and wheel event and each test asserts none came.
-// Menu → difficulty → story → game → pause → settings on the main page; then fire / railgun charge / weapon switch at
+// Menu → difficulty → story → game → pause → settings on the main page; then fire / railgun / BFG / weapon switch at
 // robots (`weapons`), a door (`doors`) and the quiz (`teacher`) in dev scenes, paused and driven by `__game.step(ms)`.
 // The key codes come from data/input.json, so rebinding keeps the test valid.
 
@@ -156,7 +156,7 @@ test("main page: menu, difficulty, story, look, pause and settings with the keyb
   expect(guard.problems).toEqual([]);
 });
 
-test("weapons scene: F fires at a robot, held F charges the railgun, [ ] and Tab switch weapons", async ({ page }) => {
+test("weapons scene: F fires at a robot, the railgun and the BFG 9000 fire on a press of F, [ ] and Tab switch weapons", async ({ page }) => {
   const guard = await open(page, "/dev/?scene=weapons");
   const [target] = range.encounter.enemies.map((e) => e.id) as [string];
   await page.evaluate(
@@ -209,6 +209,18 @@ test("weapons scene: F fires at a robot, held F charges the railgun, [ ] and Tab
   expect(await page.evaluate((id) => window.__game!.weapons!.state(id)!.shots, railgun.id)).toBe(railShots + 1);
   const full = railgun.damage * (enemies.humanoid.resistances[railgun.damageType] ?? 1);
   expect(await robotHealth()).toBeCloseTo(Math.max(0, afterPistol - full), 3);
+
+  // 6 = BFG 9000 (FEEDBACK 2026-10-04): a tap of F spins it up and the plasma ball leaves by itself.
+  const bfg = weapon("bfg9000");
+  await tap(page, `Digit${bfg.slot}`, SWITCH_MS);
+  expect(await active()).toBe(bfg.id);
+  const launched = await page.evaluate((id) => window.__game!.weapons!.state(id)!.extra.launched!, bfg.id);
+  await page.keyboard.down(FIRE);
+  await page.evaluate((ms) => window.__game!.step(ms), STEP_MS * 2);
+  await page.keyboard.up(FIRE);
+  expect(await page.evaluate((id) => window.__game!.weapons!.state(id)!.extra.spinning, bfg.id)).toBe(1);
+  await page.evaluate((ms) => window.__game!.step(ms), bfg.params.spinUpTime! * 1000 + 100);
+  expect(await page.evaluate((id) => window.__game!.weapons!.state(id)!.extra.launched, bfg.id)).toBe(launched + 1);
 
   await noMouseButtons(page);
   expect(guard.problems).toEqual([]);

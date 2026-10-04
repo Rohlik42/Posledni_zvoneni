@@ -23,7 +23,7 @@
     { "id": "f4-u33-west-wall", "floor": 4, "px": [1687, 2300], "ref": { "room": "f4-ucebna-33", "side": "x0" }, "note": "west wall of učebna č.33; rows 2100/2300/2500 px give 1690/1687/1680 px" },
     { "id": "f4-zem-east-wall", "floor": 4, "px": [2646, 1975], "ref": { "room": "f4-kabinet-zemepis", "side": "x1" }, "note": "east wall of kabinet zeměpisu (Matterport 62); rows 1960/1990 px both 2646 px" },
     { "id": "f4-zem-south-wall", "floor": 4, "px": [2550, 2017], "ref": { "room": "f4-kabinet-zemepis", "side": "z1" }, "note": "south wall of kabinet zeměpisu; columns 2450/2550/2620 px give 2023/2011/2019 px" },
-    { "id": "f4-mat-west-wall", "floor": 4, "px": [3468, 2350], "ref": { "room": "f4-kabinet-matematika", "side": "x0" }, "note": "west wall of učebna č.35 (Matterport 58); rows 2300/2400 px give 3469/3468 px" },
+    { "id": "f4-mat-west-wall", "floor": 4, "px": [3468, 2350], "ref": { "room": "f4-kabinet-dejepis", "side": "x0" }, "note": "west wall of učebna č.35 (Matterport 58); rows 2300/2400 px give 3469/3468 px" },
     { "id": "f4-u30-west-wall", "floor": 4, "px": [264, 700], "ref": { "room": "f4-ucebna-30", "side": "x0" }, "note": "west wall of učebna č.30 (Matterport 56); rows 500/700/900 px give 268/264/259 px" },
     { "id": "f3-atelier-west-wall", "floor": 3, "px": [4084, 2100], "ref": { "room": "f3-atelier", "side": "x0" }, "note": "west wall of the atelier; rows 2000/2200 px give 4083/4085 px" },
     { "id": "f3-atelier-east-wall", "floor": 3, "px": [4673, 2300], "ref": { "room": "f3-atelier", "side": "x1" }, "note": "east wall of the atelier; rows 2200/2400 px give 4675/4672 px" },

@@ -53,6 +53,19 @@ export interface CheatsHudData {
   panel: string;
 }
 
+/**
+ * Recharge line under the ammo (FEEDBACK 2026-10-04 BFG): shown while the weapon in hand recharges for at least
+ * `minTime` s (railgun, BFG 9000) or spins up; a bar `width` × `height` px in `color`.
+ */
+export interface RechargeHudData {
+  minTime: number;
+  width: number;
+  height: number;
+  fontSize: number;
+  color: string;
+  spinColor: string;
+}
+
 export interface HudExtraData {
   toast: ToastData;
   hint: HintData;
@@ -60,6 +73,7 @@ export interface HudExtraData {
   keys: KeysHudData;
   powerUps: PowerUpsHudData;
   cheats: CheatsHudData;
+  recharge: RechargeHudData;
 }
 
 const px = (): SchemaNode => Schema.number({ min: 1 });
@@ -105,6 +119,7 @@ export class HudConfig {
       color: Schema.paletteRef(),
       panel: Schema.paletteRef(),
     }),
+    recharge: Schema.object({ minTime: Schema.number({ min: 0 }), width: px(), height: px(), fontSize: px(), color: Schema.paletteRef(), spinColor: Schema.paletteRef() }),
   });
 
   private static cached: HudExtraData | null = null;

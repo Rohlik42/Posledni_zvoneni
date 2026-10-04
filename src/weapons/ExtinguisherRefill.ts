@@ -20,19 +20,25 @@ export interface RefillSettings {
   charges: number;
   /** Sound of a refill. */
   sound: string;
+  /** Hands the extinguisher over when the player has none (FEEDBACK 2026-10-04); true when it was taken. */
+  grant: () => boolean;
+  /** Play `sound` on a grant too (false when the grant plays its own pickup sound). */
+  grantSound: boolean;
 }
 
 /**
- * A wall extinguisher that refills weapon 2 (phase 13, DESIGN §4 "doplnění z hasičáků na chodbách"): when the player
- * owns the extinguisher, its tank is not full and they come within `radius`, the tank is filled to capacity
- * (`Weapon.refill`) and the cabinet loses one charge; an empty cabinet shows no bottle. Placed by the dev scene
- * `weapons` now and by the level (phase 16) later.
+ * A wall extinguisher (phase 13, DESIGN §4 "doplnění z hasičáků na chodbách"): when the player comes within `radius`
+ * without an extinguisher, they take this one — weapon 2 with a full tank (FEEDBACK 2026-10-04: the extinguisher is
+ * picked up in the corridor, teachers give only special weapons); with one whose tank is not full, the tank is filled
+ * to capacity (`Weapon.refill`). Either way the cabinet loses one charge; an empty cabinet shows no bottle. Placed by
+ * the dev scene `weapons` and by the level (phase 16).
  */
 export class ExtinguisherRefill {
   readonly model: ExtinguisherCabinetModel;
   readonly position: Vector3;
   private left: number;
   private given = 0;
+  private granted = 0;
 
   constructor(
     scene: Scene,
@@ -55,16 +61,27 @@ export class ExtinguisherRefill {
     return this.given;
   }
 
-  /** One fixed step: refills the extinguisher if the player stands close enough. */
+  /** Extinguishers handed over so far (the player had none). */
+  get grants(): number {
+    return this.granted;
+  }
+
+  /** One fixed step: hands over or refills the extinguisher if the player stands close enough. */
   update(feet: Vector3, inventory: WeaponInventory, sounds: SynthSounds): void {
     if (this.left <= 0) return;
     const extinguisher = inventory.weapon(this.settings.weapon);
-    if (extinguisher === undefined || extinguisher.magazine >= extinguisher.data.ammo.capacity) return;
+    if (extinguisher !== undefined && extinguisher.magazine >= extinguisher.data.ammo.capacity) return;
     if (Math.hypot(feet.x - this.position.x, feet.z - this.position.z) > this.settings.radius) return;
-    extinguisher.refill();
+    if (extinguisher === undefined) {
+      if (!this.settings.grant()) return;
+      this.granted++;
+      if (this.settings.grantSound) sounds.play(this.settings.sound);
+    } else {
+      extinguisher.refill();
+      this.given++;
+      sounds.play(this.settings.sound);
+    }
     this.left--;
-    this.given++;
-    sounds.play(this.settings.sound);
     if (this.left <= 0) this.model.bottle.setEnabled(false);
   }
 

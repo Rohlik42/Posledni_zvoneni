@@ -53,7 +53,12 @@ test("items: weapons exist in weapons.json, models have a class file, every item
   const weapons = WeaponConfig.load().weapons.map((w) => w.id);
   for (const [id, item] of items) {
     if (item.weapon !== undefined) assert.ok(weapons.includes(item.weapon), `${id}: unknown weapon ${item.weapon}`);
-    if (item.model !== undefined) assert.ok(existsSync(`src/level/models/${item.model}.ts`), `${id}: no model class ${item.model}`);
+    if (item.ammoType !== undefined) assert.ok(WeaponConfig.ammoType(item.ammoType).reserveMax > 0, `${id}: unknown ammo type ${item.ammoType}`);
+    if (item.model !== undefined) {
+      const file = ["src/level/models", "src/weapons/models"].map((dir) => `${dir}/${item.model}.ts`).find((path) => existsSync(path));
+      assert.ok(file !== undefined, `${id}: no model class ${item.model}`);
+    }
+    if (item.grantsWeapon === true) assert.ok(texts.itemsNew[id] !== undefined, `${id}: no toast for the first pickup in texts.json → itemsNew`);
     assert.ok(texts.items[id] !== undefined, `${id}: no toast in texts.json`);
   }
   const sounds = SoundConfig.names();

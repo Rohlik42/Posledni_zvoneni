@@ -15,8 +15,8 @@ const ENTRANCE_FLOOR = 2;
 const MIN_KABINETS = 6;
 const MIN_ROOMS = 10;
 const INTER_FLOOR_STAIRS = 2;
-// PLAN.md Evidence → Progrese, slot → subject.
-const PROGRESSION_SUBJECTS = ["Zeměpis", "Matematika", "Hudebka", "Angličtina", "Čeština", "Výtvarka", "Fyzika", "Dějepis", "Tělocvik"];
+// PLAN.md Evidence → Progrese, slot → subject (2026-10-04: Dějepis and Matematika swapped rooms, the BFG comes from Matematika after the railgun).
+const PROGRESSION_SUBJECTS = ["Zeměpis", "Dějepis", "Hudebka", "Angličtina", "Čeština", "Výtvarka", "Fyzika", "Matematika", "Tělocvik"];
 const KEY_SLOTS: Record<KeyColor, number> = { red: 2, yellow: 5, blue: 9 };
 
 interface Landmark {
@@ -251,8 +251,9 @@ test("placed objects lie inside their rooms on the right floor", () => {
     const [s0, s1] = w.side === "minZ" || w.side === "maxZ" ? [r.x0, r.x1] : [r.z0, r.z1];
     assert.ok(w.at - w.width / 2 >= s0 - EPS && w.at + w.width / 2 <= s1 + EPS, `window ${w.id} off its wall`);
   }
-  assert.ok(level.pickups.some((p) => p.item === "weapon-balloons"), "water balloons on a corridor (Evidence → Progrese)");
-  assert.ok(level.pickups.some((p) => p.item === "weapon-hose" && roomOf(p.room).type === "telocvicna"), "hose in the gym");
+  assert.ok(level.pickups.some((p) => p.item === "balloons" && roomOf(p.room).type === "chodba"), "water balloons on a corridor (Evidence → Progrese)");
+  assert.ok(level.pickups.some((p) => p.item === "extinguisher" && roomOf(p.room).type === "chodba"), "an extinguisher on a corridor (FEEDBACK 2026-10-04)");
+  assert.ok(level.pickups.some((p) => p.item === "capacitors" && roomOf(p.room).type === "telocvicna"), "capacitors for the BFG in the gym");
 });
 
 test("landmarks measured in floorplan pixels match level.json", () => {

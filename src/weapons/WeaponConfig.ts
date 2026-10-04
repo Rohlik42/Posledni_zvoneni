@@ -4,12 +4,15 @@ import type { Vec3Tuple } from "../rendering/ModelBlueprints";
 import { DataLoader } from "../utils/DataLoader";
 import { Schema, type SchemaNode } from "../utils/Schema";
 
-export const WEAPON_KINDS = ["hitscan", "cone", "thrown", "beam", "stream"] as const;
+export const WEAPON_KINDS = ["hitscan", "cone", "thrown", "beam", "stream", "plasma"] as const;
 export type WeaponKind = (typeof WEAPON_KINDS)[number];
 
 export const WEAPON_SLOTS = [1, 2, 3, 4, 5, 6] as const;
 export const WEAPON_SOUNDS = ["fire", "empty", "impact", "reload"] as const;
 export type WeaponSound = (typeof WEAPON_SOUNDS)[number];
+/** Optional sounds: a projectile leaving (BFG plasma ball) and a long recharge done. */
+export const WEAPON_EXTRA_SOUNDS = ["launch", "ready"] as const;
+export type WeaponExtraSound = (typeof WEAPON_EXTRA_SOUNDS)[number];
 
 export type Range2 = [number, number];
 
@@ -52,7 +55,7 @@ export interface ViewmodelData {
   pumpShotTravel: number;
 }
 
-/** Water jet look (pistol, later the hose). */
+/** Water jet look (pistol, extinguisher, balloon splash). */
 export interface StreamData {
   color: string;
   colorDeep: string;
@@ -108,8 +111,12 @@ export interface WeaponData {
   id: string;
   slot: number;
   name: string;
+  /** One line about the weapon for texts (BFG 9000). */
+  description?: string;
   class: string;
   enabled: boolean;
+  /** Built at load, before the player has it, so its effects are compiled then (BFG 9000; no hitch at the first shot). */
+  preload?: boolean;
   kind: WeaponKind;
   damage: number;
   damageType: DamageType;
@@ -117,13 +124,24 @@ export interface WeaponData {
   automatic: boolean;
   range: number;
   spreadDeg: number;
+  /** Shared reserve of `ammoTypes` (capacitors of the railgun and the BFG); without it the weapon has its own reserve. */
+  ammoType?: string;
   ammo: WeaponAmmoData;
   model: string;
-  sounds: Record<WeaponSound, string>;
+  sounds: Record<WeaponSound, string> & Partial<Record<WeaponExtraSound, string>>;
   viewmodel: ViewmodelData;
   stream?: StreamData;
   effect?: EffectData;
   params: Record<string, number>;
+}
+
+/** Ammo shared by several weapons (`data/weapons.json → ammoTypes`). */
+export interface AmmoTypeData {
+  /** Name in texts ("Kondenzátory"). */
+  name: string;
+  /** Short label after the reserve in the HUD. */
+  hudLabel: string;
+  reserveMax: number;
 }
 
 export interface WeaponsData {
@@ -131,6 +149,7 @@ export interface WeaponsData {
   viewmodelRenderingGroup: number;
   aimRandomSeed: number;
   startingWeapons: string[];
+  ammoTypes: Record<string, AmmoTypeData>;
   /** Collectable ammo (phase 13) and the refill sound of wall extinguishers. */
   ammoPickup: { radius: number; spinDegPerSecond: number; bobHeight: number; bobHz: number; sound: string };
   weapons: WeaponData[];
@@ -148,6 +167,7 @@ export class WeaponConfig {
     viewmodelRenderingGroup: Schema.integer({ min: 1, max: 3 }),
     aimRandomSeed: Schema.integer({ min: 0 }),
     startingWeapons: Schema.array(Schema.string()),
+    ammoTypes: Schema.record(Schema.object({ name: Schema.string(), hudLabel: Schema.string(), reserveMax: Schema.integer({ min: 1 }) })),
     ammoPickup: Schema.object({
       radius: Schema.number({ min: 0.1 }),
       spinDegPerSecond: positive(),
@@ -161,8 +181,10 @@ export class WeaponConfig {
           id: Schema.string(),
           slot: Schema.integer({ min: 1, max: WEAPON_SLOTS.length }),
           name: Schema.string(),
+          description: Schema.string(),
           class: Schema.string(),
           enabled: Schema.boolean(),
+          preload: Schema.boolean(),
           kind: Schema.enumOf(WEAPON_KINDS),
           damage: positive(),
           damageType: Schema.enumOf(DAMAGE_TYPES),
@@ -170,6 +192,7 @@ export class WeaponConfig {
           automatic: Schema.boolean(),
           range: Schema.number({ min: 0.1 }),
           spreadDeg: Schema.number({ min: 0, max: 45 }),
+          ammoType: Schema.string(),
           ammo: Schema.object({
             capacity: Schema.integer({ min: 0 }),
             perShot: positive(),
@@ -182,7 +205,7 @@ export class WeaponConfig {
             rechargeDelay: positive(),
           }),
           model: Schema.string(),
-          sounds: Schema.object(Object.fromEntries(WEAPON_SOUNDS.map((s) => [s, Schema.string()]))),
+          sounds: Schema.object(Object.fromEntries([...WEAPON_SOUNDS, ...WEAPON_EXTRA_SOUNDS].map((s) => [s, Schema.string()])), [...WEAPON_EXTRA_SOUNDS]),
           viewmodel: Schema.object({
             variant: Schema.string(),
             scale: Schema.number({ min: 0.01 }),
@@ -252,7 +275,7 @@ export class WeaponConfig {
           ),
           params: Schema.record(Schema.number()),
         },
-        ["stream", "effect"],
+        ["stream", "effect", "description", "preload", "ammoType"],
       ),
       1,
     ),
@@ -288,6 +311,23 @@ export class WeaponConfig {
     return weapon.stream;
   }
 
+  /** The ammo types without comment keys. */
+  static ammoTypes(): [string, AmmoTypeData][] {
+    return Object.entries(WeaponConfig.load().ammoTypes).filter(([key]) => !key.startsWith("//"));
+  }
+
+  /** The shared ammo type `id`; throws for an unknown one. */
+  static ammoType(id: string): AmmoTypeData {
+    const type = WeaponConfig.ammoTypes().find(([key]) => key === id)?.[1];
+    if (type === undefined) throw new Error(`${WeaponConfig.file}: no ammo type "${id}"`);
+    return type;
+  }
+
+  /** Reserve limit of a weapon: its ammo type's when it shares one, else its own `reserveMax`. */
+  static reserveMax(weapon: WeaponData): number {
+    return weapon.ammoType === undefined ? weapon.ammo.reserveMax : WeaponConfig.ammoType(weapon.ammoType).reserveMax;
+  }
+
   static weapon(id: string): WeaponData {
     const weapon = WeaponConfig.load().weapons.find((w) => w.id === id);
     if (weapon === undefined) throw new Error(`${WeaponConfig.file}: no weapon "${id}"`);
@@ -307,6 +347,12 @@ export class WeaponConfig {
       ids.add(weapon.id);
       slots.add(weapon.slot);
       if (weapon.ammo.reserveStart > weapon.ammo.reserveMax && !weapon.ammo.infiniteReserve) fail(`${weapon.id}: ammo.reserveStart > reserveMax`);
+      if (weapon.ammoType !== undefined) {
+        const type = data.ammoTypes[weapon.ammoType];
+        if (type === undefined || weapon.ammoType.startsWith("//")) fail(`${weapon.id}: unknown ammoType "${weapon.ammoType}"`);
+        else if (weapon.ammo.infiniteReserve) fail(`${weapon.id}: a shared ammo type cannot be endless`);
+        else if (weapon.ammo.perShot > type.reserveMax + weapon.ammo.capacity) fail(`${weapon.id}: perShot never fits the ${weapon.ammoType} reserve`);
+      }
     }
     for (const slot of WEAPON_SLOTS) if (!slots.has(slot)) fail(`slot ${slot} has no weapon`);
     for (const id of data.startingWeapons) {

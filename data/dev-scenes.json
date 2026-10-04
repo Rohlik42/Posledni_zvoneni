@@ -32,12 +32,12 @@
       { "id": "medkit", "item": "medkit", "position": [0, 0, -6] },
       { "id": "drink", "item": "energy-drink", "position": [-2, 0, -4.5] },
       { "id": "boots", "item": "rubber-boots", "position": [2, 0, -4.5] },
-      { "id": "balloons", "item": "ammo-balloons", "position": [-6.5, 0, -2] }
+      { "id": "balloons", "item": "balloons", "position": [-6.5, 0, -2] }
     ]
   },
   "teacher": {
     "//": "Dev scéna 'teacher' (dev/scenes/TeacherScene.ts, fáze 11): krabicová místnost, uprostřed jeden zajatý učitel z data/teachers.json (id) na židli v position (podlaha, m), natočený o yawDeg (0 = hledí k +z); hráč začíná ve spawn před ním. E = kvíz.",
-    "teacher": "siklova",
+    "teacher": "dolezalova",
     "position": [0, 0, 1.5],
     "yawDeg": 180,
     "spawn": { "position": [0.4, 0, -0.5], "yawDeg": -10 }

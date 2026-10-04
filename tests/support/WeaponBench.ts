@@ -15,6 +15,7 @@ export interface BenchWeapon {
   fireRate: number;
   automatic: boolean;
   range: number;
+  kind: string;
   ammo: { capacity: number; reloadTime: number };
   params: Record<string, number>;
 }
@@ -30,6 +31,8 @@ export interface BenchPlan {
   offsetDeg: number;
   /** Sideways offset of the robot itself (m, +x), e.g. robots spread in an arc. */
   lateral: number;
+  /** How long a shot needs to land (s of simulated time): a balloon's arc, the BFG's spin-up and ball flight. */
+  settleMs: number;
 }
 
 const weaponsData = JSON.parse(readFileSync("data/weapons.json", "utf8")) as { switchTime: number; weapons: BenchWeapon[] };
@@ -39,6 +42,10 @@ const STEP_MS = 1000 / 60;
 const SWITCH_MS = weaponsData.switchTime * 1000 + 100;
 /** Long enough for a thrown balloon to land and burst. */
 const BALLOON_SETTLE_MS = 2500;
+/** Instant weapons: the hit is in the step after the press. */
+const INSTANT_SETTLE_MS = 2 * STEP_MS;
+/** Extra time after the BFG ball's longest flight (s). */
+const PLASMA_MARGIN_S = 0.3;
 const TTK_LIMIT_MS = 30_000;
 const READY_TIMEOUT_MS = 30_000;
 
@@ -70,7 +77,15 @@ export class WeaponBench {
   }
 
   static plan(weapon: BenchWeapon, subject: string, distance: number, offsetDeg = 0, lateral = 0): BenchPlan {
+    const plasma = weapon.kind === "plasma";
+    const settleMs = plasma
+      ? // A missed ball flies on until it strikes something or bursts in mid-air: wait for its whole flight.
+        (weapon.params.spinUpTime! + weapon.params.maxFlightTime! + PLASMA_MARGIN_S) * 1000
+      : weapon.kind === "thrown"
+        ? BALLOON_SETTLE_MS
+        : INSTANT_SETTLE_MS;
     return {
+      settleMs,
       weapon: weapon.id,
       slot: weapon.slot,
       fireRate: weapon.fireRate,
@@ -82,16 +97,13 @@ export class WeaponBench {
     };
   }
 
-  /** Opens the hall paused, with the hose in the inventory too (the hall has no hydrant). */
+  /** Opens the hall paused (every weapon is in the inventory, data/weapon-longrange.json → give). */
   async open(): Promise<void> {
     await this.page.goto(`/dev/?scene=${WeaponBench.scene}`);
     await this.page.waitForFunction(() => window.__game?.ready === true || window.__game?.error != null, undefined, { timeout: READY_TIMEOUT_MS });
     const error = await this.page.evaluate(() => window.__game?.error ?? null);
     if (error !== null) throw new Error(error);
-    await this.page.evaluate(() => {
-      window.__game!.setPaused(true);
-      window.__game!.weapons!.give("hose");
-    });
+    await this.page.evaluate(() => window.__game!.setPaused(true));
   }
 
   /**
@@ -152,7 +164,7 @@ export class WeaponBench {
         g.step(settle);
         return ids.map((id, i) => before[i]! - g.enemies!.get(id)!.health);
       },
-      [plans.map((q) => q.subject), STEP_MS, p.weapon === "waterBalloons" ? BALLOON_SETTLE_MS : 2 * STEP_MS] as const,
+      [plans.map((q) => q.subject), STEP_MS, p.settleMs] as const,
     );
   }
 

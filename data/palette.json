@@ -58,6 +58,8 @@
     "fire": "#ff7a1a",
     "ember": "#ff3b0f",
     "toxic": "#8dff3a",
+    "plasma": "#3dffc8",
+    "plasmaDeep": "#12b48a",
     "warning": "#ffd21f"
   },
   "keys": {

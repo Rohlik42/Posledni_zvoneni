@@ -35,7 +35,6 @@ export class WeaponRangeConfig {
     encounter: encounterSchema(),
     stations: Schema.object({
       refills: Schema.array(Schema.object(placementFields)),
-      hydrants: Schema.array(Schema.object(placementFields)),
       ammoPickups: Schema.array(
         Schema.object({
           ...placementFields,

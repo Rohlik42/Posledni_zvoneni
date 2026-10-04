@@ -16,12 +16,15 @@ interface Vec {
 
 const level = JSON.parse(readFileSync("data/level.json", "utf8")) as LevelData;
 const pickupsData = JSON.parse(readFileSync("data/pickups.json", "utf8")) as {
-  items: Record<string, { kind: string; weapon?: string }>;
+  items: Record<string, { kind: string; weapon?: string; ammoType?: string }>;
   external: string[];
   pickup: { collectRadius: number };
 };
 const texts = JSON.parse(readFileSync("data/texts.json", "utf8")) as { fullHealth: string; fullAmmo: string };
-const weaponsData = JSON.parse(readFileSync("data/weapons.json", "utf8")) as { weapons: { id: string; name: string; ammo: { reserveMax: number } }[] };
+const weaponsData = JSON.parse(readFileSync("data/weapons.json", "utf8")) as {
+  weapons: { id: string; name: string; ammo: { reserveMax: number } }[];
+  ammoTypes: Record<string, { name: string }>;
+};
 const player = JSON.parse(readFileSync("data/player.json", "utf8")) as { body: { eyeHeight: number } };
 
 const READY_TIMEOUT_MS = 60_000;
@@ -141,8 +144,9 @@ test.describe.serial("pickups are collected by walking over them (FEEDBACK 2026-
       if (result.collected) return;
       // Not taken: only an ammo pack whose weapon is full may stay, and the player is told so.
       expect(item.kind, `${pickup.id} not collected, walk ended at ${JSON.stringify(result.end)}`).toBe("ammo");
-      const weapon = weaponsData.weapons.find((w) => w.id === item.weapon)!;
-      expect(result.refusals).toContain(texts.fullAmmo.replace("{weapon}", weapon.name));
+      // A shared ammo type (capacitors) is named by its type, other ammo by its weapon.
+      const name = item.ammoType !== undefined ? weaponsData.ammoTypes[item.ammoType]!.name : weaponsData.weapons.find((w) => w.id === item.weapon)!.name;
+      expect(result.refusals).toContain(texts.fullAmmo.replace("{weapon}", name));
     });
   }
 
@@ -174,10 +178,10 @@ test.describe.serial("pickups are collected by walking over them (FEEDBACK 2026-
         p.damage(40);
         const wounded = visit(medkit);
         // Balloons up to their limit, then one more pack.
-        g.give!("weapon-balloons");
+        g.give!("balloons");
         g.weapons!.addAmmo("waterBalloons", reserveMax);
         const ammoBefore = g.pickups!.refusals().length;
-        const pack = g.pickups!.spawn("ammo-balloons", spot.x, spot.y, spot.z);
+        const pack = g.pickups!.spawn("balloons", spot.x, spot.y, spot.z);
         const ammoTaken = visit(pack);
         return { firstTouch, afterFirst, secondTouch, afterSecond, toasts, wounded, ammoTaken, ammoRefusals: g.pickups!.refusals().slice(ammoBefore) };
       },

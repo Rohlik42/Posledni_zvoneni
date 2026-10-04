@@ -24,7 +24,7 @@
         { "model": "WaterBalloonModel" },
         { "model": "TaserModel" },
         { "model": "RailgunModel" },
-        { "model": "HoseModel" }
+        { "model": "Bfg9000Model" }
       ]
     },
     {
@@ -114,7 +114,6 @@
         { "model": "DoorModel", "label": "yellow", "options": { "lock": "yellow" } },
         { "model": "DoorModel", "label": "blue", "options": { "lock": "blue" } },
         { "model": "ExtinguisherCabinetModel" },
-        { "model": "HydrantModel" },
         { "model": "TargetModel", "yawDeg": 0 }
       ]
     }

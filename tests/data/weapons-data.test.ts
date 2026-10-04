@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { GalleryData } from "../../dev/GalleryData";
 import { WeaponLongRangeData } from "../../dev/WeaponLongRangeData";
 import { SoundConfig } from "../../src/audio/SoundConfig";
@@ -53,11 +54,11 @@ for (const { name, load, schema } of files) {
   });
 }
 
-test("weapons.json: the six weapons of DESIGN §4 in slots 1–6, all enabled (phase 13), the pistol at the start", () => {
+test("weapons.json: six weapons in slots 1–6 (the BFG 9000 replaced the hose, FEEDBACK 2026-10-04), all enabled, the pistol at the start", () => {
   const data = WeaponConfig.load();
   assert.deepEqual(
     [...data.weapons].sort((a, b) => a.slot - b.slot).map((w) => w.id),
-    ["waterPistol", "extinguisher", "waterBalloons", "taser", "railgun", "hose"],
+    ["waterPistol", "extinguisher", "waterBalloons", "taser", "railgun", "bfg9000"],
   );
   assert.deepEqual(data.weapons.map((w) => w.slot).sort(), [...WEAPON_SLOTS]);
   assert.deepEqual(data.weapons.filter((w) => !w.enabled).map((w) => w.id), []);
@@ -73,9 +74,9 @@ test("weapons.json: phase 13 weapons carry the numbers and looks their classes r
   need("waterBalloons", ["aoeRadius", "aoeEdgeDamage", "throwSpeed", "throwUpDeg", "projectileRadius", "projectileMass", "maxFlightTime", "projectileScale", "regrowTime"]);
   need("taser", ["arcAngleDeg", "maxTargets", "stunSeconds", "stunStrength"]);
   need("railgun", ["pierce", "aimAssistDeg"]);
-  need("hose", ["grabDistance", "releaseDistance", "slowStrength", "slowSeconds"]);
-  for (const id of ["extinguisher", "taser", "railgun"]) assert.ok(WeaponConfig.weapon(id).effect !== undefined, `${id} needs an effect block`);
-  for (const id of ["waterBalloons", "hose", "extinguisher"]) assert.ok(WeaponConfig.weapon(id).stream !== undefined, `${id} needs a stream block`);
+  need("bfg9000", ["spinUpTime", "ballSpeed", "ballRadius", "ballHitRadius", "maxFlightTime", "empRadius", "empVertical", "stunRadius", "stunSeconds", "shellTime", "glowFull"]);
+  for (const id of ["extinguisher", "taser", "railgun", "bfg9000"]) assert.ok(WeaponConfig.weapon(id).effect !== undefined, `${id} needs an effect block`);
+  for (const id of ["waterBalloons", "extinguisher"]) assert.ok(WeaponConfig.weapon(id).stream !== undefined, `${id} needs a stream block`);
 
   // FEEDBACK 2026-10-04: the extinguisher is a long water jet, not a short foam cone.
   const pistol = WeaponConfig.weapon("waterPistol");
@@ -97,11 +98,46 @@ test("weapons.json: phase 13 weapons carry the numbers and looks their classes r
   assert.ok(railgun.range >= 150, "practically endless range (stops at the first wall)");
   assert.ok(railgun.params.aimAssistDeg! >= 1 && railgun.params.aimAssistDeg! <= 1.5, "thin beam, small aim-assist cone");
   assert.ok(railgun.params.pierce! >= 2, "pierces several robots");
-  assert.ok(railgun.ammo.reserveMax <= 12, "rare ammo");
-  const hose = WeaponConfig.weapon("hose");
-  assert.ok(hose.ammo.infiniteReserve, "endless at its place");
-  assert.ok(hose.params.releaseDistance! < hose.params.grabDistance! * 2);
-  assert.ok(hose.damage * hose.fireRate > extinguisher.damage * extinguisher.fireRate, "the hose stays the strongest stream");
+  assert.ok(WeaponConfig.reserveMax(railgun) <= 12, "rare ammo");
+});
+
+test("weapons.json: the BFG 9000 (FEEDBACK 2026-10-04) — Doom-like plasma ball, EMP around the impact, long recharge, shared capacitors", () => {
+  const data = WeaponConfig.load();
+  const railgun = WeaponConfig.weapon("railgun");
+  const bfg = WeaponConfig.weapon("bfg9000");
+  assert.equal(bfg.slot, 6);
+  assert.equal(bfg.name, "BFG 9000");
+  assert.equal(bfg.kind, "plasma");
+  assert.equal(bfg.damageType, "electric");
+  assert.equal(bfg.automatic, false, "a press, not hold-to-charge");
+  assert.ok(bfg.preload === true, "built at load so its effects are compiled before the first shot");
+  // One capacitor reserve for both: the railgun takes 1 a shot, the BFG 4.
+  assert.equal(railgun.ammoType, "capacitor");
+  assert.equal(bfg.ammoType, "capacitor");
+  const capacitor = WeaponConfig.ammoType("capacitor");
+  assert.equal(capacitor.name, "Kondenzátory");
+  assert.ok(capacitor.reserveMax >= 12);
+  assert.equal(railgun.ammo.perShot, 1);
+  assert.equal(bfg.ammo.perShot, 4);
+  assert.equal(bfg.ammo.capacity, bfg.ammo.perShot, "one loaded shot");
+  assert.ok(bfg.ammo.reloadTime >= 8, "recharges really long");
+  assert.ok(bfg.ammo.reloadTime > railgun.ammo.reloadTime * 4);
+  const p = bfg.params;
+  assert.ok(p.spinUpTime! >= 0.8 && p.spinUpTime! <= 1.2, "Doom-like ~1 s spin-up");
+  assert.ok(p.ballSpeed! >= 15 && p.ballSpeed! <= 20, "a big slow ball");
+  assert.ok(p.empRadius! >= 10 && p.empRadius! <= 14, "clears the surroundings (~12 m)");
+  assert.ok(p.empVertical! >= 2 && p.empVertical! <= 4, "the same floor only");
+  assert.ok(p.stunRadius! > p.empRadius!, "stuns a little farther out");
+  // Enough to destroy any robot on the hardest level in one pulse.
+  const enemies = JSON.parse(readFileSync("data/enemies.json", "utf8")) as Record<string, { health?: number; resistances?: Record<string, number> }>;
+  const difficulty = JSON.parse(readFileSync("data/difficulty.json", "utf8")) as { levels: { enemyHealth: number }[] };
+  const hardest = Math.max(...difficulty.levels.map((l) => l.enemyHealth));
+  for (const [type, robot] of Object.entries(enemies)) {
+    if (robot.health === undefined) continue;
+    assert.ok(bfg.damage * (robot.resistances?.electric ?? 1) >= robot.health * hardest, `${type}: one pulse kills at ×${hardest}`);
+  }
+  for (const sound of ["launch", "ready"] as const) assert.ok(bfg.sounds[sound] !== undefined, `bfg9000.sounds.${sound}`);
+  assert.ok(data.weapons.every((w) => w.class !== "Hose"), "the hose is gone");
 });
 
 test("weapons.json: water pistol is a fast, weak hitscan with water damage and endless water (DESIGN §4)", () => {

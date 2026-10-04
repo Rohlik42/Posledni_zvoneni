@@ -11,10 +11,10 @@ import { BoxRoom } from "../BoxRoom";
 
 export const id = "weapons";
 export const title =
-  "Všech šest zbraní v krabicové místnosti s roboty: 1–6 / kolečko zbraně, 5 = railgun (držet, pustit), E u hydrantu vezme hadici, u zdi hasičák doplní hasicí přístroj, kbelík = balónky";
+  "Všech šest zbraní v krabicové místnosti s roboty: 1–6 / kolečko zbraně, 5 = railgun, 6 = BFG 9000 (stisk roztočí a vystřelí plazmovou kouli, EMP při dopadu), u zdi hasičák doplní hasicí přístroj, kbelík = balónky";
 
 /**
- * Phase 13 test range: the box room with every weapon (the hose comes from the hydrant on the west wall), a wall
+ * Phase 13 test range: the box room with every weapon (the BFG 9000 replaced the hose, FEEDBACK 2026-10-04), a wall
  * extinguisher, a bucket of water balloons and a line of humanoid robots standing guard (data/weapon-range.json).
  * When all robots are destroyed they come back after `waveDelay`; dying restarts everything.
  */

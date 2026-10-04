@@ -21,10 +21,9 @@ const MAX_SETTLE_M = 0.15;
 const PLAYER_HEALTH_BUFFER = 1000;
 /** Floor 4 (2. patro) lies at y 10 m (level.json → floors). */
 const F4_FLOOR_Y = 10;
-/** Where the player stands to take the hose: this far in front of the hydrant (m), like the playthrough. */
-const HYDRANT_STANCE_M = 1.0;
-const HOSE_MS = 1200;
-const FRAME_MS = 1000 / 60;
+/** The extinguisher's jet pushes the gym chair from this far away (m; the hose is gone, FEEDBACK 2026-10-04). */
+const JET_STANCE_M = 4;
+const JET_MS = 1200;
 
 test.describe.serial("loose debris (full game)", () => {
   let page: Page;
@@ -98,33 +97,31 @@ test.describe.serial("loose debris (full game)", () => {
     expect(guard.problems).toEqual([]);
   });
 
-  test("phase 24 (DESIGN §8, plan 19.7): the hydrant's hose pushes the chair in the gym", async () => {
+  test("phase 24 (DESIGN §8, plan 19.7): the extinguisher's jet pushes the chair in the gym", async () => {
     const chair = details.loose.items.findIndex((i) => i.kind === "chair" && i.room === "f2-gym");
     expect(chair).toBeGreaterThanOrEqual(0);
     const result = await page.evaluate(
-      ({ chair, stance, hoseMs, frameMs, switchMs, buffer }) => {
+      ({ chair, stance, jetMs, switchMs, buffer }) => {
         const g = window.__game!;
         const v = g.visuals!;
-        const hydrant = g.weaponStations!.hydrants()[0]!;
+        g.give!("extinguisher");
+        g.weapons!.select(2);
         g.player!.heal(buffer);
-        g.player!.teleport(hydrant.position.x + stance, hydrant.position.y, hydrant.position.z);
-        g.step(100);
-        g.player!.lookAt(hydrant.position.x, hydrant.position.y + 1, hydrant.position.z);
-        g.input!.simulate("interact", frameMs);
-        g.step(switchMs);
+        const start = v.debris()[chair]!;
+        g.player!.teleport(start.center.x + stance, start.center.y, start.center.z);
+        g.step(switchMs + 300);
         const active = g.weapons!.active;
         const before = v.debris()[chair]!;
         g.player!.aimAt(before.center);
-        g.input!.simulate("fire", hoseMs);
+        g.input!.simulate("fire", jetMs);
         g.step(500);
         const after = v.debris()[chair]!;
-        return { active, grabbed: g.weaponStations!.hydrants()[0]!.grabbed, pushes: after.pushes - before.pushes, moved: after.moved - before.moved };
+        return { active, pushes: after.pushes - before.pushes, moved: after.moved - before.moved };
       },
-      { chair, stance: HYDRANT_STANCE_M, hoseMs: HOSE_MS, frameMs: FRAME_MS, switchMs: weaponsData.switchTime * 1000 + 50, buffer: PLAYER_HEALTH_BUFFER },
+      { chair, stance: JET_STANCE_M, jetMs: JET_MS, switchMs: weaponsData.switchTime * 1000 + 50, buffer: PLAYER_HEALTH_BUFFER },
     );
-    expect(result.active).toBe("hose");
-    expect(result.grabbed, "aiming and spraying keep the hose in hand").toBe(true);
-    expect(result.pushes, "the hose stream reached the chair").toBeGreaterThan(0);
+    expect(result.active).toBe("extinguisher");
+    expect(result.pushes, "the extinguisher jet reached the chair").toBeGreaterThan(0);
     expect(result.moved).toBeGreaterThan(MIN_PUSH_M);
     expect(guard.problems).toEqual([]);
   });

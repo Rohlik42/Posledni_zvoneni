@@ -75,7 +75,7 @@ const SPOTS: Spot[] = [
   { name: "f2-schodiste-zapad", kind: "hall", room: "f2-landing-west", at: [9.4, 18], look: [3, 18] },
   { name: "f4-ucebna-30", kind: "room", room: "f4-ucebna-30", at: [6.5, 6.0], look: [8.6, 13.4] },
   { name: "f3-kabinet-fyzika", kind: "room", room: "f3-kabinet-fyzika", at: [8.8, 12.8], look: [4, 2] },
-  { name: "f4-kabinet-matematika", kind: "room", room: "f4-kabinet-matematika", at: [42.6, 23.5], look: [48.5, 30.5] },
+  { name: "f4-kabinet-dejepis", kind: "room", room: "f4-kabinet-dejepis", at: [42.6, 23.5], look: [48.5, 30.5] },
   { name: "f2-telocvicna", kind: "room", room: "f2-gym", at: [43.2, 26.5], look: [58, 26.5] },
   { name: "f2-vstupni-hala", kind: "hall", room: "f2-vestibule", at: [10.4, 22.8], look: [10.4, 30.8] },
 ];

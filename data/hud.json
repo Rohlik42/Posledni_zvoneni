@@ -1,5 +1,5 @@
 {
-  "//": "Rozšíření HUD z fáze 10 (src/ui/Hud.ts, Toasts.ts, WeaponSlotsBar.ts, ItemsPanel.ts); základ (zdraví, munice, písmo) je v data/feel.json → hud. Barvy jsou klíče palety (styl LEGACY §4: tmavé modrozelené panely, limetkový aktivní slot, toasty #e3ffb9). toast = zprávy uprostřed nahoře (duration s na obrazovce, poslední fade s mizí, nejvýš max najednou, top = podíl výšky okna). hint = nápověda u dveří pod zaměřovačem (bottom = podíl výšky). slots = sloty zbraní 1–6 dole uprostřed (rozměry v px, chybějící zbraň má missingOpacity). keys = ikony klíčů nad zdravím (chybějící klíč missingOpacity). powerUps = aktivní power-upy vpravo nahoře s ubývajícím pruhem. cheats = štítky zapnutých cheatů (IDDQD, IDCLIP) vlevo nahoře (top a left v px).",
+  "//": "Rozšíření HUD z fáze 10 (src/ui/Hud.ts, Toasts.ts, WeaponSlotsBar.ts, ItemsPanel.ts); základ (zdraví, munice, písmo) je v data/feel.json → hud. Barvy jsou klíče palety (styl LEGACY §4: tmavé modrozelené panely, limetkový aktivní slot, toasty #e3ffb9). toast = zprávy uprostřed nahoře (duration s na obrazovce, poslední fade s mizí, nejvýš max najednou, top = podíl výšky okna). hint = nápověda u dveří pod zaměřovačem (bottom = podíl výšky). slots = sloty zbraní 1–6 dole uprostřed (rozměry v px, chybějící zbraň má missingOpacity). keys = ikony klíčů nad zdravím (chybějící klíč missingOpacity). powerUps = aktivní power-upy vpravo nahoře s ubývajícím pruhem. cheats = štítky zapnutých cheatů (IDDQD, IDCLIP) vlevo nahoře (top a left v px). recharge = řádek pod municí (FEEDBACK 2026-10-04 BFG): procenta a pruh dlouhého nabíjení zbraně v ruce (zobrazí se jen při nabíjení dlouhém aspoň minTime s — railgun, BFG 9000) a roztáčení BFG (spinColor); rozměry v px.",
   "toast": { "duration": 2.6, "fade": 0.6, "max": 4, "top": 0.18, "fontSize": 20, "color": "ui.toast", "panel": "ui.panel" },
   "hint": { "bottom": 0.32, "fontSize": 15, "color": "ui.toast", "panel": "ui.panel" },
   "slots": {
@@ -13,5 +13,6 @@
   },
   "keys": { "size": 20, "gap": 8, "missingOpacity": 0.18, "missingColor": "ui.textDim" },
   "powerUps": { "width": 180, "barHeight": 5, "fontSize": 14, "margin": 22 },
-  "cheats": { "top": 22, "left": 22, "fontSize": 13, "gap": 4, "color": "ui.slotActive", "panel": "ui.panel" }
+  "cheats": { "top": 22, "left": 22, "fontSize": 13, "gap": 4, "color": "ui.slotActive", "panel": "ui.panel" },
+  "recharge": { "minTime": 1.2, "width": 150, "height": 4, "fontSize": 12, "color": "neon.plasma", "spinColor": "neon.warning" }
 }

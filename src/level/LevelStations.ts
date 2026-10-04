@@ -7,31 +7,29 @@ import type { StationPlacements } from "../weapons/WeaponStations";
 import { LevelLayout } from "./LevelLayout";
 import type { ProgressionData } from "./ProgressionConfig";
 
-/** `level.json → pickups[].item` of a wall extinguisher (refills weapon 2) and of the hydrant with the hose. */
+/** `level.json → pickups[].item` of a wall extinguisher (hands over or refills weapon 2). */
 const REFILL_ITEM = "extinguisher-refill";
-const HYDRANT_ITEM = "weapon-hose";
 /** Level geometry meshes are named `level:<room>:<material>`. */
 const LEVEL_MESH_PREFIX = "level:";
 const PROBE_DIRECTIONS = [new Vector3(1, 0, 0), new Vector3(-1, 0, 0), new Vector3(0, 0, 1), new Vector3(0, 0, -1)];
 
 /**
  * Where the level's weapon stations stand (phase 16): `level.json → pickups` with the items that `pickups.json` lists as
- * `external` — wall extinguishers along the corridors and the hydrant with the hose in the gym. The level gives a
+ * `external` — wall extinguishers along the corridors. The level gives a
  * point near a wall; the station is put against the nearest wall that a horizontal ray finds (the real inner face,
  * which depends on how thick the wall was built) and turned to face into the room (models face +z).
  */
 export class LevelStations {
   static placements(scene: Scene, layout: LevelLayout, data: ProgressionData["stations"]): StationPlacements {
     const refills: StationPlacement[] = [];
-    const hydrants: StationPlacement[] = [];
     for (const pickup of layout.level.pickups) {
-      if (pickup.item !== REFILL_ITEM && pickup.item !== HYDRANT_ITEM) continue;
+      if (pickup.item !== REFILL_ITEM) continue;
       const floorY = layout.floorY(layout.room(pickup.room));
       const p = LevelLayout.toWorld(pickup.x, floorY, pickup.z);
       const placement = LevelStations.againstWall(scene, pickup.id, new Vector3(p.x, p.y, p.z), data);
-      (pickup.item === REFILL_ITEM ? refills : hydrants).push(placement);
+      refills.push(placement);
     }
-    return { refills, hydrants, ammoPickups: [] };
+    return { refills, ammoPickups: [] };
   }
 
   /** Puts the station `wallGap` in front of the nearest wall within `probeDistance`, facing away from it. */

@@ -5,6 +5,7 @@ import type { Scene } from "@babylonjs/core/scene";
 import { ModelRegistry, type ModelInstance } from "../utils/ModelRegistry";
 import type { ItemData, PickupsData } from "./PickupConfig";
 // Pickup models register themselves in ModelRegistry when their modules load.
+import "../weapons/models/ExtinguisherModel";
 import "./models/BalloonPackModel";
 import "./models/CanisterModel";
 import "./models/CapacitorModel";
@@ -85,7 +86,7 @@ export class Pickup {
   /** Spin and bob at simulated time `time` (s). */
   animate(time: number): void {
     const { hover, bobAmplitude, bobSpeed, spinSpeed } = this.config.pickup;
-    this.model.root.position.set(0, hover + Math.sin(time * bobSpeed + this.phase) * bobAmplitude, 0);
+    this.model.root.position.set(0, hover + (this.data.lift ?? 0) + Math.sin(time * bobSpeed + this.phase) * bobAmplitude, 0);
     this.model.root.rotation.y = time * spinSpeed + this.phase;
   }
 

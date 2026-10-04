@@ -308,53 +308,35 @@
         { "name": "warning", "shape": "box", "size": [0.004, 0.03, 0.06], "position": [0.042, 0.0, -0.06], "color": "trim", "emissive": 0.6 }
       ]
     },
-    "hose": {
-      "//": "Hadice (zbraň 6, fáze 13): mosazná proudnice s pákou a gumovým úchopem, za ní červená hadice ohnutá dolů z obrazu (k hydrantu). Osa = +z, počátek = úchop.",
+    "bfg9000": {
+      "//": "BFG 9000 (zbraň 6, FEEDBACK 2026-10-04 místo hadice): kondenzátorové EMP dělo z kabinetu matematiky — hranaté tělo, čtyři kondenzátory po stranách ('cap1'–'cap4', matné), válcový plášť hlavně s ústím a třemi drápy, svítí jen jádro v ústí ('core') a dvě štěrbiny pláště ('ventL', 'ventR'; slot 'lens' = tmavé sklo, záři přidává kód barvou neon.plasma z weapons.json → bfg9000.effect): po výstřelu tma, během nabíjení se rozsvěcují, připravené jemně pulzuje, při roztáčení se rozzáří (src/weapons/Bfg9000.ts). Osa = +z, počátek u spouště.",
       "category": "weapon",
       "defaultVariant": "default",
       "variants": {
-        "default": { "brass": "accent.gold", "rubber": "base.ash", "hose": "accent.red", "lever": "keys.red", "metal": "world.steel" }
+        "default": { "body": "world.metal", "dark": "base.ash", "cap": "accent.sea", "band": "accent.copper", "lens": "base.ash", "trim": "neon.warning" }
       },
-      "anchors": { "muzzle": [0, 0, 0.24] },
+      "anchors": { "muzzle": [0, 0.01, 0.44] },
       "parts": [
-        { "name": "grip", "shape": "cylinder", "size": [0.068, 0.07, 0.068], "tessellation": 10, "position": [0, 0, 0.0], "rotationDeg": [90, 0, 0], "color": "rubber" },
-        { "name": "body", "shape": "cylinder", "size": [0.045, 0.12, 0.06], "tessellation": 10, "position": [0, 0, 0.095], "rotationDeg": [90, 0, 0], "color": "brass", "emissive": 0.15 },
-        { "name": "tip", "shape": "cylinder", "size": [0.028, 0.06, 0.042], "tessellation": 8, "position": [0, 0, 0.185], "rotationDeg": [90, 0, 0], "color": "brass", "emissive": 0.15 },
-        { "name": "tipRing", "shape": "cylinder", "size": [0.034, 0.012, 0.034], "tessellation": 8, "position": [0, 0, 0.21], "rotationDeg": [90, 0, 0], "color": "metal" },
-        { "name": "lever", "shape": "box", "size": [0.014, 0.075, 0.014], "position": [0, 0.045, 0.06], "rotationDeg": [-35, 0, 0], "color": "lever", "emissive": 0.3 },
-        { "name": "leverBar", "shape": "box", "size": [0.07, 0.012, 0.014], "position": [0, 0.075, 0.08], "color": "lever", "emissive": 0.3 },
-        { "name": "coupling", "shape": "cylinder", "size": [0.062, 0.04, 0.062], "tessellation": 10, "position": [0, 0, -0.055], "rotationDeg": [90, 0, 0], "color": "metal" },
-        { "name": "hose1", "shape": "cylinder", "size": [0.048, 0.24, 0.048], "tessellation": 8, "position": [0, -0.055, -0.155], "rotationDeg": [58, 0, 0], "color": "hose" },
-        { "name": "hose2", "shape": "cylinder", "size": [0.048, 0.28, 0.048], "tessellation": 8, "position": [0, -0.24, -0.255], "rotationDeg": [18, 0, 0], "color": "hose" }
-      ]
-    },
-    "hydrant": {
-      "//": "Nástěnný hydrant v tělocvičně (fáze 13, stanice hadice): červená skříň na zdi s navinutou hadicí na bubnu, ventilové kolo na stoupačce a cedulka. Proudnice ('nozzle') visí na skříni, dokud ji hráč nevezme. Počátek = podlaha u zdi, skříň hledí k +z.",
-      "category": "prop",
-      "defaultVariant": "default",
-      "variants": {
-        "default": { "cabinet": "accent.red", "frame": "base.ash", "hose": "accent.rust", "metal": "world.steel", "valve": "neon.warning", "sign": "base.white", "brass": "accent.gold" }
-      },
-      "groups": { "nozzle": [-0.25, 0.92, 0.25] },
-      "anchors": { "outlet": [-0.25, 0.92, 0.3] },
-      "parts": [
-        { "name": "back", "shape": "box", "size": [0.74, 0.84, 0.04], "position": [0, 1.3, 0.02], "color": "cabinet" },
-        { "name": "sideL", "shape": "box", "size": [0.04, 0.84, 0.24], "position": [-0.35, 1.3, 0.12], "color": "cabinet" },
-        { "name": "sideR", "shape": "box", "size": [0.04, 0.84, 0.24], "position": [0.35, 1.3, 0.12], "color": "cabinet" },
-        { "name": "top", "shape": "box", "size": [0.74, 0.04, 0.24], "position": [0, 1.7, 0.12], "color": "cabinet" },
-        { "name": "bottom", "shape": "box", "size": [0.74, 0.04, 0.24], "position": [0, 0.9, 0.12], "color": "cabinet" },
-        { "name": "frame", "shape": "box", "size": [0.76, 0.03, 0.02], "position": [0, 1.73, 0.245], "color": "frame" },
-        { "name": "reel", "shape": "cylinder", "size": [0.5, 0.14, 0.5], "tessellation": 14, "position": [0, 1.3, 0.12], "rotationDeg": [90, 0, 0], "color": "hose" },
-        { "name": "reelFace", "shape": "cylinder", "size": [0.54, 0.012, 0.54], "tessellation": 14, "position": [0, 1.3, 0.195], "rotationDeg": [90, 0, 0], "color": "frame" },
-        { "name": "hub", "shape": "cylinder", "size": [0.14, 0.05, 0.14], "tessellation": 8, "position": [0, 1.3, 0.22], "rotationDeg": [90, 0, 0], "color": "metal" },
-        { "name": "riser", "shape": "cylinder", "size": [0.07, 0.9, 0.07], "tessellation": 8, "position": [0.24, 0.45, 0.08], "color": "metal" },
-        { "name": "valveWheel", "shape": "cylinder", "size": [0.16, 0.025, 0.16], "tessellation": 10, "position": [0.24, 0.72, 0.15], "rotationDeg": [90, 0, 0], "color": "valve", "emissive": 0.4 },
-        { "name": "valveStem", "shape": "cylinder", "size": [0.025, 0.07, 0.025], "tessellation": 6, "position": [0.24, 0.72, 0.11], "rotationDeg": [90, 0, 0], "color": "metal" },
-        { "name": "sign", "shape": "box", "size": [0.34, 0.12, 0.012], "position": [0, 1.86, 0.03], "color": "sign", "emissive": 0.7 },
-        { "name": "signMark", "shape": "box", "size": [0.08, 0.08, 0.014], "position": [-0.1, 1.86, 0.035], "color": "cabinet", "emissive": 0.5 },
-        { "name": "hoseDrop", "shape": "cylinder", "size": [0.045, 0.36, 0.045], "tessellation": 8, "position": [-0.25, 1.1, 0.25], "color": "hose" },
-        { "name": "nozzleGrip", "shape": "cylinder", "size": [0.06, 0.07, 0.06], "tessellation": 8, "position": [-0.25, 0.92, 0.25], "color": "frame", "group": "nozzle" },
-        { "name": "nozzleBody", "shape": "cylinder", "size": [0.03, 0.14, 0.05], "tessellation": 8, "position": [-0.25, 0.8, 0.25], "color": "brass", "emissive": 0.2, "group": "nozzle" }
+        { "name": "body", "shape": "box", "size": [0.13, 0.12, 0.36], "position": [0, 0.0, 0.0], "color": "body" },
+        { "name": "shroud", "shape": "box", "size": [0.1, 0.035, 0.3], "position": [0, 0.075, 0.02], "color": "dark" },
+        { "name": "stock", "shape": "box", "size": [0.08, 0.09, 0.14], "position": [0, -0.01, -0.24], "rotationDeg": [5, 0, 0], "color": "dark" },
+        { "name": "grip", "shape": "box", "size": [0.05, 0.13, 0.065], "position": [0, -0.11, -0.07], "rotationDeg": [-14, 0, 0], "color": "dark" },
+        { "name": "foreGrip", "shape": "box", "size": [0.045, 0.1, 0.05], "position": [0, -0.1, 0.13], "color": "dark" },
+        { "name": "cap1", "shape": "cylinder", "size": [0.05, 0.22, 0.05], "tessellation": 8, "position": [-0.088, 0.03, 0.0], "rotationDeg": [90, 0, 0], "color": "cap" },
+        { "name": "cap2", "shape": "cylinder", "size": [0.05, 0.22, 0.05], "tessellation": 8, "position": [-0.088, -0.03, 0.0], "rotationDeg": [90, 0, 0], "color": "cap" },
+        { "name": "cap3", "shape": "cylinder", "size": [0.05, 0.22, 0.05], "tessellation": 8, "position": [0.088, 0.03, 0.0], "rotationDeg": [90, 0, 0], "color": "cap" },
+        { "name": "cap4", "shape": "cylinder", "size": [0.05, 0.22, 0.05], "tessellation": 8, "position": [0.088, -0.03, 0.0], "rotationDeg": [90, 0, 0], "color": "cap" },
+        { "name": "bandBack", "shape": "box", "size": [0.23, 0.11, 0.02], "position": [0, 0.0, -0.08], "color": "band" },
+        { "name": "bandFront", "shape": "box", "size": [0.23, 0.11, 0.02], "position": [0, 0.0, 0.08], "color": "band" },
+        { "name": "housing", "shape": "cylinder", "size": [0.15, 0.16, 0.15], "tessellation": 10, "position": [0, 0.01, 0.26], "rotationDeg": [90, 0, 0], "color": "body" },
+        { "name": "ventL", "shape": "box", "size": [0.006, 0.03, 0.12], "position": [-0.074, 0.01, 0.26], "color": "lens" },
+        { "name": "ventR", "shape": "box", "size": [0.006, 0.03, 0.12], "position": [0.074, 0.01, 0.26], "color": "lens" },
+        { "name": "muzzleRing", "shape": "cylinder", "size": [0.17, 0.03, 0.17], "tessellation": 10, "position": [0, 0.01, 0.35], "rotationDeg": [90, 0, 0], "color": "dark" },
+        { "name": "core", "shape": "cylinder", "size": [0.11, 0.02, 0.11], "tessellation": 10, "position": [0, 0.01, 0.367], "rotationDeg": [90, 0, 0], "color": "lens" },
+        { "name": "clawTop", "shape": "box", "size": [0.025, 0.02, 0.08], "position": [0, 0.085, 0.4], "rotationDeg": [-12, 0, 0], "color": "dark" },
+        { "name": "clawLeft", "shape": "box", "size": [0.02, 0.025, 0.08], "position": [-0.075, -0.035, 0.4], "rotationDeg": [8, -12, 0], "color": "dark" },
+        { "name": "clawRight", "shape": "box", "size": [0.02, 0.025, 0.08], "position": [0.075, -0.035, 0.4], "rotationDeg": [8, 12, 0], "color": "dark" },
+        { "name": "warning", "shape": "box", "size": [0.004, 0.03, 0.08], "position": [0.067, 0.04, -0.12], "color": "trim", "emissive": 0.6 }
       ]
     },
     "extinguisherCabinet": {

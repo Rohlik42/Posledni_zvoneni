@@ -30,7 +30,7 @@ const SPREAD_TRIES = 3;
 
 const TYPES = ["humanoid", "quadruped", "drone"] as const;
 const SUBJECTS = Object.fromEntries(TYPES.map((type) => [type, WeaponBench.robots(type)[0]!])) as Record<(typeof TYPES)[number], string>;
-const WEAPONS = ["waterPistol", "extinguisher", "waterBalloons", "taser", "railgun", "hose"].map((id) => WeaponBench.weapon(id));
+const WEAPONS = ["waterPistol", "extinguisher", "waterBalloons", "taser", "railgun", "bfg9000"].map((id) => WeaponBench.weapon(id));
 
 interface Row {
   weapon: string;
@@ -65,9 +65,10 @@ test.afterAll(async () => {
   await page.close();
 });
 
-/** Seconds between two shots while firing without a break. */
+/** Seconds between two shots while firing without a break (railgun and BFG: the recharge; BFG: plus the spin-up). */
 function cycle(weapon: BenchWeapon): number {
-  const reload = weapon.ammo.capacity === 1 ? weapon.ammo.reloadTime : 0;
+  const oneShot = weapon.ammo.capacity > 0 && weapon.ammo.reloadTime > 0 && weapon.kind !== "hitscan";
+  const reload = oneShot ? weapon.ammo.reloadTime + (weapon.params.spinUpTime ?? 0) : 0;
   return Math.max(1 / weapon.fireRate, reload);
 }
 

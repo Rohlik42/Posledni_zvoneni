@@ -19,7 +19,7 @@ const devScenes = JSON.parse(readFileSync("data/dev-scenes.json", "utf8")) as {
 };
 const encounters = JSON.parse(readFileSync("data/encounters.json", "utf8")) as Record<string, { enemies: { id: string; position: Tuple }[] }>;
 const pickups = JSON.parse(readFileSync("data/pickups.json", "utf8")) as {
-  items: Record<string, { amount?: number }>;
+  items: Record<string, { amount?: number; grantsWeapon?: boolean; weapon?: string }>;
   powerUps: Record<string, { duration: number; speedMultiplier?: number; damageMultiplier?: Record<string, number> }>;
 };
 const doorsData = JSON.parse(readFileSync("data/doors.json", "utf8")) as { motion: { openTime: number } };
@@ -317,7 +317,7 @@ test("rubber boots cut electric damage, the medkit waits for missing health and 
   expect(result.healed).toBe(result.hurt + medkit.amount!);
 });
 
-test("robot drops become pickups where the robot fell (Enemy.onDrop), and ammo without its weapon waits in the inventory", async () => {
+test("robot drops become pickups where the robot fell (Enemy.onDrop); balloons hand over their weapon, other ammo without its weapon waits in the inventory", async () => {
   const result = await page.evaluate((guardId) => {
     const g = window.__game!;
     // Drops are a seeded roll per death: kill and revive until something drops.
@@ -330,17 +330,33 @@ test("robot drops become pickups where the robot fell (Enemy.onDrop), and ammo w
     const drops = g.enemies!.drops();
     const dropped = g.pickups!.list().filter((p) => p.fromDrop);
     const first = dropped[0]!;
-    // Walk onto it: ammo for a weapon the player does not have goes into the stash.
+    // Walk onto it: ammo for a weapon the player does not have goes into the stash, a balloon pack (FEEDBACK
+    // 2026-10-04: the balloons are their own weapon) hands over the balloons with that many in the reserve.
     g.player!.teleport(first.position.x, first.position.y, first.position.z);
     g.step(300);
-    return { drops, dropped, droppedCount: g.pickups!.dropped, collected: g.pickups!.list().find((p) => p.id === first.id)!.collected, stash: g.inventory!.stash() };
+    return {
+      drops,
+      dropped,
+      first: { item: first.item, amount: first.amount },
+      droppedCount: g.pickups!.dropped,
+      collected: g.pickups!.list().find((p) => p.id === first.id)!.collected,
+      stash: g.inventory!.stash(),
+      weapons: g.inventory!.weapons,
+      balloons: g.weapons!.state("waterBalloons")?.reserve ?? null,
+    };
   }, guardId);
   expect(result.drops.length).toBeGreaterThan(0);
   expect(result.droppedCount).toBe(result.drops.length);
   expect(result.dropped.map((p) => p.item).sort()).toEqual(result.drops.map((d) => d.item).sort());
   expect(result.dropped.map((p) => p.amount).sort()).toEqual(result.drops.map((d) => d.amount).sort());
   expect(result.collected).toBe(true);
-  expect(Object.values(result.stash).reduce((a, b) => a + b, 0)).toBeGreaterThan(0);
+  const item = pickups.items[result.first.item]!;
+  if (item.grantsWeapon === true) {
+    expect(result.weapons).toContain(item.weapon);
+    expect(result.balloons).toBe(result.first.amount ?? item.amount);
+  } else {
+    expect(Object.values(result.stash).reduce((a, b) => a + b, 0)).toBeGreaterThan(0);
+  }
 });
 
 test("the HUD shows weapon slots 1–6 with the pistol active, keys and Czech texts with diacritics", async () => {
@@ -352,7 +368,8 @@ test("the HUD shows weapon slots 1–6 with the pistol active, keys and Czech te
   expect(hud.crosshair).toBe(true);
   expect(hud.slots.map((s) => s.slot)).toEqual([1, 2, 3, 4, 5, 6]);
   expect(hud.slots.find((s) => s.slot === 1)).toMatchObject({ owned: true, active: true });
-  expect(hud.slots.filter((s) => s.owned).length).toBe(1);
+  // Only the pistol, plus the balloons if the robot-drop check above handed them over (a balloon pack is its own weapon).
+  expect(hud.slots.filter((s) => s.owned && s.slot !== 1).every((s) => s.slot === 3)).toBe(true);
   expect(hud.keys).toEqual(["red"]);
   expect(texts.doors.locked.red).toMatch(/[ěščřžýáíéůú]/);
 });

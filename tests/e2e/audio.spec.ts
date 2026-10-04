@@ -55,6 +55,11 @@ const KEY_SOUNDS = [
     "trapBlast",
     "extinguisherHiss",
     "splash",
+    // BFG 9000 (FEEDBACK 2026-10-04): spin-up whine (its fire sound), launch, EMP boom, recharge hum and ready chime.
+    "bfgLaunch",
+    "bfgBoom",
+    "bfgRecharge",
+    "bfgReady",
     ...weapons.weapons.map((w) => w.sounds.fire),
   ]),
 ];

@@ -23,22 +23,29 @@
     "medkit": "Lékárnička: +{amount} zdraví",
     "energy-drink": "Energeťák! Rychlost +{percent} % na {seconds} s",
     "rubber-boots": "Gumáky! Elektřina ti ubere o {percent} % méně",
-    "weapon-balloons": "Vodní balónky! (zbraň 3)",
-    "ammo-balloons": "Vodní balónky +{amount}",
-    "ammo-railgun": "Kondenzátory do railgunu +{amount}",
+    "balloons": "Vodní balónky +{amount}",
+    "extinguisher": "Hasicí přístroj: nádržka +{amount}",
     "ammo-extinguisher": "Náplň do hasičáku +{amount}",
-    "weapon-extinguisher": "Hasicí přístroj! (zbraň 2)",
+    "capacitors": "Kondenzátory +{amount} (railgun a BFG)",
     "weapon-taser": "Paralyzér! (zbraň 4)",
     "weapon-railgun": "Školní railgun! (zbraň 5)",
+    "weapon-bfg": "BFG 9000! (zbraň 6) — kondenzátorové EMP dělo, vykosí roboty v okolí",
     "key-red": "Máš červený klíč!",
     "key-yellow": "Máš žlutý klíč!",
     "key-blue": "Máš modrý klíč!"
+  },
+  "itemsNew": {
+    "//": "FEEDBACK 2026-10-04 'hasičák a balónky jsou samy náboje': toast věci s grantsWeapon (data/pickups.json), když hráč zbraň teprve dostane.",
+    "balloons": "Vodní balónky! (zbraň 3) ×{amount}",
+    "extinguisher": "Hasicí přístroj! (zbraň 2)"
   },
   "fullHealth": "Máš plné zdraví. Lékárničku si nech na potom.",
   "fullAmmo": "{weapon}: plná zásoba, víc neuneseš. Nech to tu na potom.",
   "hud": {
     "keys": "KLÍČE",
     "seconds": "{seconds} s",
+    "recharge": "NABÍJENÍ {percent} %",
+    "spinUp": "ROZTÁČENÍ…",
     "powerUps": { "energyDrink": "ENERGEŤÁK", "rubberBoots": "GUMÁKY" }
   },
   "teachers": {

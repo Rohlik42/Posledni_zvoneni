@@ -34,5 +34,5 @@ ModelRegistry.register({
   name: "ExtinguisherModel",
   category: "weapon",
   title: "Hasicí přístroj (zbraň 2)",
-  create: (scene) => new ExtinguisherModel(scene),
+  create: (scene, options) => new ExtinguisherModel(scene, options),
 });

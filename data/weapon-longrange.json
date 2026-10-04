@@ -4,7 +4,8 @@
     "extinguisher",
     "waterBalloons",
     "taser",
-    "railgun"
+    "railgun",
+    "bfg9000"
   ],
   "select": 1,
   "bonusAmmo": {

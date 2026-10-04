@@ -16,7 +16,10 @@ const input = json<{ keys: Record<string, string>; cheats: { codes: Record<"god"
 const texts = json<{ cheats: { god: { on: string; off: string }; arsenal: string; noclip: { on: string; off: string }; badges: { god: string; noclip: string } } }>(
   "data/texts.json",
 );
-const weaponsData = json<{ weapons: { id: string; enabled: boolean; ammo: { capacity: number; reserveMax: number; infiniteReserve?: boolean } }[] }>("data/weapons.json");
+const weaponsData = json<{
+  weapons: { id: string; enabled: boolean; ammoType?: string; ammo: { capacity: number; reserveMax: number; infiniteReserve?: boolean } }[];
+  ammoTypes: Record<string, { reserveMax: number }>;
+}>("data/weapons.json");
 const levelKeys = json<{ keys: { color: string }[] }>("data/level.json").keys.map((k) => k.color);
 const devScenes = json<{ doors: { door: { id: string; center: Tuple; depth: number }; pickups: { id: string; position: Tuple }[] }; teacher: { spawn: { position: Tuple } } }>(
   "data/dev-scenes.json",
@@ -145,8 +148,11 @@ test("IDKFA: every weapon with full ammo and every key; its F does not fire, IDD
   for (const w of enabled) {
     const ammo = state.ammo.find((a) => a?.id === w.id)!;
     if (w.ammo.capacity > 0) expect(ammo.magazine, w.id).toBe(w.ammo.capacity);
-    if (w.ammo.infiniteReserve !== true) expect(ammo.reserve, w.id).toBe(w.ammo.reserveMax);
+    // A shared reserve (the capacitors of the railgun and the BFG 9000) is filled to its type's limit.
+    const max = w.ammoType !== undefined ? weaponsData.ammoTypes[w.ammoType]!.reserveMax : w.ammo.reserveMax;
+    if (w.ammo.infiniteReserve !== true) expect(ammo.reserve, w.id).toBe(max);
   }
+  expect(state.list.find((w) => w.slot === 6)).toMatchObject({ id: "bfg9000", owned: true });
   expect([...state.keys].sort()).toEqual([...levelKeys].sort());
   expect(state.shots).toBe(shots0);
   expect(state.toasts).toContain(texts.cheats.arsenal);

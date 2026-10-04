@@ -7,7 +7,8 @@ import type { Player } from "../player/Player";
 import { Palette } from "../utils/Palette";
 import { Texts } from "../utils/Texts";
 import { FeelConfig, type HudData } from "../weapons/FeelConfig";
-import type { ShotEvent } from "../weapons/Weapon";
+import type { ShotEvent, Weapon } from "../weapons/Weapon";
+import { WeaponConfig } from "../weapons/WeaponConfig";
 import type { WeaponInventory } from "../weapons/WeaponInventory";
 import type { Inventory } from "../player/Inventory";
 import { CheatBadges } from "./CheatBadges";
@@ -50,6 +51,8 @@ export interface HudTestApi {
   readonly hint: string | null;
   /** Badges of the cheats that are on, top left (FEEDBACK 2026-10-04). */
   cheats: () => string[];
+  /** Recharge line under the ammo (BFG 9000, railgun): its text and bar 0–1, or null while hidden. */
+  recharge: () => { text: string; bar: number } | null;
 }
 
 declare module "../core/TestHooks" {
@@ -80,6 +83,9 @@ export class Hud {
   private readonly ammoValue: HTMLSpanElement;
   private readonly ammoRest: HTMLSpanElement;
   private readonly ammoName: HTMLSpanElement;
+  private readonly rechargeLine: HTMLDivElement;
+  private readonly rechargeText: HTMLSpanElement;
+  private readonly rechargeFill: HTMLDivElement;
   private readonly frameObserver: Observer<Scene>;
   private readonly stepObserver: Observer<number>;
   private readonly shotObserver: Observer<ShotEvent>;
@@ -127,11 +133,24 @@ export class Hud {
     Object.assign(this.ammoRest.style, { fontSize: `${this.data.fontSize * SMALL_TEXT_SHARE}px`, color: Palette.hex(colors.label), marginLeft: "6px" });
     line.append(this.ammoValue, this.ammoRest);
     ammo.append(line);
+    this.extra = HudConfig.load();
+    // Recharge line (FEEDBACK 2026-10-04 BFG): percent and a bar while a long recharge or the spin-up runs.
+    const { recharge } = this.extra;
+    this.rechargeLine = document.createElement("div");
+    Object.assign(this.rechargeLine.style, { display: "none", marginTop: "4px" });
+    this.rechargeText = document.createElement("span");
+    Object.assign(this.rechargeText.style, { display: "block", fontSize: `${recharge.fontSize}px`, letterSpacing: `${LABEL_LETTER_SPACING_EM}em`, color: Palette.hex(colors.label) });
+    const rechargeBar = document.createElement("div");
+    Object.assign(rechargeBar.style, { width: `${recharge.width}px`, height: `${recharge.height}px`, background: Palette.hex(colors.panel), marginLeft: "auto", marginTop: "2px" });
+    this.rechargeFill = document.createElement("div");
+    Object.assign(this.rechargeFill.style, { height: "100%", width: "0%", background: Palette.hex(recharge.color) });
+    rechargeBar.append(this.rechargeFill);
+    this.rechargeLine.append(this.rechargeText, rechargeBar);
+    ammo.append(this.rechargeLine);
 
     this.root.append(health, ammo);
     parent.append(this.root);
     this.crosshair = new Crosshair(this.root, feel.crosshair, feel.hitmarker);
-    this.extra = HudConfig.load();
     this.toasts = new Toasts(this.root, this.extra.toast, this.data.fontFamily);
     this.slots = new WeaponSlotsBar(this.root, inventory, this.extra.slots, this.data.fontFamily);
     this.hintElement = this.hint();
@@ -218,18 +237,40 @@ export class Hud {
     if (weapon === null) {
       this.ammoValue.textContent = "";
       this.ammoRest.textContent = "";
+      this.showRecharge(null);
       return;
     }
     const { capacity } = weapon.data.ammo;
     const magazine = Math.floor(weapon.magazine);
-    // Weapons without a magazine show the reserve as the big number, and the hose's reserve is endless.
+    // Weapons without a magazine show the reserve as the big number; an endless reserve shows the infinity symbol.
     const amount = (value: number): string => (Number.isFinite(value) ? String(Math.floor(value)) : this.data.infiniteSymbol);
     const reserve = amount(weapon.reserve);
+    // A shared reserve (capacitors of the railgun and the BFG) is labelled, so both weapons read as one supply.
+    const shared = weapon.data.ammoType === undefined ? "" : ` ${WeaponConfig.ammoType(weapon.data.ammoType).hudLabel}`;
     this.ammoName.textContent = `${this.data.labels.ammo} · ${weapon.data.name}`;
     this.ammoValue.textContent = amount(weapon.magazine);
-    this.ammoRest.textContent = capacity > 0 ? `/ ${capacity} · ${reserve}` : "";
+    this.ammoRest.textContent = capacity > 0 ? `/ ${capacity} · ${reserve}${shared}` : "";
     const low = capacity > 0 && magazine <= capacity * this.data.ammoLowFraction;
     this.ammoValue.style.color = low ? Palette.hex(this.data.colors.ammoLow) : "";
+    this.showRecharge(this.rechargeState(weapon));
+  }
+
+  /** The recharge line for `weapon`: spin-up (BFG) or a long recharge, else null. */
+  private rechargeState(weapon: Weapon): { text: string; bar: number; spin: boolean } | null {
+    const texts = Texts.load().hud;
+    const spin = weapon.extraState.spinProgress;
+    if (spin !== undefined && spin > 0) return { text: texts.spinUp, bar: spin, spin: true };
+    if (!weapon.reloading || weapon.data.ammo.reloadTime < this.extra.recharge.minTime) return null;
+    const progress = weapon.reloadProgress;
+    return { text: Texts.format(texts.recharge, { percent: Math.floor(progress * PERCENT) }), bar: progress, spin: false };
+  }
+
+  private showRecharge(state: { text: string; bar: number; spin: boolean } | null): void {
+    this.rechargeLine.style.display = state === null ? "none" : "block";
+    if (state === null) return;
+    this.rechargeText.textContent = state.text;
+    this.rechargeFill.style.width = `${(state.bar * PERCENT).toFixed(1)}%`;
+    this.rechargeFill.style.background = Palette.hex(state.spin ? this.extra.recharge.spinColor : this.extra.recharge.color);
   }
 
   /** The door hint under the crosshair (hidden while empty). */
@@ -317,6 +358,8 @@ export class Hud {
         return hud.hintElement.style.display === "none" ? null : hud.hintElement.textContent;
       },
       cheats: () => hud.cheatBadges.texts,
+      recharge: () =>
+        hud.rechargeLine.style.display === "none" ? null : { text: hud.rechargeText.textContent ?? "", bar: Number.parseFloat(hud.rechargeFill.style.width) / PERCENT },
     });
   }
 }

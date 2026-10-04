@@ -30,14 +30,15 @@
     "f4-kabinet-zemepis": [
       { "blueprint": "globe", "x": 30.2, "z": 23.9, "facing": "maxZ" }
     ],
-    "f4-kabinet-matematika": [
+    "f4-kabinet-dejepis": [
       { "blueprint": "blackboard", "wall": "minX", "at": 27.0 },
       { "blueprint": "cabinet", "wall": "minX", "at": 24.0 },
       { "blueprint": "cabinet", "wall": "minX", "at": 29.9 },
       { "blueprint": "teacherDesk", "x": 43.2, "z": 29.6, "facing": "maxX" },
       { "blueprint": "schoolDesk", "x": 47.9, "z": 24.5, "facing": "minX", "grid": { "count": [1, 2], "step": [0, 1.7] } },
       { "blueprint": "schoolChair", "x": 48.4, "z": 24.2, "facing": "minX", "grid": { "count": [1, 2], "step": [0, 0.6] } },
-      { "blueprint": "schoolChair", "x": 48.4, "z": 25.9, "facing": "minX", "grid": { "count": [1, 2], "step": [0, 0.6] } }
+      { "blueprint": "schoolChair", "x": 48.4, "z": 25.9, "facing": "minX", "grid": { "count": [1, 2], "step": [0, 0.6] } },
+      { "blueprint": "globe", "x": 47.9, "z": 30.2, "facing": "minX" }
     ],
     "f3-kabinet-fyzika": [
       { "blueprint": "blackboard", "wall": "minZ", "at": 6.5 },
@@ -66,10 +67,9 @@
       { "blueprint": "schoolDesk", "variant": "worn", "x": 50.4, "z": 28.4, "facing": "maxZ" },
       { "blueprint": "schoolChair", "variant": "worn", "x": 50.1, "z": 27.9, "facing": "maxZ", "grid": { "count": [2, 1], "step": [0.6, 0] } }
     ],
-    "f2-kabinet-dejepis": [
+    "f2-kabinet-matematika": [
       { "blueprint": "blackboard", "wall": "minZ", "at": 6.45 },
       { "blueprint": "teacherDesk", "x": 8.2, "z": 6.6, "facing": "maxZ" },
-      { "blueprint": "globe", "x": 9.2, "z": 8.0, "facing": "minX" },
       { "blueprint": "schoolDesk", "x": 4.6, "z": 10.4, "facing": "minZ", "grid": { "count": [1, 2], "step": [0, 1.6] } },
       { "blueprint": "schoolChair", "x": 4.3, "z": 10.9, "facing": "minZ", "grid": { "count": [2, 2], "step": [0.6, 1.6] } },
       { "blueprint": "cabinet", "wall": "minX", "at": 6.5, "grid": { "count": [1, 2], "step": [0, 1.08] } }

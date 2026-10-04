@@ -1,5 +1,5 @@
 import { Extinguisher } from "./Extinguisher";
-import { Hose } from "./Hose";
+import { Bfg9000 } from "./Bfg9000";
 import { Railgun } from "./Railgun";
 import { Taser } from "./Taser";
 import { WaterBalloons } from "./WaterBalloons";
@@ -19,7 +19,7 @@ export class WeaponFactory {
     WaterBalloons: (context, data) => new WaterBalloons(context, data),
     Taser: (context, data) => new Taser(context, data),
     Railgun: (context, data) => new Railgun(context, data),
-    Hose: (context, data) => new Hose(context, data),
+    Bfg9000: (context, data) => new Bfg9000(context, data),
   };
 
   static has(className: string): boolean {

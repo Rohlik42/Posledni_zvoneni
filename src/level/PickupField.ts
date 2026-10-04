@@ -223,6 +223,7 @@ export class PickupField {
     const texts = Texts.load();
     if (item.kind === "health") return texts.fullHealth;
     if (item.kind !== "ammo") return null;
+    if (item.ammoType !== undefined) return Texts.format(texts.fullAmmo, { weapon: WeaponConfig.ammoType(item.ammoType).name });
     const weapon = WeaponConfig.load().weapons.find((w) => w.id === item.weapon);
     return Texts.format(texts.fullAmmo, { weapon: weapon?.name ?? item.weapon ?? "" });
   }
