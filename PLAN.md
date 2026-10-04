@@ -640,6 +640,10 @@ Silueta, posterizace oblohy, kreslení po sloupcích, jiný zdroj obrázku, ruč
 - (Operátor, kritika směny 8) Název `stats().gpuFrameMs` a komentář `FrameSampler` („GPU time of the frames“) slibují víc, než čítač na Metalu měří; kontrakt `__game` se nepřejmenovává (jen přidávat), stačí upravit komentář při další práci na `FrameSampler`
 - (Operátor, kritika směny 8) Jednorázových 22,2 fps v sondě fáze 27 (1080p, vše vypnuto) se nezopakovalo; když se objeví v perf testu 3, jde o fps flake k vyšetření
 - (Operátor, kritika směny 8) `?gpuTiming=1` přidá ~1 ms CPU a ~46 draw callů; příčina nevyšetřená, hráči parametr nedostanou; bez akce
+- (Operátor, kritika směny 9) **Úvodní výhled z učebny 30 skoro neukazuje Prahu**: v `screenshots/F2-window-ucebna30.png` je v okně fialová obloha, záře a pár komínů, žádné dominanty (Mikuláš je vidět jen z chodby, `F2-window-mikulas.png`). Jestli to stačí, rozhodne člověk při hraní; případně do FEEDBACK.md
+- (Operátor, kritika směny 9) Fotka Prahy je tenký pás nad obzorem a spodní půlka bočních stěn je hladký opar (v okně chodby přes půl okna). Volba vzhledu pro člověka
+- (Operátor, kritika směny 9) Bílé komíny a bílá zeď terasy jsou zčásti obarvené jako obloha (světlé ploché bloky, okraje `F2-skybox-cross.png`); u az 115–125° zůstala slabá cihlová římsa parapetu. Kosmetika, popsáno v DECISIONS „Fáze F2“
+- (Operátor, kritika směny 9) `window-view.spec.ts` hlídá pruhy a minimální jas, ne čitelnost fotky (plochá modrá obloha by prošla); pohled z chodby odliší F1 od F2 jen těsně (F1 1,07 při mezi 1,0). Silnější je pohled z učebny 30 (F1 2,27); bez akce
 
 ## Run — směna 7 (2026-10-04)
 
@@ -675,3 +679,15 @@ Groom `12cf0d7` přidal fázi 27 (jediná akční položka z kritiky směny 7). 
 | 27 — GPU čas snímku a poctivá tvrzení o výkonu | ano (`ddbdc69`) | typecheck 0; data 131/131; Playwright 12/12 (smoke + 6 `perf`), 51 s; Vysoké 60,0 fps, CPU 7,97 ms; po review fix pass (mez 5 ms zrušena, čítač jen zapisován) | čítač GPU na Metalu práci GPU neměří (SSAO 1,65 → 1,65 ms; v 5760×3240 při 33 fps 0,015 ms); první smoke běh jednou `504 Outdated Optimize Dep` (Vite po merge), opakování zelené |
 
 **Otevřené body:** kritika směny 8 zapsána do Backlogu výše. Operátor opravil rozpor v Done bloku fáze 27 (poznámka o překonané první části) a poslední odrážku DECISIONS „Fáze 27“. **Další dávka:** `serial: ["F2"]` sama (STEER bod 9); po F2 se negroomuje a smyčka končí.
+
+## Run — směna 9 (2026-10-04)
+
+Bez groomu (STEER bod 9). Fáze F2 sama: `569fdfd` Merge Phase F2, `ccc39c5` připsáno „Zapracováno 2026-10-04“ do FEEDBACK.md. Nic nepushnuto, `handoff/CONTROL.json` neexistuje.
+
+**Shift gate** (`npm run test:full` na main @ `ccc39c5`, jediný běh): **zelená**. Build bez varování (1217 modulů), test:data **131/131**, Playwright **121/121** (1 worker, 2,7 min, 0 flaky, 0 skip; nový `window-view.spec.ts` |Δ| 0,27 / 0,42, jas oblohy 37,8 / 33,2).
+
+| Fáze | Merged | Quick gate | Flagy |
+| --- | --- | --- | --- |
+| F2 — skybox jako skutečná fotka Prahy, bez svislých pruhů | ano (`569fdfd`) | typecheck 0; data 131/131; Playwright 20/20 (smoke + level-walk + window-view), 13 s | odchylky v Done bloku (parapet z masky „ne červená taška“, `level` 1,5 → 2,0 místo nového `skyExposure`, stěny 88–130 kB, snímek Hradu z učebny 30, test dvou pohledů); kosmetika: bílé komíny, římsa u az 115–125° |
+
+**Otevřené body:** kritika směny 9 zapsána do Backlogu výše. Hlavní z nich: úvodní výhled z učebny 30 ukazuje oblohu a záři, ne dominanty. **Smyčka končí** (STEER bod 9): člověk hraje, nová práce přijde z FEEDBACK.md.
