@@ -1,7 +1,7 @@
 # Phase 27 — GPU čas snímku a poctivá tvrzení o výkonu (handoff)
 
 Branch `worktree-wf_972b8070-ee3-1`, worktree `.claude/worktrees/wf_972b8070-ee3-1`, base main @ 12cf0d7.
-Status: **fix pass after review in progress** (see „Fix pass“ at the end; it supersedes the GPU-limit parts above).
+Status: **done after fix pass** (see „Fix pass“ at the end; it supersedes the GPU-limit parts above).
 
 ## What changed
 - `src/core/EngineFactory.ts`: `?gpuTiming=1` (constant `GPU_TIMING_PARAM`) → `WebGPUEngine` gets
@@ -107,3 +107,16 @@ and when the game is truly GPU-bound (dsf3: 33 fps at 11 ms CPU, SSAO off → 48
   „Důsledek“ paragraph and rewritten „Jak číst čísla“ (GPU ms unknown, which side decides is unknown, GPU regressions
   guarded only by `fps ≥ 57`).
 - PLAN.md DoD 1b (columns 3–5) and the DoD header note reworded; Done block gets a fix-pass note.
+
+**Quick gate after the fix (port 5301 via `PW_PORT=5301`):** typecheck exit 0; test:data fail 0; Playwright 12/12 in
+51,0 s. perf.json: Vysoké (test 3) 60,0 fps, CPU avg 7,97 ms; Nízké + CPU 4× 39,5 fps, CPU 23,6 ms; test 6 60,1 fps,
+GPU counter avg 1,61 ms (150 samples, recorded only), CPU 8,74 ms; autodetect up Střední 57,4 → Vysoké 60,0; down
+Střední 9,3 → Nízké 15,6; load 1,74 s. Earlier runs 1–3 above are still valid (the fix only removed an assert).
+
+**Visual check (fix pass):** own server :5301, Chrome MCP tab (closed), `/?new=1&gpuTiming=1`, clicked, 4 s: story screen
+„POSLEDNÍ ZVONĚNÍ.“ fine; after dismiss + Vysoké: učebna 30 with window panorama, desks, door, lockers, water-pistol
+viewmodel; zoomed HUD strip (KLÍČE, ZDRAVÍ 150, 6 slots, MUNICE 30/30) fine. `stats()` → renderer webgpu,
+`gpuTiming` true, `gpuFrameMs` null (regular Chrome has no `writeTimestamp`, as documented). Server killed after.
+
+**Flags for the next agent / merge:** perf.json `highGpu` no longer has `gpuFrameLimitMs`. Not run: full suite and
+`npm run build` (shift gate). Nothing pushed.
