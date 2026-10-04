@@ -132,6 +132,11 @@ export class QualityManager {
     return this.choiceValue === "auto" ? this.current : null;
   }
 
+  /** A choice for this page only, not stored in the settings (dev scene `?scene=quality&preset=`). */
+  useForPage(choice: QualityOption): void {
+    if (choice !== this.choiceValue) this.choose(choice);
+  }
+
   /** Applies the preset to `target` now and on every change; returns a function that removes it. */
   register(target: QualityTarget): () => void {
     this.targets.add(target);
