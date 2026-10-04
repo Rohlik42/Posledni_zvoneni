@@ -61,7 +61,10 @@ export interface MenuPage {
   focus?: HTMLElement;
 }
 
-/** Content buttons with this data attribute join the ↑/↓ navigation (before the items), e.g. difficulty rows. */
+/**
+ * Content buttons and sliders with this data attribute join the ↑/↓ navigation (before the items), e.g. difficulty rows
+ * and the settings (←/→ change a focused slider).
+ */
 export const NAV_ATTRIBUTE = "menuNav";
 
 /** What tests read from the open page. */
@@ -261,20 +264,21 @@ export class MenuOverlay {
 
   private readonly onKeyDown = (event: KeyboardEvent): void => {
     // The menu owns the keyboard: the game's Input never sees these keys. Default actions (Enter / Space on a button,
-    // arrows on a slider) still happen.
+    // ←/→ on a slider) still happen; ↑/↓ always move the focus, also off a slider.
     event.stopPropagation();
     if (event.code === BACK_KEY) {
       event.preventDefault();
       if (!event.repeat) this.page?.onBack?.();
       return;
     }
-    const onSlider = event.target instanceof HTMLInputElement && event.target.type === "range";
-    if (onSlider || (event.code !== NAV_NEXT && event.code !== NAV_PREV)) return;
+    if (event.code !== NAV_NEXT && event.code !== NAV_PREV) return;
     event.preventDefault();
-    const contentNav = [...this.content.querySelectorAll<HTMLButtonElement>("button")].filter((b) => b.dataset[NAV_ATTRIBUTE] !== undefined);
+    const contentNav = [...this.content.querySelectorAll<HTMLButtonElement | HTMLInputElement>("button, input")].filter(
+      (b) => b.dataset[NAV_ATTRIBUTE] !== undefined,
+    );
     const enabled = [...contentNav, ...this.buttons].filter((b) => !b.disabled);
     if (enabled.length === 0) return;
-    const index = enabled.indexOf(document.activeElement as HTMLButtonElement);
+    const index = enabled.indexOf(document.activeElement as HTMLButtonElement | HTMLInputElement);
     const step = event.code === NAV_NEXT ? 1 : -1;
     const next = index < 0 ? 0 : (index + step + enabled.length) % enabled.length;
     enabled[next]!.focus({ preventScroll: true });

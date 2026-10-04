@@ -1,7 +1,7 @@
 {
   "//": "Texty rozhraní (src/utils/Texts.ts, fáze 10): hlášky dveří, toasty sebraných věcí a popisky HUD, styl a tón LEGACY §3. {jméno} se nahradí hodnotou (Texts.format). Jména místností jsou v data/level.json, jména zbraní v data/weapons.json.",
   "doors": {
-    "controls": "E / KOLEČKO",
+    "controls": "E / Q / KOLEČKO",
     "hintOpen": "{controls} — otevřít: {name}",
     "hintClose": "{controls} — zavřít: {name}",
     "hintLocked": "{controls} — zamčeno: {lock}",
@@ -73,8 +73,15 @@
       "Učitele zajali a drží je v kabinetech, pouta jim hlídá robotí past. Tebe zamkli v učebně ve druhém patře. Dostaň se dolů k hlavnímu vchodu a ven.",
       "Učitele osvobodíš správnou odpovědí na otázku z jejich předmětu – špatná odpověď a past vybuchne. Kdo má klíč, dá ti ho: červený, žlutý, modrý. Ostatní přidají zbraň nebo něco na posilněnou. Voda a elektřina robotům škodí."
     ],
-    "controls": "WASD pohyb · MYŠ míření · LEVÉ střelba · E učitel a dveře · STISK KOLEČKA dveře · 1–6 / KOLEČKO zbraně · R nabít · SHIFT sprint · ESC pauza",
+    "controls": "WASD pohyb · MYŠ / ŠIPKY míření · LEVÉ / F střelba · E učitel a dveře · Q / STISK KOLEČKA dveře · 1–\u20606, KOLEČKO / [ ] zbraně · R nabít · SHIFT sprint · ENTER myš do hry · ESC pauza",
     "button": "JDEME VEN →"
+  },
+  "cheats": {
+    "//": "Cheaty (src/core/Cheats.ts, kódy v data/input.json → cheats): toasty při zadání a štítky v HUD vlevo nahoře, dokud cheat platí.",
+    "god": { "on": "IDDQD — nesmrtelnost zapnutá", "off": "IDDQD — nesmrtelnost vypnutá" },
+    "arsenal": "IDKFA — všechny zbraně, plné náboje a všechny klíče",
+    "noclip": { "on": "IDCLIP — procházíš zdmi (mezerník nahoru, Shift nebo C dolů)", "off": "IDCLIP — zase pevná zem pod nohama" },
+    "badges": { "god": "IDDQD · NESMRTELNOST", "noclip": "IDCLIP · PRŮCHOD ZDMI" }
   },
   "levelEnd": {
     "//": "Fáze 16: obrazovka konce levelu po otevření hlavního vchodu. time = formát času ({minutes}, {seconds} dvoumístně), teachers = osvobození učitelé. difficulty = název obtížnosti, dokud ji nedodá fáze 17 (LEGACY §2, výchozí Záškoláček).",

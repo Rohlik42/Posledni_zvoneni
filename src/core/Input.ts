@@ -1,5 +1,6 @@
 import { Observable } from "@babylonjs/core/Misc/observable";
-import { InputBindings, INPUT_ACTIONS, type InputAction, type InputBindingsData } from "./InputBindings";
+import { CheatCodes } from "./CheatCodes";
+import { InputBindings, INPUT_ACTIONS, type CheatId, type InputAction, type InputBindingsData } from "./InputBindings";
 import { TestHooks } from "./TestHooks";
 
 /** How mouse movement turns into look input. `none` until the first click, `free` when pointer lock is unavailable. */
@@ -13,6 +14,12 @@ export interface ActionEvent {
 export interface LookDelta {
   x: number;
   y: number;
+}
+
+/** Turn from the look keys in radians (positive yaw turns right, positive pitch looks down), before sensitivity. */
+export interface KeyTurn {
+  yaw: number;
+  pitch: number;
 }
 
 export interface InputTestApi {
@@ -47,11 +54,17 @@ const MIDDLE_BUTTON = 1;
  * - Pointer lock is requested on canvas click. If the browser refuses it, look falls back to plain mouse movement over
  *   the canvas (LEGACY §3) and `onPointerLockFallback` fires with the message from data.
  * - Leaving pointer lock without `exitPointerLock()` (the browser eats Esc while locked) is reported as a `pause` press.
+ * - Everything works without mouse buttons (touchpad, FEEDBACK 2026-10-04): every button and wheel action has a key in
+ *   the data, `lockPointer` (Enter) requests pointer lock from its keydown (a key press is a user gesture, like the
+ *   click), and the look keys turn the view through `keyTurn(dt)` at the `keyLook` rates.
+ * - Cheat codes (IDDQD …) are matched on the keys the game sees (`CheatCodes`; menus and overlays keep their keys) and
+ *   reported by `onCheat`; the letters of a code from the second one on do not trigger their actions.
  */
 export class Input {
   readonly onAction = new Observable<ActionEvent>();
   readonly onPointerLockFallback = new Observable<string>();
   readonly onLookModeChanged = new Observable<LookMode>();
+  readonly onCheat = new Observable<CheatId>();
 
   private readonly bindings: InputBindingsData;
   private readonly down = new Set<InputAction>();
@@ -62,12 +75,16 @@ export class Input {
   private lastWheelMs = Number.NEGATIVE_INFINITY;
   private stepper: ((ms: number) => number) | null = null;
   private readonly cleanups: Array<() => void> = [];
+  private readonly cheatCodes: CheatCodes;
+  /** Keys whose press went to a cheat code: their release is not an action either. */
+  private readonly swallowed = new Set<string>();
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
     bindings: InputBindingsData = InputBindings.load(),
   ) {
     this.bindings = bindings;
+    this.cheatCodes = new CheatCodes(bindings.cheats);
     this.listen(window, "keydown", (e) => this.onKey(e as KeyboardEvent, true));
     this.listen(window, "keyup", (e) => this.onKey(e as KeyboardEvent, false));
     this.listen(window, "blur", () => this.releaseAll());
@@ -131,6 +148,16 @@ export class Input {
     return delta;
   }
 
+  /** Turn from the held look keys over `dtSeconds` (rates from `keyLook` in data/input.json). */
+  keyTurn(dtSeconds: number): KeyTurn {
+    const axis = (plus: InputAction, minus: InputAction): number => (this.down.has(plus) ? 1 : 0) - (this.down.has(minus) ? 1 : 0);
+    const rates = this.bindings.keyLook;
+    return {
+      yaw: axis("lookRight", "lookLeft") * rates.yawSpeed * dtSeconds,
+      pitch: axis("lookDown", "lookUp") * rates.pitchSpeed * dtSeconds,
+    };
+  }
+
   /** Clears press edges; `Game` calls it after each fixed simulation step. */
   endStep(): void {
     this.pressed.clear();
@@ -185,14 +212,30 @@ export class Input {
     this.onAction.clear();
     this.onPointerLockFallback.clear();
     this.onLookModeChanged.clear();
+    this.onCheat.clear();
   }
 
   private onKey(event: KeyboardEvent, isDown: boolean): void {
+    if (this.cheatKey(event, isDown)) return;
     const action = this.bindings.keys[event.code];
     if (action === undefined) return;
     if (action !== "pause") event.preventDefault();
     if (event.repeat && isDown) return;
+    // Inside the keydown handler, so the browser counts it as the gesture pointer lock needs (as the canvas click).
+    if (action === "lockPointer" && isDown && this.mode !== "locked") void this.requestPointerLock();
     this.setActionDown(action, isDown);
+  }
+
+  /** Feeds a key press to the cheat codes; true when the key belongs to a code and the game must not act on it. */
+  private cheatKey(event: KeyboardEvent, isDown: boolean): boolean {
+    if (!isDown) return this.swallowed.delete(event.code);
+    if (event.repeat) return this.swallowed.has(event.code);
+    const fed = this.cheatCodes.feed(event.code, event.timeStamp);
+    if (fed.cheat !== null) this.onCheat.notifyObservers(fed.cheat);
+    if (!fed.swallow) return false;
+    event.preventDefault();
+    this.swallowed.add(event.code);
+    return true;
   }
 
   private onMouseButton(event: MouseEvent, isDown: boolean): void {

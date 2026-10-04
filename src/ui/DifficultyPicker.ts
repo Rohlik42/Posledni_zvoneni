@@ -30,6 +30,8 @@ const NAME_LINE_HEIGHT = 1.1;
 const FOCUS_OUTLINE_PX = 2;
 const FOCUS_OFFSET_PX = 3;
 const POINTER_WIDTH_PX = 14;
+/** `MouseEvent.detail` of a click made by Enter / Space on a focused button (a mouse click counts from 1). */
+const KEYBOARD_CLICK_DETAIL = 0;
 
 /** One row of the picker as tests read it. */
 export interface PickerRowView {
@@ -67,7 +69,8 @@ declare module "../core/TestHooks" {
  * The difficulty selection of the old game (LEGACY §2, legacy/style.css:15-16 „warm steel and red lettering“) as a
  * page of the menu: five rows with the original SVG portraits, subtitle, name and motto (Ultrašprt: the Schrödinger
  * equation in MathML), the player's health and the robot count of each level, ▶ and ◆ on the marked row. A click or
- * Enter on a row marks it, „Jdeme do školy“ starts the run with it (`start(id)`), „Zpět“ / Esc go back. Texts, sizes
+ * Enter on a row marks it, „Jdeme do školy“, a double click or Enter on the marked row start the run with it
+ * (`start(id)`), „Zpět“ / Esc go back. Texts, sizes
  * and colours from data/difficulty.json → picker.
  */
 export class DifficultyPicker {
@@ -175,9 +178,13 @@ export class DifficultyPicker {
     const stats = this.span("difficulty-stats", DifficultyPicker.stats(level, t.stats));
     const check = this.span("difficulty-check", t.check);
     row.append(pointer, face, copy, stats, check);
-    row.addEventListener("click", () => {
+    row.addEventListener("click", (event) => {
+      // Enter / Space on the focused row is a click with detail 0; on the row that is already marked it starts the run,
+      // as a double click does (keyboard-only play: Enter, Enter from „Nová hra“).
+      const startsByKey = event.detail === KEYBOARD_CLICK_DETAIL && this.marked === level.id;
       this.pick(level.id);
       row.focus({ preventScroll: true });
+      if (startsByKey) this.start();
     });
     row.addEventListener("dblclick", () => this.start());
     row.addEventListener("mouseenter", () => row.focus({ preventScroll: true }));

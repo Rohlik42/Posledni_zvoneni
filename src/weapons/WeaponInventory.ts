@@ -1,6 +1,7 @@
 import { Observable, type Observer } from "@babylonjs/core/Misc/observable";
 import type { Scene } from "@babylonjs/core/scene";
 import { SynthSounds } from "../audio/SynthSounds";
+import type { CheatEvent } from "../core/Cheats";
 import type { Game } from "../core/Game";
 import type { InputAction } from "../core/InputBindings";
 import { NoiseEvents } from "../core/NoiseEvents";
@@ -117,6 +118,7 @@ export class WeaponInventory {
   private last: ShotEvent | null = null;
   private readonly removeSystem: () => void;
   private readonly frameObserver: Observer<Scene>;
+  private readonly cheatObserver: Observer<CheatEvent>;
   private readonly noise: NoiseEvents;
 
   private constructor(
@@ -145,6 +147,9 @@ export class WeaponInventory {
     for (const id of this.data.startingWeapons) this.give(id);
     this.removeSystem = game.addSystem({ update: (dt) => this.update(dt) });
     this.frameObserver = game.scene.onBeforeRenderObservable.add(() => this.current?.frame());
+    this.cheatObserver = game.cheats.onCheat.add(({ id }) => {
+      if (id === "arsenal") this.giveArsenal();
+    });
     this.registerTestHooks();
   }
 
@@ -268,9 +273,18 @@ export class WeaponInventory {
     return true;
   }
 
+  /** IDKFA (FEEDBACK 2026-10-04): every enabled weapon, magazine and reserve full. */
+  giveArsenal(): void {
+    for (const data of this.data.weapons) {
+      if (!this.give(data.id)) continue;
+      this.owned.get(data.id)!.setAmmo(data.ammo.capacity, data.ammo.reserveMax);
+    }
+  }
+
   dispose(): void {
     this.removeSystem();
     this.game.scene.onBeforeRenderObservable.remove(this.frameObserver);
+    this.game.cheats.onCheat.remove(this.cheatObserver);
     for (const weapon of this.owned.values()) weapon.dispose();
     this.owned.clear();
     this.onShot.clear();

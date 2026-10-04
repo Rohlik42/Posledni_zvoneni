@@ -2,10 +2,12 @@ import { AudioService } from "../audio/AudioService";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import type { Observer } from "@babylonjs/core/Misc/observable";
 import type { Scene } from "@babylonjs/core/scene";
+import type { CheatEvent } from "../core/Cheats";
 import type { Game } from "../core/Game";
 import type { Physics } from "../core/Physics";
 import { Settings, type SettingsValues } from "../core/Settings";
 import { TestHooks } from "../core/TestHooks";
+import { NavMeshService } from "../level/NavMeshService";
 import { DamageOverlay } from "../ui/DamageOverlay";
 import { PlayerCamera } from "./PlayerCamera";
 import { PlayerConfig, type PlayerData } from "./PlayerConfig";
@@ -44,6 +46,9 @@ export interface PlayerTestApi {
   /** Opacity 0–1 of the red damage edges. */
   readonly damageOverlay: number;
   readonly deaths: number;
+  /** God mode (IDDQD) and noclip (IDCLIP) as the player applies them (FEEDBACK 2026-10-04). */
+  readonly invulnerable: boolean;
+  readonly noclip: boolean;
   teleport: (x: number, y: number, z: number) => void;
   /** Turns the view towards a world point (from the eye). */
   lookAt: (x: number, y: number, z: number) => void;
@@ -76,6 +81,9 @@ export class Player {
   private readonly removeSystem: () => void;
   private readonly frameObserver: Observer<Scene>;
   private readonly settingsObserver: Observer<SettingsValues>;
+  private readonly cheatObserver: Observer<CheatEvent>;
+  /** Where noclip was turned on: the way back when no navmesh point is near (FEEDBACK 2026-10-04). */
+  private noclipStart: Vector3 | null = null;
   private readonly interpolatedFeet = Vector3.Zero();
   private deathCount = 0;
 
@@ -101,6 +109,10 @@ export class Player {
     const settings = Settings.shared();
     this.applySettings(settings.values);
     this.settingsObserver = settings.onChanged.add((values) => this.applySettings(values));
+    // Cheats (IDDQD god mode, IDCLIP noclip) stay on across a new player in the same game.
+    this.cheatObserver = game.cheats.onCheat.add(({ id, enabled }) => this.applyCheat(id, enabled));
+    this.health.invulnerable = game.cheats.isOn("god");
+    if (game.cheats.isOn("noclip")) this.setNoclip(true);
 
     this.removeSystem = game.addSystem(this.controller);
     AudioService.for(game).attachPlayer(this.controller);
@@ -141,10 +153,34 @@ export class Player {
     this.removeSystem();
     this.game.scene.onBeforeRenderObservable.remove(this.frameObserver);
     Settings.shared().onChanged.remove(this.settingsObserver);
+    this.game.cheats.onCheat.remove(this.cheatObserver);
     this.controller.dispose();
     this.camera.dispose();
     this.health.dispose();
     this.overlay.dispose();
+  }
+
+  private applyCheat(id: CheatEvent["id"], enabled: boolean): void {
+    if (id === "god") this.health.invulnerable = enabled;
+    else if (id === "noclip") this.setNoclip(enabled);
+  }
+
+  /**
+   * IDCLIP: flight through walls on, or off again with the feet put on the nearest navmesh point (out of any wall, on
+   * a floor), or back where noclip started when no navmesh point is within the query extent.
+   */
+  private setNoclip(on: boolean): void {
+    if (on) {
+      this.noclipStart = this.controller.position.clone();
+      this.controller.setNoclip(this.game.cheats.data.noclip);
+      return;
+    }
+    if (!this.controller.noclip) return;
+    this.controller.setNoclip(null);
+    const feet = this.controller.position;
+    const safe = NavMeshService.forScene(this.game.scene)?.closestPoint(feet)?.point ?? this.noclipStart ?? feet.clone();
+    this.noclipStart = null;
+    this.controller.teleport(safe);
   }
 
   private applySettings(values: SettingsValues): void {
@@ -155,8 +191,12 @@ export class Player {
   private frame(): void {
     const look = this.game.input.consumeLook();
     const paused = this.game.paused;
-    if (!paused && !this.health.isDead) this.camera.look(look);
     const frameDt = paused ? 0 : this.game.engine.getDeltaTime() / MS_PER_SECOND;
+    if (!paused && !this.health.isDead) {
+      this.camera.look(look);
+      const turn = this.game.input.keyTurn(frameDt);
+      this.camera.turn(turn.yaw, turn.pitch);
+    }
     Vector3.LerpToRef(this.controller.previousPosition, this.controller.position, this.game.stepAlpha, this.interpolatedFeet);
     this.camera.update(frameDt, {
       feet: this.interpolatedFeet,
@@ -211,6 +251,12 @@ export class Player {
       },
       get deaths() {
         return player.deathCount;
+      },
+      get invulnerable() {
+        return player.health.invulnerable;
+      },
+      get noclip() {
+        return player.controller.noclip;
       },
       teleport: (x, y, z) => {
         player.controller.teleport(new Vector3(x, y, z));

@@ -20,6 +20,9 @@ export class PlayerHealth {
   readonly onHealed = new Observable<number>();
   readonly onDeath = new Observable<void>();
 
+  /** God mode (IDDQD, FEEDBACK 2026-10-04): every damage is ignored — robots, traps, quiz answers, fire. */
+  invulnerable = false;
+
   private current: number;
   /** Incoming damage multiplier per type (power-ups, e.g. rubber boots against `electric`; phase 10). */
   private readonly multipliers = new Map<DamageType, number>();
@@ -50,9 +53,9 @@ export class PlayerHealth {
     return this.multipliers.get(type) ?? 1;
   }
 
-  /** Applies `amount` (× the multiplier of `type`) of damage (ignored when dead or not positive); returns the health left. */
+  /** Applies `amount` (× the multiplier of `type`) of damage (ignored when dead, invulnerable or not positive); returns the health left. */
   damage(amount: number, type: DamageType = "kinetic"): number {
-    if (this.isDead || !(amount > 0)) return this.current;
+    if (this.isDead || this.invulnerable || !(amount > 0)) return this.current;
     amount *= this.damageMultiplier(type);
     if (!(amount > 0)) return this.current;
     this.current = Math.max(0, this.current - amount);

@@ -1,5 +1,5 @@
 {
-  "//": "Mapování ovládání (src/core/Input.ts). Klíče v 'keys' jsou KeyboardEvent.code, hodnoty jsou akce. Tlačítka myši: 0 levé, 1 prostřední (kolečko), 2 pravé. Ovládání podle LEGACY §3: stisk kolečka = dveře, Esc = pauza. debugNavmesh (N) přepíná ladicí zobrazení navmeshe v dev scénách s roboty.",
+  "//": "Mapování ovládání (src/core/Input.ts). Klíče v 'keys' jsou KeyboardEvent.code (fyzická poloha klávesy, na české klávesnici tedy BracketLeft = ú, BracketRight = )), hodnoty jsou akce. Tlačítka myši: 0 levé, 1 prostřední (kolečko), 2 pravé. Ovládání podle LEGACY §3: stisk kolečka = dveře, Esc = pauza. FEEDBACK 2026-10-04 (touchpad bez tlačítek): každá akce myši má i klávesu — F střelba (držet = nabíjení railgunu, hadice), Q dveře, ] / Tab další a [ předchozí zbraň, G altFire (zatím ji žádná zbraň nepoužívá), Enter vrátí myš do hry (uzamčení kurzoru, pokračování po pauze), šipky otáčí pohledem rychlostí keyLook (rad/s, násobí ji citlivost z menu). cheats = cheaty jako v Doomu (FEEDBACK 2026-10-04): kód se píše písmeny za hry (ne v menu, kvízu ani na obrazovkách, ty si klávesnici berou samy), velikost písmen nehraje roli, mezi písmeny smí být nejvýš timeoutMs ms; god = nesmrtelnost (přepínač), arsenal = všech 6 zbraní, plné náboje a všechny klíče, noclip = průchod zdmi a létání (přepínač; speed m/s vodorovně, verticalSpeed m/s nahoru mezerníkem, dolů Shiftem nebo C = descend). Písmeno, které prodlouží rozepsaný kód na 2 a více znaků (I-D…), hra spolkne, takže F v IDKFA nevystřelí a Q v IDDQD neotevře dveře. debugNavmesh (N) přepíná ladicí zobrazení navmeshe v dev scénách s roboty.",
   "keys": {
     "KeyW": "forward",
     "KeyS": "back",
@@ -10,12 +10,25 @@
     "Space": "jump",
     "KeyE": "interact",
     "KeyR": "reload",
+    "KeyF": "fire",
+    "KeyG": "altFire",
+    "KeyQ": "door",
+    "KeyC": "descend",
     "Digit1": "weapon1",
     "Digit2": "weapon2",
     "Digit3": "weapon3",
     "Digit4": "weapon4",
     "Digit5": "weapon5",
     "Digit6": "weapon6",
+    "BracketRight": "weaponNext",
+    "Tab": "weaponNext",
+    "BracketLeft": "weaponPrev",
+    "ArrowLeft": "lookLeft",
+    "ArrowRight": "lookRight",
+    "ArrowUp": "lookUp",
+    "ArrowDown": "lookDown",
+    "Enter": "lockPointer",
+    "NumpadEnter": "lockPointer",
     "Escape": "pause",
     "KeyM": "mute",
     "KeyN": "debugNavmesh"
@@ -30,8 +43,17 @@
     "down": "weaponNext",
     "cooldownMs": 120
   },
+  "keyLook": {
+    "yawSpeed": 2.4,
+    "pitchSpeed": 1.6
+  },
+  "cheats": {
+    "codes": { "god": "IDDQD", "arsenal": "IDKFA", "noclip": "IDCLIP" },
+    "timeoutMs": 2500,
+    "noclip": { "speed": 7, "verticalSpeed": 5 }
+  },
   "pointerLock": {
     "lockOnClick": true,
-    "fallbackMessage": "Myš bez uzamčení: rozhlížej se pohybem kurzoru. Esc = pauza."
+    "fallbackMessage": "Myš bez uzamčení: rozhlížej se pohybem kurzoru nebo šipkami. Esc = pauza."
   }
 }

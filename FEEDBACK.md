@@ -26,3 +26,10 @@ Zapracováno 2026-10-04
 
 ## 2026-10-04 — fasády do skyboxu
 - Pod linií střech je prázdná tma → doplnit fasády. Zapracováno 2026-10-04 (fasády Josefské a dvora z Matterportu, `tools/rectify-facades.ts` + `FacadeRing`).
+
+## 2026-10-04 — ovládání bez tlačítek myši (touchpad) a cheaty
+
+- **Všechny akce musí jít i na klávesnici:** na touchpadu předpokládáme myš bez tlačítek, takže střílení, otevírání dveří a další věci musí mít klávesu.
+- **Cheaty jako v Doomu:** IDDQD (nesmrtelnost), IDKFA (všechny zbraně, náboje a klíče), IDCLIP (průchod zdmi).
+
+Zapracováno 2026-10-04 (F střelba i držením, Q dveře, ] [ Tab zbraně, šipky rozhlížení, Enter myš do hry a pokračování, menu ↑↓←→ + Enter + Esc; cheaty IDDQD / IDKFA / IDCLIP; testy `keyboard-only.spec.ts` a `cheats.spec.ts`)

@@ -1,13 +1,16 @@
 import type { Observable, Observer } from "@babylonjs/core/Misc/observable";
+import type { CheatEvent } from "../core/Cheats";
 import type { Scene } from "@babylonjs/core/scene";
 import type { Game } from "../core/Game";
 import { TestHooks } from "../core/TestHooks";
 import type { Player } from "../player/Player";
 import { Palette } from "../utils/Palette";
+import { Texts } from "../utils/Texts";
 import { FeelConfig, type HudData } from "../weapons/FeelConfig";
 import type { ShotEvent } from "../weapons/Weapon";
 import type { WeaponInventory } from "../weapons/WeaponInventory";
 import type { Inventory } from "../player/Inventory";
+import { CheatBadges } from "./CheatBadges";
 import { Crosshair } from "./Crosshair";
 import { HudConfig, type HudExtraData } from "./HudConfig";
 import { ItemsPanel } from "./ItemsPanel";
@@ -45,6 +48,8 @@ export interface HudTestApi {
   readonly toastCount: number;
   /** Door hint under the crosshair, or null. */
   readonly hint: string | null;
+  /** Badges of the cheats that are on, top left (FEEDBACK 2026-10-04). */
+  cheats: () => string[];
 }
 
 declare module "../core/TestHooks" {
@@ -78,6 +83,8 @@ export class Hud {
   private readonly frameObserver: Observer<Scene>;
   private readonly stepObserver: Observer<number>;
   private readonly shotObserver: Observer<ShotEvent>;
+  private readonly cheatObserver: Observer<CheatEvent>;
+  private readonly cheatBadges: CheatBadges;
 
   private constructor(
     private readonly game: Game,
@@ -128,6 +135,14 @@ export class Hud {
     this.toasts = new Toasts(this.root, this.extra.toast, this.data.fontFamily);
     this.slots = new WeaponSlotsBar(this.root, inventory, this.extra.slots, this.data.fontFamily);
     this.hintElement = this.hint();
+    // Cheats: a toast when typed, a badge while god mode or noclip is on.
+    const cheatTexts = Texts.load().cheats;
+    this.cheatBadges = new CheatBadges(this.root, game.cheats, cheatTexts.badges, this.extra.cheats, this.data.fontFamily);
+    this.cheatObserver = game.cheats.onCheat.add(({ id, enabled }) => {
+      const text = id === "arsenal" ? cheatTexts.arsenal : enabled ? cheatTexts[id].on : cheatTexts[id].off;
+      this.toasts.show(text);
+      this.cheatBadges.refresh();
+    });
 
     this.shotObserver = inventory.onShot.add((shot) => {
       if (shot.hit?.target != null && shot.damageDealt > 0) this.crosshair.flash(!shot.hit.target.alive);
@@ -177,6 +192,8 @@ export class Hud {
     this.inventory.onShot.remove(this.shotObserver);
     this.game.onAfterStep.remove(this.stepObserver);
     this.game.scene.onBeforeRenderObservable.remove(this.frameObserver);
+    this.game.cheats.onCheat.remove(this.cheatObserver);
+    this.cheatBadges.dispose();
     this.crosshair.dispose();
     this.toasts.dispose();
     this.slots.dispose();
@@ -186,6 +203,7 @@ export class Hud {
 
   private refresh(): void {
     this.slots.refresh();
+    this.cheatBadges.refresh();
     this.items?.refresh();
     const hint = this.hintSource();
     this.hintElement.textContent = hint ?? "";
@@ -298,6 +316,7 @@ export class Hud {
       get hint() {
         return hud.hintElement.style.display === "none" ? null : hud.hintElement.textContent;
       },
+      cheats: () => hud.cheatBadges.texts,
     });
   }
 }

@@ -95,24 +95,27 @@
       "autoNow": "{detail} · teď {value}"
     },
     "controls": {
-      "kicker": "KLÁVESNICE A MYŠ",
+      "kicker": "KLÁVESNICE, MYŠ I TOUCHPAD",
       "title": "Jak se",
       "titleAccent": "to hraje",
       "rows": [
         { "keys": "W A S D", "action": "Chůze dopředu, doleva, dozadu a doprava" },
-        { "keys": "Myš", "action": "Rozhlížení a míření" },
+        { "keys": "Myš / šipky", "action": "Rozhlížení a míření" },
         { "keys": "Shift", "action": "Sprint" },
         { "keys": "Mezerník", "action": "Skok" },
-        { "keys": "Levé tlačítko", "action": "Střelba (railgun: podrž a nabij)" },
+        { "keys": "Levé tlačítko / F", "action": "Střelba (podrž: railgun se nabije, hadice stříká)" },
         { "keys": "R", "action": "Nabít" },
-        { "keys": "1–6 / kolečko", "action": "Výběr zbraně" },
+        { "keys": "1–6", "action": "Výběr zbraně" },
+        { "keys": "Kolečko / [ ] / Tab", "action": "Předchozí a další zbraň" },
         { "keys": "E", "action": "Osvobodit učitele, otevřít nebo zavřít dveře" },
-        { "keys": "Stisk kolečka", "action": "Otevřít nebo zavřít dveře" },
-        { "keys": "1–4", "action": "Odpověď v kvízu" },
+        { "keys": "Stisk kolečka / Q", "action": "Otevřít nebo zavřít dveře" },
+        { "keys": "1–4", "action": "Odpověď v kvízu (Enter pokračuje, Esc odejde)" },
+        { "keys": "Enter", "action": "Začít, potvrdit, vrátit myš do hry a pokračovat po pauze" },
         { "keys": "Esc", "action": "Pauza a uvolnění kurzoru" },
-        { "keys": "M", "action": "Zvuk zapnout nebo vypnout" }
+        { "keys": "M", "action": "Zvuk zapnout nebo vypnout" },
+        { "keys": "↑ ↓ ← → / Tab", "action": "Pohyb v menu (← → mění posuvník), Enter vybere, Esc zpět" }
       ],
-      "note": "Hra je pro počítač s klávesnicí a myší. Pokud prohlížeč neuzamkne kurzor, rozhlížej se běžným pohybem myši; pro neomezené otáčení otevři hru v samostatné kartě."
+      "note": "Všechno jde i bez tlačítek myši, třeba na touchpadu: střílej F, dveře otevírej E nebo Q, zbraně měň [ ] nebo Tab, rozhlížej se pohybem po touchpadu nebo šipkami. Když prohlížeč neuzamkne kurzor, rozhlížej se běžným pohybem myši a Enter ho zkusí uzamknout znovu; pro neomezené otáčení otevři hru v samostatné kartě."
     },
     "credits": {
       "kicker": "ASSETS.MD · LICENCE",

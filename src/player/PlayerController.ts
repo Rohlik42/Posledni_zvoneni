@@ -22,6 +22,12 @@ const SNAP_EPSILON = 0.002;
 /** Moving slower than this share of the requested speed counts as blocked (step assist), unitless. */
 const BLOCKED_SPEED_FRACTION = 0.5;
 
+/** Flying speeds of noclip (IDCLIP) in m/s. */
+export interface NoclipSpeeds {
+  speed: number;
+  verticalSpeed: number;
+}
+
 /**
  * First-person movement on Havok's `PhysicsCharacterController` (a swept capsule, no rigid-body dynamics).
  *
@@ -30,6 +36,10 @@ const BLOCKED_SPEED_FRACTION = 0.5;
  * velocity follows the surface plane (ramps); stairs up to `maxStepHeight` are climbed by the controller's step-up
  * sweep and walked down with a short ground snap. Jumps reach `jumpHeight`, with coyote time and a jump buffer.
  * All numbers come from `data/player.json`. Position is reported at the feet.
+ *
+ * Noclip (IDCLIP, FEEDBACK 2026-10-04, `setNoclip`): the controller is not integrated at all, the capsule is moved
+ * straight to where the keys say — WASD along the view's heading, jump up, descend / sprint down, no gravity, no
+ * collisions. Turning it off is `Player`'s job (it puts the feet back on the navmesh).
  */
 export class PlayerController implements Simulated {
   /** Fires on touching down after being airborne, with the downward impact speed in m/s. */
@@ -57,6 +67,7 @@ export class PlayerController implements Simulated {
   private lastAirborneVerticalSpeed = 0;
   private horizontalSpeed = 0;
   private speedFactor = 1;
+  private flight: NoclipSpeeds | null = null;
 
   constructor(
     private readonly physics: Physics,
@@ -89,6 +100,22 @@ export class PlayerController implements Simulated {
   set speedMultiplier(factor: number) {
     this.speedFactor = factor;
     this.controller.maxCharacterSpeedForSolver = Math.max(this.movement.sprintSpeed * factor, this.movement.maxFallSpeed);
+  }
+
+  /** Whether noclip flight is on. */
+  get noclip(): boolean {
+    return this.flight !== null;
+  }
+
+  /** Noclip on with these speeds, or off (`null`); either way the motion stops. */
+  setNoclip(speeds: NoclipSpeeds | null): void {
+    this.flight = speeds;
+    this.velocity.setAll(0);
+    this.actualVelocity.setAll(0);
+    this.requested.setAll(0);
+    this.controller.setVelocity(Vector3.Zero());
+    this.grounded = false;
+    this.sprinting = false;
   }
 
   /** Feet position after the last step. */
@@ -145,6 +172,10 @@ export class PlayerController implements Simulated {
   }
 
   update(dt: number): void {
+    if (this.flight !== null) {
+      this.fly(dt, this.flight);
+      return;
+    }
     const support = this.controller.checkSupport(dt, this.down);
     const wasGrounded = this.grounded;
     // The solver may only take vertical speed away (ceiling, floor), never add it: after a step-up teleport its
@@ -192,6 +223,32 @@ export class PlayerController implements Simulated {
     const boost = blocked ? this.body.stepUpBoost : 1;
     this.requested.set(velocity.x * boost, velocity.y, velocity.z * boost);
     return this.requested;
+  }
+
+  /** One noclip step: straight to the new place, through anything. */
+  private fly(dt: number, speeds: NoclipSpeeds): void {
+    const forward = (this.input.isDown("forward") ? 1 : 0) - (this.input.isDown("back") ? 1 : 0);
+    const strafe = (this.input.isDown("right") ? 1 : 0) - (this.input.isDown("left") ? 1 : 0);
+    const vertical = (this.input.isDown("jump") ? 1 : 0) - (this.input.isDown("descend") || this.input.isDown("sprint") ? 1 : 0);
+    let x = 0;
+    let z = 0;
+    if (forward !== 0 || strafe !== 0) {
+      const yaw = this.getYaw();
+      const sin = Math.sin(yaw);
+      const cos = Math.cos(yaw);
+      x = forward * sin + strafe * cos;
+      z = forward * cos - strafe * sin;
+      const length = Math.hypot(x, z);
+      x = (x / length) * speeds.speed;
+      z = (z / length) * speeds.speed;
+    }
+    this.actualVelocity.set(x, vertical * speeds.verticalSpeed, z);
+    this.previousFeet.copyFrom(this.feet);
+    this.feet.addInPlace(this.actualVelocity.scale(dt));
+    this.controller.setPosition(this.centerFromFeet(this.feet));
+    this.horizontalSpeed = Math.hypot(x, z);
+    this.grounded = false;
+    this.sprinting = false;
   }
 
   dispose(): void {

@@ -74,6 +74,8 @@ export interface NavPoint {
  */
 export class NavMeshService {
   private static recast: Promise<void> | null = null;
+  /** The live navmesh of each scene (noclip puts the player back on it, FEEDBACK 2026-10-04). */
+  private static readonly byScene = new WeakMap<Scene, NavMeshService>();
 
   readonly data: NavigationData;
   /** How long baking took, in milliseconds. */
@@ -96,7 +98,13 @@ export class NavMeshService {
     this.tiled = tiled;
     this.extent = Vector3.FromArray(data.queryExtent);
     plugin.setDefaultQueryExtent(this.extent);
+    NavMeshService.byScene.set(scene, this);
     this.registerTestHooks();
+  }
+
+  /** The navmesh baked last for `scene`, or null when it has none. */
+  static forScene(scene: Scene): NavMeshService | null {
+    return NavMeshService.byScene.get(scene) ?? null;
   }
 
   /**
@@ -249,6 +257,7 @@ export class NavMeshService {
   }
 
   dispose(): void {
+    if (NavMeshService.byScene.get(this.scene) === this) NavMeshService.byScene.delete(this.scene);
     this.debugMesh?.dispose();
     this.plugin.dispose();
   }

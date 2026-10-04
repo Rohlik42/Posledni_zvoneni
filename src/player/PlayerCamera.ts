@@ -75,6 +75,12 @@ export class PlayerCamera {
     this.setAngles(this.yawAngle + delta.x * sensitivity, this.pitchAngle + vertical * sensitivity);
   }
 
+  /** Turns by radians (look keys, FEEDBACK 2026-10-04 touchpad); scaled by the menu sensitivity like the mouse, not inverted. */
+  turn(yaw: number, pitch: number): void {
+    if (yaw === 0 && pitch === 0) return;
+    this.setAngles(this.yawAngle + yaw * this.lookScale, this.pitchAngle + pitch * this.lookScale);
+  }
+
   setAngles(yaw: number, pitch: number): void {
     this.yawAngle = ((yaw % TWO_PI) + TWO_PI) % TWO_PI;
     this.pitchAngle = Math.min(this.data.pitchLimit, Math.max(-this.data.pitchLimit, pitch));

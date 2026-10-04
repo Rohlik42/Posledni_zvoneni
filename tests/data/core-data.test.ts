@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { DevSceneData } from "../../dev/DevSceneData";
 import { GameConfig } from "../../src/core/GameConfig";
+import { CheatCodes } from "../../src/core/CheatCodes";
 import { InputBindings } from "../../src/core/InputBindings";
 import { RenderingConfig } from "../../src/rendering/RenderingConfig";
 import { DataError } from "../../src/utils/DataError";
@@ -58,6 +59,37 @@ test("input.json: Esc pauses, middle mouse opens doors (LEGACY §3)", () => {
   const input = InputBindings.load();
   assert.equal(input.keys["Escape"], "pause");
   assert.equal(input.mouseButtons["1"], "door");
+});
+
+test("input.json: every mouse button and wheel action also has a key; look keys and Enter are bound (FEEDBACK 2026-10-04, touchpad)", () => {
+  const input = InputBindings.load();
+  const keyed = new Set(Object.values(input.keys));
+  const mouse = [...Object.values(input.mouseButtons), input.wheel.up, input.wheel.down];
+  for (const action of mouse) assert.ok(keyed.has(action), `mouse action "${action}" has no key in input.json`);
+  for (const action of ["lookLeft", "lookRight", "lookUp", "lookDown", "lockPointer"] as const) assert.ok(keyed.has(action), `"${action}" has no key`);
+  assert.ok(input.keyLook.yawSpeed > 0 && input.keyLook.pitchSpeed > 0);
+});
+
+test("input.json: cheat codes are letters A–Z, unique, none a prefix of another; CheatCodes matches them", () => {
+  const input = InputBindings.load();
+  const codes = Object.values(input.cheats.codes).map((c) => c.toUpperCase());
+  for (const code of codes) assert.match(code, /^[A-Z]{3,}$/);
+  for (const a of codes) for (const b of codes) if (a !== b) assert.ok(!b.startsWith(a), `${a} is a prefix of ${b}`);
+  const matcher = new CheatCodes(input.cheats);
+  const type = (text: string, start = 0): (string | null)[] => [...text].map((ch, i) => matcher.feed(`Key${ch}`, start + i).cheat);
+  // Wrong letters in between, then the full code: only the last letter completes it.
+  assert.deepEqual(type(`ID${input.cheats.codes.god}`).at(-1), "god");
+  assert.equal(type(input.cheats.codes.arsenal, 1000).at(-1), "arsenal");
+  // Too slow between two letters: starts over.
+  matcher.reset();
+  const code = input.cheats.codes.noclip;
+  for (let i = 0; i < code.length - 1; i++) matcher.feed(`Key${code[i]}`, 10_000 + i);
+  assert.equal(matcher.feed(`Key${code.at(-1)}`, 10_000 + input.cheats.timeoutMs * 2).cheat, null);
+  // Only letters continuing a code from its second letter on are swallowed.
+  matcher.reset();
+  assert.equal(matcher.feed("KeyI", 50_000).swallow, false);
+  assert.equal(matcher.feed("KeyD", 50_001).swallow, true);
+  assert.equal(matcher.feed("KeyW", 50_002).swallow, false);
 });
 
 test("DataLoader names the file and field in errors", () => {

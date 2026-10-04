@@ -43,6 +43,13 @@ export interface TextsData {
   };
   /** The story screen at the start (phase 16). */
   intro: { kicker: string; title: string; titleAccent: string; lead: string; paragraphs: string[]; controls: string; button: string };
+  /** Cheat toasts and HUD badges (FEEDBACK 2026-10-04). */
+  cheats: {
+    god: { on: string; off: string };
+    arsenal: string;
+    noclip: { on: string; off: string };
+    badges: { god: string; noclip: string };
+  };
   /** The level-end screen (phase 16). */
   levelEnd: {
     kicker: string;
@@ -115,6 +122,12 @@ export class Texts {
       paragraphs: Schema.array(Schema.string(), 1),
       controls: Schema.string(),
       button: Schema.string(),
+    }),
+    cheats: Schema.object({
+      god: Schema.object({ on: Schema.string(), off: Schema.string() }),
+      arsenal: Schema.string(),
+      noclip: Schema.object({ on: Schema.string(), off: Schema.string() }),
+      badges: Schema.object({ god: Schema.string(), noclip: Schema.string() }),
     }),
     levelEnd: Schema.object({
       kicker: Schema.string(),

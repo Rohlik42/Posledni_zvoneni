@@ -5,7 +5,7 @@ import { Palette } from "../utils/Palette";
 import { Texts } from "../utils/Texts";
 import { AssetCredits, type AssetCredit } from "./AssetCredits";
 import type { MenuData, QualityOption, RangeSetting } from "./MenuConfig";
-import type { MenuItem, MenuOverlay, MenuPage } from "./MenuOverlay";
+import { NAV_ATTRIBUTE, type MenuItem, type MenuOverlay, type MenuPage } from "./MenuOverlay";
 
 const PERCENT = 100;
 const SENSITIVITY_DECIMALS = 2;
@@ -225,6 +225,7 @@ export class MenuPages {
     input.step = String(range.step);
     input.value = String(value);
     input.dataset.setting = name;
+    input.dataset[NAV_ATTRIBUTE] = "";
     input.setAttribute("aria-label", label);
     const shown = this.cell(format(value), { minWidth: `${VALUE_MIN_WIDTH_PX}px`, color: Palette.hex(this.screen.colors.value), fontFamily: this.screen.fontFamily, fontWeight: "800" });
     shown.dataset.settingValue = name;
@@ -240,6 +241,7 @@ export class MenuPages {
     button.type = "button";
     button.className = "menu-item";
     button.dataset.setting = name;
+    button.dataset[NAV_ATTRIBUTE] = "";
     button.textContent = value ? on : off;
     button.addEventListener("click", () => {
       const applied = this.settings.set({ [name]: !this.settings.values[name] });

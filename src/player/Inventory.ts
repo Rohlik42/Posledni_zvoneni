@@ -1,5 +1,6 @@
-import { Observable } from "@babylonjs/core/Misc/observable";
+import { Observable, type Observer } from "@babylonjs/core/Misc/observable";
 import { SynthSounds } from "../audio/SynthSounds";
+import type { CheatEvent } from "../core/Cheats";
 import { DAMAGE_TYPES } from "../core/DamageTypes";
 import type { Game } from "../core/Game";
 import { TestHooks } from "../core/TestHooks";
@@ -84,6 +85,7 @@ export class Inventory {
   private readonly active = new Map<string, ActivePowerUp>();
   private readonly counts = new Map<string, number>();
   private readonly removeSystem: () => void;
+  private readonly cheatObserver: Observer<CheatEvent>;
   /** Scales the amount an item gives (difficulty `pickups`, phase 17); identity by default. */
   private amountScale: (kind: string, amount: number) => number = (_kind, amount) => amount;
 
@@ -97,6 +99,9 @@ export class Inventory {
     this.texts = Texts.load();
     this.keyDefs = keyDefs;
     this.removeSystem = game.addSystem({ update: (dt) => this.update(dt) });
+    this.cheatObserver = game.cheats.onCheat.add(({ id }) => {
+      if (id === "arsenal") this.giveAllKeys();
+    });
     this.registerTestHooks();
   }
 
@@ -197,8 +202,18 @@ export class Inventory {
     this.onChanged.notifyObservers();
   }
 
+  /**
+   * IDKFA (FEEDBACK 2026-10-04): every key of the level, quietly — no toast per key, no `onKey` (a key normally saves
+   * a checkpoint, which must not happen wherever a cheat was typed). The weapons come from `WeaponInventory`.
+   */
+  giveAllKeys(): void {
+    for (const def of this.keyDefs) this.keySet.add(def.color);
+    this.onChanged.notifyObservers();
+  }
+
   dispose(): void {
     this.removeSystem();
+    this.game.cheats.onCheat.remove(this.cheatObserver);
     this.onMessage.clear();
     this.onChanged.clear();
     this.onKey.clear();

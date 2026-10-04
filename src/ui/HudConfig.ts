@@ -43,12 +43,23 @@ export interface PowerUpsHudData {
   margin: number;
 }
 
+/** Badges of active cheats top left (IDDQD, IDCLIP; FEEDBACK 2026-10-04). */
+export interface CheatsHudData {
+  top: number;
+  left: number;
+  fontSize: number;
+  gap: number;
+  color: string;
+  panel: string;
+}
+
 export interface HudExtraData {
   toast: ToastData;
   hint: HintData;
   slots: SlotsData;
   keys: KeysHudData;
   powerUps: PowerUpsHudData;
+  cheats: CheatsHudData;
 }
 
 const px = (): SchemaNode => Schema.number({ min: 1 });
@@ -86,6 +97,14 @@ export class HudConfig {
     }),
     keys: Schema.object({ size: px(), gap: Schema.number({ min: 0 }), missingOpacity: fraction(), missingColor: Schema.paletteRef() }),
     powerUps: Schema.object({ width: px(), barHeight: px(), fontSize: px(), margin: Schema.number({ min: 0 }) }),
+    cheats: Schema.object({
+      top: Schema.number({ min: 0 }),
+      left: Schema.number({ min: 0 }),
+      fontSize: px(),
+      gap: Schema.number({ min: 0 }),
+      color: Schema.paletteRef(),
+      panel: Schema.paletteRef(),
+    }),
   });
 
   private static cached: HudExtraData | null = null;

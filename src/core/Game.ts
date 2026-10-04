@@ -12,7 +12,9 @@ import { RenderPipeline } from "../rendering/RenderPipeline";
 import { RenderingConfig } from "../rendering/RenderingConfig";
 import { EngineFactory, type RendererKind } from "./EngineFactory";
 import { GameConfig, type GameData } from "./GameConfig";
+import { Cheats } from "./Cheats";
 import { Input } from "./Input";
+import { InputBindings } from "./InputBindings";
 import type { SceneSetup, Simulated } from "./SceneSetup";
 import { TestHooks } from "./TestHooks";
 
@@ -33,6 +35,8 @@ export class Game {
   readonly onPipelineChanged = new Observable<RenderPipeline>();
 
   readonly input: Input;
+  /** Doom cheats typed during play (FEEDBACK 2026-10-04). */
+  readonly cheats: Cheats;
   readonly config: GameData;
   readonly fixedStepMs: number;
   pipeline: RenderPipeline | null = null;
@@ -63,10 +67,15 @@ export class Game {
     // Flat look: no specular highlights on any StandardMaterial (FEEDBACK 2026-10-03, „světlo u zdi“).
     MatteDefaults.install(scene);
     this.fixedStepMs = MS_PER_SECOND / this.config.simulationHz;
-    this.input = new Input(canvas);
+    const bindings = InputBindings.load();
+    this.input = new Input(canvas, bindings);
+    this.cheats = new Cheats(bindings.cheats);
+    this.input.onCheat.add((id) => this.cheats.activate(id));
     this.input.setStepper((ms) => this.step(ms));
     this.input.onAction.add(({ action, pressed }) => {
       if (action === "pause" && pressed) this.setPaused(true);
+      // Enter does what the canvas click does (touchpad without buttons): resume; Input requests the pointer lock.
+      if (action === "lockPointer" && pressed && this.isPaused) this.setPaused(false);
     });
     canvas.addEventListener("click", this.onCanvasClick);
     window.addEventListener("resize", this.onResize);
