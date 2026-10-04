@@ -1,6 +1,7 @@
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import { VertexBuffer } from "@babylonjs/core/Buffers/buffer";
+import { Epsilon } from "@babylonjs/core/Maths/math.constants";
 
 /** Edge of a grid cell (m). */
 const CELL_SIZE = 1;
@@ -8,9 +9,11 @@ const CELL_SIZE = 1;
 const MAX_CELLS_PER_AXIS = 48;
 /** Möller–Trumbore: determinants below this mean the ray is parallel to the triangle. */
 const PARALLEL = 1e-9;
-/** Barycentric slack, so a ray through a shared edge hits one of the two triangles. */
-const EDGE_EPSILON = 1e-7;
+/** Barycentric slack of Babylon's ray–triangle test (`Ray.epsilon`), so both tests accept the same edge hits. */
+const EDGE_EPSILON = Epsilon;
 const XYZ = 3;
+/** Barycentric slack reaches at most this many times the triangle's extent beyond it. */
+const PAD_FACTOR = 2;
 
 /** A hit of a ray on a triangle: distance along the ray and the triangle's unit normal (world). */
 export interface TriangleHit {
@@ -83,6 +86,12 @@ export class TriangleGrid {
           lo[a] = Math.min(lo[a]!, positions[p + a]!);
           hi[a] = Math.max(hi[a]!, positions[p + a]!);
         }
+      }
+      // Babylon's test accepts hits up to EDGE_EPSILON (barycentric) outside the triangle: widen its cells by that much.
+      const pad = EDGE_EPSILON * Math.max(hi[0]! - lo[0]!, hi[1]! - lo[1]!, hi[2]! - lo[2]!) * PAD_FACTOR;
+      for (let a = 0; a < XYZ; a++) {
+        lo[a]! -= pad;
+        hi[a]! += pad;
       }
       const c = (a: number, value: number): number => Math.max(0, Math.min(dims[a]! - 1, Math.floor((value - min[a]!) / cell[a]!)));
       return [c(0, lo[0]!), c(1, lo[1]!), c(2, lo[2]!), c(0, hi[0]!), c(1, hi[1]!), c(2, hi[2]!)];
@@ -188,7 +197,7 @@ export class TriangleGrid {
     const py = d.z * e2x - d.x * e2z;
     const pz = d.x * e2y - d.y * e2x;
     const det = e1x * px + e1y * py + e1z * pz;
-    if (Math.abs(det) < PARALLEL) return null;
+    if (det === 0) return null;
     const inv = 1 / det;
     const tx = o.x - ax;
     const ty = o.y - ay;

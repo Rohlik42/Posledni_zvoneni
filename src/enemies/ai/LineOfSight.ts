@@ -8,6 +8,14 @@ import { TriangleGrid } from "./TriangleGrid";
 
 /** Slack (m) of the bounding-box pre-test, so rounding never rejects a mesh the exact test would hit. */
 const BOX_SLACK = 0.01;
+/** Moving groups with at most this many meshes (a door, a debris piece) re-read their boxes every step. */
+const EAGER_GROUP_MESHES = 8;
+/**
+ * Larger moving groups (a teacher: ~70 parts swaying in place) re-read every `LAZY_REFRESH_STEPS` steps, or at once when
+ * a ray passes their last box widened by `LAZY_SLACK` m — far more than such a group moves in that time.
+ */
+const LAZY_REFRESH_STEPS = 10;
+const LAZY_SLACK = 0.25;
 /** Floats per box in the cache: min x, y, z, max x, y, z. */
 const BOX_FLOATS = 6;
 /** Direction components smaller than this are treated as parallel to a slab. */
@@ -25,7 +33,7 @@ const NORMAL_AGREEMENT = 0.99;
 export interface SightCheck {
   rays: number;
   hits: number;
-  mismatches: { origin: number[]; direction: number[]; length: number; ours: number | null; babylon: number | null }[];
+  mismatches: { origin: number[]; direction: number[]; length: number; ours: number | null; babylon: number | null; mesh: string | null }[];
 }
 
 /** The closest blocking hit of a ray. */
@@ -44,7 +52,8 @@ interface Hit {
  * world-matrix inversion over every mesh of the scene for each one (a third of the frame in the start room). Here the
  * world bounding boxes of all pickable meshes without a damageable owner are cached in flat arrays, grouped by root
  * node with a box around each group (rebuilt when a mesh is added or removed; boxes of groups that can move are
- * refreshed by `beginStep` once per fixed step, frozen level geometry never moves). A ray tests the boxes first and runs
+ * refreshed after `beginStep` once per fixed step — large animated groups lazily, see `LAZY_REFRESH_STEPS` — frozen
+ * level geometry never moves). A ray tests the boxes first and runs
  * the visibility checks and the exact test only on boxes it passes through, nearest first; large frozen meshes use a
  * `TriangleGrid` instead of walking all their triangles. A mesh whose box the ray misses cannot be hit, so the answers
  * are those of `pickWithRay` with the predicate (`selfCheck`, `__game.enemies.sightCheck`).
@@ -62,7 +71,12 @@ export class LineOfSight {
   private boxes = new Float32Array(0);
   private groupBoxes = new Float32Array(0);
   private dirty = true;
-  private stale = true;
+  /** Fixed steps begun so far, and the step each group's boxes were last read in. */
+  private step = 0;
+  private groupReadStep = new Int32Array(0);
+  /** Moving groups too large to re-read every step (see `LAZY_REFRESH_STEPS`). */
+  private lazy = new Uint8Array(0);
+  private refreshedStep = -1;
   /** Boxes a ray passes through (reused between rays). */
   private readonly hits: { index: number; near: number }[] = [];
   /** Triangle grids of large frozen meshes (built on their first exact test); null = not worth one / unreadable. */
@@ -75,7 +89,7 @@ export class LineOfSight {
 
   /** Start of a fixed step: boxes of meshes that can move are re-read before the next ray. */
   beginStep(): void {
-    this.stale = true;
+    this.step += 1;
   }
 
   /** Distance to the first blocking surface along `direction` (normalised) within `length`, or null. */
@@ -130,7 +144,7 @@ export class LineOfSight {
       const babylonNormal = pick?.hit === true ? pick.getNormal(true, true) : null;
       const sameNormal = probe === null || babylonNormal === null || Math.abs(Vector3.Dot(probe.normal, babylonNormal)) >= NORMAL_AGREEMENT;
       const same = (ours === null || babylon === null ? ours === babylon : Math.abs(ours - babylon) <= CHECK_TOLERANCE) && sameNormal;
-      if (!same) result.mismatches.push({ origin: origin.asArray(), direction: direction.asArray(), length, ours, babylon });
+      if (!same) result.mismatches.push({ origin: origin.asArray(), direction: direction.asArray(), length, ours, babylon, mesh: pick?.pickedMesh?.name ?? null });
     }
     return result;
   }
@@ -154,14 +168,19 @@ export class LineOfSight {
     for (let g = 0; g + 1 < groupStart.length; g++) {
       const from = groupStart[g]!;
       const to = groupStart[g + 1]!;
-      const groupNear = LineOfSight.slab(groupBoxes, g * BOX_FLOATS, origin, direction, length);
+      if (this.lazy[g] === 1 && this.groupReadStep[g] !== this.step) {
+        // A large group read in an earlier step: a generous test first, the exact one only on fresh boxes.
+        if (LineOfSight.slab(groupBoxes, g * BOX_FLOATS, origin, direction, length, LAZY_SLACK) < 0) continue;
+        this.readGroup(g);
+      }
+      const groupNear = LineOfSight.slab(groupBoxes, g * BOX_FLOATS, origin, direction, length, BOX_SLACK);
       if (groupNear < 0) continue;
       if (to - from === 1) {
         hits.push({ index: from, near: groupNear });
         continue;
       }
       for (let i = from; i < to; i++) {
-        const near = LineOfSight.slab(boxes, i * BOX_FLOATS, origin, direction, length);
+        const near = LineOfSight.slab(boxes, i * BOX_FLOATS, origin, direction, length, BOX_SLACK);
         if (near >= 0) hits.push({ index: i, near });
       }
     }
@@ -198,15 +217,15 @@ export class LineOfSight {
   }
 
   /** Where the segment from `o` along unit `d` within `length` enters the box at `b` (widened by the slack), or −1. */
-  private static slab(boxes: Float32Array, b: number, o: Vector3, d: Vector3, length: number): number {
+  private static slab(boxes: Float32Array, b: number, o: Vector3, d: Vector3, length: number, slack: number): number {
     // Per axis: [near, far] shrinks to where the segment is inside both slabs (no allocation: called per box per ray).
     let near = 0;
     let far = length;
     for (let a = 0; a < XYZ; a++) {
       const p = a === 0 ? o.x : a === 1 ? o.y : o.z;
       const v = a === 0 ? d.x : a === 1 ? d.y : d.z;
-      const lo = boxes[b + a]! - BOX_SLACK;
-      const hi = boxes[b + a + XYZ]! + BOX_SLACK;
+      const lo = boxes[b + a]! - slack;
+      const hi = boxes[b + a + XYZ]! + slack;
       if (Math.abs(v) < PARALLEL) {
         if (p < lo || p > hi) return -1;
         continue;
@@ -227,7 +246,7 @@ export class LineOfSight {
   private refresh(): void {
     if (this.dirty) {
       this.dirty = false;
-      this.stale = false;
+      this.refreshedStep = this.step;
       // Meshes that are never pickable (effects, pickups, the weapon in hand) or have an owner never block; the flags are
       // checked again per ray, so this only shortens the list.
       const byRoot = new Map<Node, { mesh: AbstractMesh; order: number }[]>();
@@ -247,20 +266,28 @@ export class LineOfSight {
       this.boxes = new Float32Array(this.meshes.length * BOX_FLOATS);
       this.groupBoxes = new Float32Array(groups.length * BOX_FLOATS);
       this.moving = [];
+      this.groupReadStep = new Int32Array(groups.length);
+      this.lazy = new Uint8Array(groups.length);
       for (let g = 0; g < groups.length; g++) {
-        if (groups[g]!.some((m) => !m.mesh.isWorldMatrixFrozen)) this.moving.push(g);
+        if (groups[g]!.some((m) => !m.mesh.isWorldMatrixFrozen)) {
+          this.moving.push(g);
+          if (groups[g]!.length > EAGER_GROUP_MESHES) this.lazy[g] = 1;
+        }
         this.readGroup(g);
       }
       return;
     }
-    if (this.stale) {
-      this.stale = false;
-      for (const g of this.moving) this.readGroup(g);
+    if (this.refreshedStep !== this.step) {
+      this.refreshedStep = this.step;
+      for (const g of this.moving) {
+        if (this.lazy[g] === 0 || this.step - this.groupReadStep[g]! >= LAZY_REFRESH_STEPS) this.readGroup(g);
+      }
     }
   }
 
   /** Boxes of a group's meshes and their union. */
   private readGroup(g: number): void {
+    this.groupReadStep[g] = this.step;
     const from = this.groupStart[g]!;
     const to = this.groupStart[g + 1]!;
     const u = g * BOX_FLOATS;
