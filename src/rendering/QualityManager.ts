@@ -7,7 +7,10 @@ import { Settings } from "../core/Settings";
 import { TestHooks } from "../core/TestHooks";
 import type { QualityOption } from "../ui/MenuConfig";
 import { QUALITY_PRESETS, QualityConfig, type QualityData, type QualityPreset, type QualityPresetData } from "./QualityConfig";
-import { FrameSampler, type FrameWindow } from "./FrameSampler";
+import { AdaptiveQuality, type AdaptiveChange } from "./AdaptiveQuality";
+import { EffectBudget } from "./EffectBudget";
+import { ShaderPrewarm } from "./ShaderPrewarm";
+import { FrameSampler, type FrameCounters, type FrameWindow } from "./FrameSampler";
 import { QualityDetector, type QualityMeasurement } from "./QualityDetector";
 import type { RenderPipeline } from "./RenderPipeline";
 import { PIPELINE_PARTS } from "./RenderingConfig";
@@ -51,6 +54,11 @@ export interface QualityStats {
   gpuFrameMs: number | null;
   /** Phase 27: the device measures GPU time (`?gpuTiming=1` and the adapter offers `timestamp-query`). */
   gpuTiming: boolean;
+  /** Combat benchmark: particle systems of the scene, those with live particles, and live particles (last frame). */
+  particleSystems: number;
+  activeParticleSystems: number;
+  particles: number;
+  textures: number;
 }
 
 /** `window.__game.quality` (phase 21). */
@@ -70,6 +78,10 @@ export interface QualityTestApi {
   stats: () => QualityStats;
   /** Phase 25: restarts `stats().window` (a test calls it at the start of its measurement). */
   startWindow: () => void;
+  /** FEEDBACK 2026-10-04: the in-game adaptation — on/off (settings), level (0 = the preset), its multipliers, changes. */
+  adaptive: () => { enabled: boolean; level: number; levels: number; renderScale: number; effects: number; frameMs: number; changes: AdaptiveChange[] };
+  /** Forces an adaptive level (tests); the controller keeps adapting from there. */
+  setAdaptiveLevel: (level: number) => void;
   readonly presets: readonly QualityPreset[];
 }
 
@@ -100,6 +112,11 @@ export class QualityManager {
   private readonly gpu: string;
   private readonly start: { preset: QualityPreset; hint: string | null };
   private detector: QualityDetector | null = null;
+  /** FEEDBACK 2026-10-04: render scale and effect density follow the frame time in play (menu toggle). */
+  private readonly adaptive: AdaptiveQuality;
+  private readonly budget: EffectBudget;
+  /** The scene rendered once (later preset changes run the shader warm-up). */
+  private started = false;
   private choiceValue: QualityOption;
   private current: QualityPreset;
 
@@ -112,15 +129,22 @@ export class QualityManager {
     this.start = QualityDetector.initial(this.data.autodetect, this.gpu);
     this.baseScaling = game.engine.getHardwareScalingLevel();
     this.instrumentation = new SceneInstrumentation(game.scene);
-    this.frames = new FrameSampler(game.engine, this.instrumentation, game.config.frameTimeSamples, QualityManager.gpuCounter(game));
+    this.frames = new FrameSampler(game.engine, this.instrumentation, game.config.frameTimeSamples, QualityManager.gpuCounter(game), () =>
+      this.frameCounters(),
+    );
+    this.budget = EffectBudget.for(game.scene);
+    this.adaptive = new AdaptiveQuality(this.data.adaptive, () => this.applyAdaptive(true));
     const settings = Settings.shared();
+    this.adaptive.setEnabled(settings.values.adaptive);
     this.choiceValue = settings.values.quality;
     this.current = this.resolve(this.choiceValue);
     settings.onChanged.add((values) => {
       if (values.quality !== this.choiceValue) this.choose(values.quality);
+      if (values.adaptive !== this.adaptive.isEnabled) this.adaptive.setEnabled(values.adaptive);
     });
     game.onPipelineChanged.add((pipeline) => this.applyPipeline(pipeline, this.preset));
     game.scene.onBeforeRenderObservable.add(() => this.measure());
+    game.scene.onAfterRenderObservable.addOnce(() => (this.started = true));
     this.applyAll();
     this.registerTestHooks();
   }
@@ -149,6 +173,16 @@ export class QualityManager {
 
   get choice(): QualityOption {
     return this.choiceValue;
+  }
+
+  /** The adaptation's state (performance overlay). */
+  get adaptiveState(): { enabled: boolean; level: number; levels: number } {
+    return { enabled: this.adaptive.isEnabled, level: this.adaptive.level, levels: this.data.adaptive.levels.length };
+  }
+
+  /** Share of the canvas rendered now: the preset's render scale times the adaptive level's. */
+  get renderScale(): number {
+    return this.preset.renderScale * this.adaptive.current.renderScale;
   }
 
   /** The preset the automatic choice is at; null when the player picked one by hand. */
@@ -186,23 +220,51 @@ export class QualityManager {
   private setPreset(preset: QualityPreset): void {
     const changed = preset !== this.current;
     this.current = preset;
-    if (changed) this.applyAll();
+    if (!changed) return;
+    // A new preset starts from itself; the adaptation measures it afresh.
+    this.adaptive.setLevel(0);
+    this.adaptive.reset();
+    this.applyAll();
   }
 
   /** Feeds the automatic choice with frames of the running game (the menu, pause and quiz screens do not count). */
   private measure(): void {
-    if (this.detector === null || this.detector.done || this.game.paused) return;
-    const next = this.detector.frame(this.game.engine.getDeltaTime(), this.current);
-    if (next !== null) this.setPreset(next);
+    if (this.game.paused) return;
+    if (this.detector !== null && !this.detector.done) {
+      const next = this.detector.frame(this.game.engine.getDeltaTime(), this.current);
+      if (next !== null) this.setPreset(next);
+      return;
+    }
+    // After the automatic choice (or with a preset picked by hand): adapt render scale and effects to the frame time.
+    this.adaptive.frame(this.game.engine.getDeltaTime());
   }
 
   private applyAll(): void {
     const preset = this.preset;
-    const engine = this.game.engine;
-    const scaling = this.baseScaling / preset.renderScale;
-    if (engine.getHardwareScalingLevel() !== scaling) engine.setHardwareScalingLevel(scaling);
+    this.budget.configure(preset.effects);
+    this.applyAdaptive(false);
     if (this.game.pipeline !== null) this.applyPipeline(this.game.pipeline, preset);
     for (const target of this.targets) target.applyQuality(preset);
+    // A preset changes shader defines (SSAO pre-pass, fog, MSAA, shadows): everything is built again now, in one go,
+    // instead of one stall per effect at its first use in a fight (FEEDBACK 2026-10-04). Not before the game runs:
+    // `Game.start` warms up the scene it loaded.
+    const camera = this.game.scene.activeCamera;
+    if (this.started && camera !== null) void ShaderPrewarm.for(this.game.scene).run(camera);
+  }
+
+  /**
+   * Render scale and effect density: the preset's times the adaptive level's. An adaptive step (`step`) keeps the bloom
+   * kernel, so it changes no shader; a new preset rebuilds everything anyway.
+   */
+  private applyAdaptive(step: boolean): void {
+    const level = this.adaptive.current;
+    const engine = this.game.engine;
+    const scaling = this.baseScaling / (this.preset.renderScale * level.renderScale);
+    if (engine.getHardwareScalingLevel() !== scaling) {
+      if (step) this.game.pipeline?.holdBloomKernel(scaling);
+      engine.setHardwareScalingLevel(scaling);
+    }
+    this.budget.setAdaptiveScale(level.effects);
   }
 
   private applyPipeline(pipeline: RenderPipeline, preset: QualityPresetData): void {
@@ -210,10 +272,31 @@ export class QualityManager {
     pipeline.setMsaaSamples(preset.msaaSamples);
     pipeline.setSsaoSamples(preset.ssaoSamples);
     pipeline.setFogRange(preset.fog.start, preset.fog.end);
+    pipeline.restoreBloomKernel();
+  }
+
+  /** Effect load of the last frame (combat benchmark); one object reused every frame. */
+  private readonly counterValues: FrameCounters = { particles: 0, activeParticleSystems: 0, lights: 0, meshes: 0, activeMeshes: 0 };
+
+  private frameCounters(): FrameCounters {
+    const { scene } = this.game;
+    const c = this.counterValues;
+    c.particles = 0;
+    c.activeParticleSystems = 0;
+    for (const system of scene.particleSystems) {
+      const active = system.getActiveCount();
+      c.particles += active;
+      if (active > 0) c.activeParticleSystems += 1;
+    }
+    c.lights = scene.lights.length;
+    c.meshes = scene.meshes.length;
+    c.activeMeshes = scene.getActiveMeshes().length;
+    return c;
   }
 
   private stats(): QualityStats {
     const { engine, scene } = this.game;
+    const counters = this.frameCounters();
     return {
       fps: engine.getFps(),
       frameTimeMs: this.game.frameTimeMs(),
@@ -231,6 +314,10 @@ export class QualityManager {
       window: this.frames.window(),
       gpuFrameMs: this.frames.gpuFrameMs(),
       gpuTiming: this.game.gpuTiming,
+      particleSystems: scene.particleSystems.length,
+      activeParticleSystems: counters.activeParticleSystems,
+      particles: counters.particles,
+      textures: scene.textures.length,
     };
   }
 
@@ -278,6 +365,16 @@ export class QualityManager {
       applied: () => structuredClone(manager.preset),
       stats: () => manager.stats(),
       startWindow: () => manager.frames.startWindow(),
+      adaptive: () => ({
+        enabled: manager.adaptive.isEnabled,
+        level: manager.adaptive.level,
+        levels: manager.data.adaptive.levels.length,
+        renderScale: manager.adaptive.current.renderScale,
+        effects: manager.adaptive.current.effects,
+        frameMs: manager.adaptive.frameMs,
+        changes: manager.adaptive.changes.map((c) => ({ ...c })),
+      }),
+      setAdaptiveLevel: (level) => manager.adaptive.setLevel(level),
       presets: QUALITY_PRESETS,
     });
   }

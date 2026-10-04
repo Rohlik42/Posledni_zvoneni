@@ -32,6 +32,7 @@ export const INPUT_ACTIONS = [
   "pause",
   "mute",
   "debugNavmesh",
+  "perfOverlay",
 ] as const;
 
 export type InputAction = (typeof INPUT_ACTIONS)[number];

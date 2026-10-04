@@ -45,6 +45,7 @@ export class WaterEffects {
       stretch: data.dropletStretch,
       gravity: data.streamGravity,
       stretched: true,
+      essential: true,
     });
     this.splash = new DropletEmitter("water-splash", scene, {
       capacity: Math.max(1, data.splashDroplets * SPLASH_CAPACITY_SHOTS),

@@ -4,6 +4,7 @@ import { PhysicsMotionType } from "@babylonjs/core/Physics/v2/IPhysicsEnginePlug
 import { PhysicsBody } from "@babylonjs/core/Physics/v2/physicsBody";
 import { PhysicsShapeSphere } from "@babylonjs/core/Physics/v2/physicsShape";
 import type { Scene } from "@babylonjs/core/scene";
+import { ShaderPrewarm } from "../rendering/ShaderPrewarm";
 import type { HitResult, Hitscan } from "./Hitscan";
 import { WaterBalloonModel } from "./models/WaterBalloonModel";
 
@@ -11,6 +12,8 @@ import { WaterBalloonModel } from "./models/WaterBalloonModel";
 const CONTACT_PROBE_DISTANCE = 1;
 /** The burst point sits this far off the surface, so splash rays start in the open (m). */
 const SURFACE_OFFSET = 0.05;
+/** Balloon models made at load and reused (FEEDBACK 2026-10-04: no model is built per throw). */
+const POOL_START = 2;
 
 export interface BalloonFlightOptions {
   radius: number;
@@ -27,6 +30,12 @@ export interface BalloonBurst {
   point: Vector3;
   hit: HitResult | null;
   velocity: Vector3;
+}
+
+/** A flying balloon's node and model, kept for the next throw after it bursts. */
+interface Shell {
+  node: TransformNode;
+  model: WaterBalloonModel;
 }
 
 interface Flying {
@@ -49,13 +58,24 @@ interface Flying {
  */
 export class BalloonProjectiles {
   private readonly flying: Flying[] = [];
+  private readonly spare: Shell[] = [];
+  private shells = 0;
   private launched = 0;
 
   constructor(
     private readonly scene: Scene,
     private readonly hitscan: Hitscan,
     private readonly options: BalloonFlightOptions,
-  ) {}
+  ) {
+    for (let i = 0; i < POOL_START; i++) this.spare.push(this.createShell());
+    // A flying balloon is drawn once in the load-time warm-up (its materials without the hand's room lights).
+    const shown = this.spare[0]!;
+    ShaderPrewarm.for(scene).addAction((at) => {
+      shown.node.position.copyFrom(at);
+      shown.node.setEnabled(true);
+      return () => shown.node.setEnabled(false);
+    });
+  }
 
   get inFlight(): number {
     return this.flying.length;
@@ -67,11 +87,11 @@ export class BalloonProjectiles {
 
   launch(position: Vector3, velocity: Vector3): void {
     const { scene, options } = this;
-    const node = new TransformNode(`balloon-${this.launched}`, scene);
+    const { node, model } = this.spare.pop() ?? this.createShell();
     node.position.copyFrom(position);
-    const model = new WaterBalloonModel(scene, { variant: options.variant, hand: false, scale: options.scale, name: `balloon-${this.launched}` });
-    model.root.parent = node;
-    for (const mesh of model.meshes) mesh.isPickable = false;
+    node.rotationQuaternion = null;
+    node.rotation.setAll(0);
+    node.setEnabled(true);
     const shape = new PhysicsShapeSphere(Vector3.Zero(), options.radius, scene);
     const body = new PhysicsBody(node, PhysicsMotionType.DYNAMIC, false, scene);
     body.shape = shape;
@@ -109,6 +129,11 @@ export class BalloonProjectiles {
 
   dispose(): void {
     for (const balloon of [...this.flying]) this.remove(balloon);
+    for (const { node, model } of this.spare) {
+      model.dispose();
+      node.dispose();
+    }
+    this.spare.length = 0;
   }
 
   /** A hit between the previous and the current position, or after a Havok contact a surface just ahead. */
@@ -133,7 +158,18 @@ export class BalloonProjectiles {
     if (index >= 0) this.flying.splice(index, 1);
     balloon.body.dispose();
     balloon.shape.dispose();
-    balloon.model.dispose();
-    balloon.node.dispose();
+    balloon.node.setEnabled(false);
+    this.spare.push({ node: balloon.node, model: balloon.model });
+  }
+
+  private createShell(): Shell {
+    const { scene, options } = this;
+    const name = `balloon-${this.shells++}`;
+    const node = new TransformNode(name, scene);
+    const model = new WaterBalloonModel(scene, { variant: options.variant, hand: false, scale: options.scale, name });
+    model.root.parent = node;
+    for (const mesh of model.meshes) mesh.isPickable = false;
+    node.setEnabled(false);
+    return { node, model };
   }
 }

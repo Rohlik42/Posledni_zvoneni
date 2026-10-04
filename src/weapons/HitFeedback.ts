@@ -68,6 +68,7 @@ export class HitFeedback {
       size: [hit.flashSize, hit.flashSize],
       gravity: 0,
       stretched: false,
+      essential: true,
     });
   }
 

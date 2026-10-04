@@ -125,7 +125,10 @@ export class EnemyManager {
     const { scene } = game;
     this.lineOfSight = new LineOfSight(scene);
     this.cover = new CoverPoints(encounter.coverPoints, this.lineOfSight);
-    this.projectiles = new EnemyProjectiles(scene, player, this.data.humanoid.projectile.color);
+    this.projectiles = new EnemyProjectiles(scene, player, this.data.humanoid.projectile.color, this.lineOfSight);
+    // Bolt and flash spheres exist before the first shot (FEEDBACK 2026-10-04: no meshes built during a fight).
+    this.projectiles.prewarm(this.data.humanoid.projectile);
+    this.projectiles.prewarm(this.data.drone.projectile);
     this.debris = new RobotDebris(scene, this.data.humanoid.death);
     const noise = NoiseEvents.for(game);
     const target = {

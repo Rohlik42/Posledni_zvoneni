@@ -24,6 +24,40 @@ export interface QualityPresetData {
   skybox: number;
   /** Rooms this many passages from the player's still draw their contents (`RoomCulling`). */
   cullingDepth: number;
+  /** Combat effect budget (`EffectBudget`, FEEDBACK 2026-10-04). */
+  effects: EffectBudgetData;
+}
+
+/** How much a fight may show (`EffectBudget`): only the look, never damage or hits. */
+export interface EffectBudgetData {
+  /** Share of decorative particles emitted (sparks, splashes, trails); jets, arcs and beams are never thinned. */
+  density: number;
+  /** Live decorative particles at most; above it the oldest die first. */
+  maxParticles: number;
+  /** Wet spots per weapon at most (also capped by the weapon's own `maxWetSpots`). */
+  wetSpots: number;
+  /** Share of `death.life` the parts of a destroyed robot stay. */
+  debrisLife: number;
+  /** Wrecks at once; the oldest sinks early. */
+  maxWrecks: number;
+}
+
+/** One step of the adaptive quality (`AdaptiveQuality`): multipliers of the preset's render scale and effect density. */
+export interface AdaptiveLevel {
+  renderScale: number;
+  effects: number;
+}
+
+/** In-game adaptation to the frame time (FEEDBACK 2026-10-04): thresholds in fps of the averaged frame interval, times in s. */
+export interface AdaptiveData {
+  window: number;
+  downFps: number;
+  upFps: number;
+  downAfter: number;
+  upAfter: number;
+  cooldown: number;
+  retryAfter: number;
+  levels: AdaptiveLevel[];
 }
 
 export interface QualityAutodetectData {
@@ -40,6 +74,7 @@ export interface QualityAutodetectData {
 export interface QualityData {
   order: QualityPreset[];
   autodetect: QualityAutodetectData;
+  adaptive: AdaptiveData;
   presets: Record<QualityPreset, QualityPresetData>;
 }
 
@@ -61,6 +96,16 @@ export class QualityConfig {
       downFps: positive,
       maxRounds: Schema.integer({ min: 0, max: 4 }),
     }),
+    adaptive: Schema.object({
+      window: Schema.number({ min: 0.1, max: 10 }),
+      downFps: positive,
+      upFps: positive,
+      downAfter: positive,
+      upAfter: positive,
+      cooldown: positive,
+      retryAfter: positive,
+      levels: Schema.array(Schema.object({ renderScale: Schema.number({ min: 0.25, max: 1 }), effects: Schema.number({ min: 0, max: 1 }) }), 1),
+    }),
     presets: Schema.object(
       Object.fromEntries(
         QUALITY_PRESETS.map((id) => [
@@ -75,6 +120,13 @@ export class QualityConfig {
             particles: Schema.number({ min: 0, max: 1 }),
             skybox: Schema.integer({ min: 64, max: 4096 }),
             cullingDepth: Schema.integer({ min: 1, max: 10 }),
+            effects: Schema.object({
+              density: Schema.number({ min: 0, max: 1 }),
+              maxParticles: Schema.integer({ min: 0 }),
+              wetSpots: Schema.integer({ min: 0 }),
+              debrisLife: Schema.number({ min: 0.05, max: 1 }),
+              maxWrecks: Schema.integer({ min: 1 }),
+            }),
           }),
         ]),
       ),
@@ -89,6 +141,9 @@ export class QualityConfig {
       if (p.fog.end <= p.fog.start) throw new Error(`${QualityConfig.file}: presets.${id}.fog.end must be greater than fog.start`);
     }
     if (data.autodetect.upFps <= data.autodetect.downFps) throw new Error(`${QualityConfig.file}: autodetect.upFps must be above downFps`);
+    if (data.adaptive.upFps <= data.adaptive.downFps) throw new Error(`${QualityConfig.file}: adaptive.upFps must be above downFps`);
+    const first = data.adaptive.levels[0]!;
+    if (first.renderScale !== 1 || first.effects !== 1) throw new Error(`${QualityConfig.file}: adaptive.levels[0] must be the preset itself (1, 1)`);
     for (const hint of data.autodetect.gpu) new RegExp(hint.match, "i");
     return structuredClone(data);
   }

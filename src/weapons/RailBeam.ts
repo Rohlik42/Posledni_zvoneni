@@ -7,6 +7,7 @@ import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
 import type { Scene } from "@babylonjs/core/scene";
 import { DropletEmitter } from "../rendering/DropletEmitter";
 import { PaletteColor } from "../rendering/PaletteColor";
+import { ShaderPrewarm } from "../rendering/ShaderPrewarm";
 import { Random } from "../utils/Random";
 import type { EffectData } from "./WeaponConfig";
 
@@ -155,6 +156,8 @@ export class RailBeam {
     mesh.isPickable = false;
     mesh.applyFog = false;
     mesh.setEnabled(false);
+    // Drawn once in the load-time warm-up (FEEDBACK 2026-10-04): no pipeline is built at the first shot.
+    ShaderPrewarm.for(scene).addMesh(mesh);
     return mesh;
   }
 }

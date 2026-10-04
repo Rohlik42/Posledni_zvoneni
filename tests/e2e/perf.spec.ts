@@ -37,7 +37,10 @@ const HIGH_MIN_FPS = 57;
  * (PERF.md, fáze 25); 12 ms keeps 4.7 ms (28 %) of the 16.7 ms frame free and still allows ~55 % noise above the
  * measurement, so a regression of more than that fails here long before the fps leave the vsync cap (DECISIONS „Fáze 25“).
  */
-const HIGH_MAX_CPU_FRAME_MS = 12;
+// FEEDBACK 2026-10-04 (combat performance): 12 → 14 ms. Main had drifted to ~10.5 ms (people, lighting); every shadow
+// lamp now keeps its generator so walking past lamps compiles nothing (was a 80+ ms hitch per lamp), which costs
+// ~1.3 ms of shadow binding per frame at this view (PERF.md „Souboj“, DECISIONS).
+const HIGH_MAX_CPU_FRAME_MS = 14;
 const LOW_THROTTLED_MIN_FPS = 30;
 const CPU_THROTTLE = 4;
 /** Phase 25: CPU throttle under which Střední measures well below `autodetect.downFps` (12.6 fps measured at 8×, 18 at 6×). */
@@ -152,6 +155,9 @@ test.describe("quality presets and performance (1920×1080)", () => {
     expect(await page.evaluate(() => window.__game?.error ?? null)).toBeNull();
     await page.evaluate(() => window.__game!.progress!.intro.dismiss());
     const loadMs = Date.now() - started;
+    // FEEDBACK 2026-10-04: the in-game adaptation would lower the render scale of a slow preset; these tests measure
+    // the presets themselves (perf-combat.spec.ts tests the adaptation).
+    await page.evaluate(() => window.__game!.settings!.set({ adaptive: false }));
     results.loadMs = loadMs;
     expect(loadMs).toBeLessThanOrEqual(LOAD_LIMIT_MS);
     // Phase 27: without `?gpuTiming=1` the engine is created as before: no GPU timing, no GPU numbers.
@@ -284,7 +290,10 @@ test.describe("quality presets and performance (1920×1080)", () => {
       await gpuPage.goto(GPU_TIMING_URL);
       await gpuPage.waitForFunction(() => window.__game?.ready === true || window.__game?.error != null, undefined, { timeout: READY_TIMEOUT_MS });
       expect(await gpuPage.evaluate(() => window.__game?.error ?? null)).toBeNull();
-      await gpuPage.evaluate(() => window.__game!.progress!.intro.dismiss());
+      await gpuPage.evaluate(() => {
+        window.__game!.progress!.intro.dismiss();
+        window.__game!.settings!.set({ adaptive: false });
+      });
       const device = await gpuPage.evaluate(() => ({ renderer: window.__game!.renderer, gpuTiming: window.__game!.quality!.stats().gpuTiming }));
       const high = await fpsAt(gpuPage, "high");
       const gpu = high.stats.window.gpuFrameMs;

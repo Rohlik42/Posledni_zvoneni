@@ -3,9 +3,13 @@ import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import { CreateDecal } from "@babylonjs/core/Meshes/Builders/decalBuilder";
+import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
 import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import type { Scene } from "@babylonjs/core/scene";
+import { EffectBudget } from "../rendering/EffectBudget";
+import { LightExclusions } from "../rendering/LightExclusions";
 import { PaletteColor } from "../rendering/PaletteColor";
+import { ShaderPrewarm } from "../rendering/ShaderPrewarm";
 import { ParticleTextures } from "../rendering/ParticleTextures";
 import type { Random } from "../utils/Random";
 import type { StreamData } from "./WeaponConfig";
@@ -13,6 +17,8 @@ import type { StreamData } from "./WeaponConfig";
 /** Pulls the decal towards the camera in the depth test so it never flickers against the surface it lies on. */
 const DECAL_Z_OFFSET = -2;
 const FULL_TURN = Math.PI * 2;
+/** Edge of the warm-up stand-in (m); it is drawn only during the load-time warm-up. */
+const PREWARM_SIZE = 0.1;
 
 interface WetSpot {
   mesh: Mesh;
@@ -28,6 +34,9 @@ export class WetSpots {
   private readonly material: StandardMaterial;
   private readonly spots: WetSpot[] = [];
   private serial = 0;
+  /** The quality preset's cap on wet spots (FEEDBACK 2026-10-04); the weapon's own `maxWetSpots` still applies. */
+  private readonly budget: EffectBudget;
+  private readonly proxy: Mesh;
 
   constructor(
     scene: Scene,
@@ -44,6 +53,20 @@ export class WetSpots {
     material.zOffset = DECAL_Z_OFFSET;
     material.disableDepthWrite = true;
     this.material = material;
+    this.budget = EffectBudget.for(scene);
+    // A hidden stand-in with the decal's vertex layout (positions, normals, UVs) is drawn in the load-time warm-up, so
+    // the first wet spot of a fight builds no shader (FEEDBACK 2026-10-04).
+    const proxy = CreatePlane(`wet-spot-prewarm-${data.colorDeep}`, { size: PREWARM_SIZE }, scene);
+    proxy.material = material;
+    proxy.isPickable = false;
+    proxy.setEnabled(false);
+    ShaderPrewarm.for(scene).addMesh(proxy);
+    this.proxy = proxy;
+  }
+
+  /** Wet spots kept at most: the weapon's `maxWetSpots`, capped by the preset's budget. */
+  private get max(): number {
+    return Math.min(this.data.maxWetSpots, this.budget.wetSpots);
   }
 
   get count(): number {
@@ -51,7 +74,7 @@ export class WetSpots {
   }
 
   add(target: AbstractMesh, point: Vector3, normal: Vector3): void {
-    if (this.data.maxWetSpots === 0) return;
+    if (this.max === 0) return;
     const size = this.random.range(this.data.wetSize[0], this.data.wetSize[1]);
     let mesh: Mesh;
     try {
@@ -70,11 +93,12 @@ export class WetSpots {
       return;
     }
     mesh.parent = target;
+    LightExclusions.exclude(mesh);
     mesh.material = this.material;
     mesh.isPickable = false;
     mesh.renderingGroupId = target.renderingGroupId;
     this.spots.push({ mesh, age: 0 });
-    while (this.spots.length > this.data.maxWetSpots) this.spots.shift()?.mesh.dispose();
+    while (this.spots.length > this.max) this.spots.shift()?.mesh.dispose();
   }
 
   update(dt: number): void {
@@ -89,6 +113,7 @@ export class WetSpots {
   dispose(): void {
     for (const spot of this.spots) spot.mesh.dispose();
     this.spots.length = 0;
+    this.proxy.dispose();
     this.material.dispose();
   }
 }

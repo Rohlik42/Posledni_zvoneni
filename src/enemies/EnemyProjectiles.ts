@@ -1,19 +1,18 @@
-import { Ray } from "@babylonjs/core/Culling/ray";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { Color3, Color4 } from "@babylonjs/core/Maths/math.color";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
-import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
 import { Observable } from "@babylonjs/core/Misc/observable";
 import type { Scene } from "@babylonjs/core/scene";
-import { DamageTargets } from "../core/DamageTargets";
 import type { DamageType } from "../core/DamageTypes";
 import type { Simulated } from "../core/SceneSetup";
 import type { Player } from "../player/Player";
 import { DropletEmitter } from "../rendering/DropletEmitter";
 import { PaletteColor } from "../rendering/PaletteColor";
+import { ShaderPrewarm } from "../rendering/ShaderPrewarm";
 import { Random } from "../utils/Random";
+import type { LineOfSight } from "./ai/LineOfSight";
 import type { ProjectileData } from "./EnemyConfig";
 
 /** Low-poly spheres for bolts and muzzle flashes. */
@@ -40,6 +39,8 @@ const IMPACT_MIN_RISE = -0.3;
 const TRAIL_SEED = 5;
 /** The flash fades from full size to this fraction over its life. */
 const FLASH_END_SCALE = 0.3;
+/** Bolt and flash spheres are made once and reused (FEEDBACK 2026-10-04, combat performance): this many at load. */
+const PREWARM_SPHERES = 8;
 
 /** One electric bolt in flight. */
 interface Bolt {
@@ -83,6 +84,12 @@ export class EnemyProjectiles implements Simulated {
   private readonly materials = new Map<string, StandardMaterial>();
   private readonly trail: DropletEmitter;
   private readonly random = new Random(TRAIL_SEED);
+  /**
+   * Disabled spheres waiting for the next bolt or flash (unit diameter, scaled per use), one pool per material so a
+   * reused sphere keeps its material (no new shader state per shot).
+   */
+  private readonly spares = new Map<StandardMaterial, Mesh[]>();
+  private spheres = 0;
   private fired = 0;
   private playerHits = 0;
 
@@ -90,6 +97,8 @@ export class EnemyProjectiles implements Simulated {
     private readonly scene: Scene,
     private readonly player: Player,
     trailColor: string,
+    /** Walls stop bolts: the robots' cached ray search (same answers as `scene.pickWithRay` with this predicate). */
+    private readonly sight: LineOfSight,
   ) {
     const color = PaletteColor.color4(trailColor);
     this.trail = new DropletEmitter("bolt-trail", scene, {
@@ -100,6 +109,19 @@ export class EnemyProjectiles implements Simulated {
       gravity: TRAIL_GRAVITY,
       stretched: false,
     });
+  }
+
+  /**
+   * Makes the bolt and flash spheres of `data` at load (FEEDBACK 2026-10-04): the first fight then neither builds meshes
+   * nor meets a new material. Robots call it once per projectile kind.
+   */
+  prewarm(data: ProjectileData): void {
+    for (const material of [this.glow(data.color, data.glow), this.glow(data.color, data.glow * FLASH_GLOW_BOOST)]) {
+      const pool = this.pool(material);
+      while (pool.length < PREWARM_SPHERES) pool.push(this.createSphere(material));
+      // One of them is drawn in the load-time warm-up, so the bolt's pipeline exists before the first shot.
+      ShaderPrewarm.for(this.scene).addMesh(pool[0]!);
+    }
   }
 
   get active(): number {
@@ -119,9 +141,8 @@ export class EnemyProjectiles implements Simulated {
     const direction = target.subtract(origin);
     if (direction.lengthSquared() < Number.EPSILON) direction.set(0, 0, 1);
     direction.normalize();
-    const mesh = MeshBuilder.CreateSphere("enemy-bolt", { diameter: data.size, segments: BOLT_SEGMENTS }, this.scene);
-    mesh.material = this.glow(data.color, data.glow);
-    mesh.isPickable = false;
+    const mesh = this.sphere(this.glow(data.color, data.glow));
+    mesh.scaling.setAll(data.size);
     mesh.position.copyFrom(origin);
     this.bolts.push({ mesh, position: origin.clone(), velocity: direction.scale(data.speed), age: 0, damage, damageType, data, trailDebt: 0, onPlayerHit });
     this.addFlash(origin, data);
@@ -134,7 +155,7 @@ export class EnemyProjectiles implements Simulated {
       const impact = this.advance(bolt, dt);
       if (impact !== null) {
         this.bolts.splice(i, 1);
-        bolt.mesh.dispose();
+        this.release(bolt.mesh);
         this.burst(impact.position, bolt.velocity);
         this.onImpact.notifyObservers(impact);
       }
@@ -143,7 +164,7 @@ export class EnemyProjectiles implements Simulated {
       const flash = this.flashes[i]!;
       flash.age += dt;
       if (flash.age >= flash.life) {
-        flash.mesh.dispose();
+        this.release(flash.mesh);
         this.flashes.splice(i, 1);
         continue;
       }
@@ -154,14 +175,16 @@ export class EnemyProjectiles implements Simulated {
 
   /** Removes every bolt and flash (respawn, scene reset). */
   clear(): void {
-    for (const bolt of this.bolts) bolt.mesh.dispose();
-    for (const flash of this.flashes) flash.mesh.dispose();
+    for (const bolt of this.bolts) this.release(bolt.mesh);
+    for (const flash of this.flashes) this.release(flash.mesh);
     this.bolts.length = 0;
     this.flashes.length = 0;
   }
 
   dispose(): void {
     this.clear();
+    for (const pool of this.spares.values()) for (const mesh of pool) mesh.dispose();
+    this.spares.clear();
     this.trail.dispose();
     for (const material of this.materials.values()) material.dispose();
     this.onImpact.clear();
@@ -175,15 +198,17 @@ export class EnemyProjectiles implements Simulated {
     const to = from.add(travel);
     const playerHit = this.hitsPlayer(from, to, bolt.data.radius);
     const length = travel.length();
-    const pick = this.scene.pickWithRay(new Ray(from, travel.scale(1 / length), length), (mesh) => this.blocks(mesh));
-    const wallDistance = pick?.hit === true && pick.pickedPoint !== null ? pick.distance : Number.POSITIVE_INFINITY;
+    // Walls and props stop bolts; robots, practice targets, effects and the viewmodel do not (the robots' sight rules,
+    // except that a pickable mesh faded to visibility 0 still stops a bolt, as with the scene pick before).
+    const wall = length > 0 ? this.sight.firstHit(from, travel.scale(1 / length), length, true) : null;
+    const wallDistance = wall ?? Number.POSITIVE_INFINITY;
     if (playerHit !== null && playerHit <= wallDistance) {
       this.player.health.damage(bolt.damage, bolt.damageType);
       this.playerHits++;
       bolt.onPlayerHit?.(bolt.damage);
       return { hit: "player", position: from.add(travel.scale(playerHit / length)), damage: bolt.damage };
     }
-    if (pick?.hit === true && pick.pickedPoint !== null) return { hit: "wall", position: pick.pickedPoint, damage: 0 };
+    if (wall !== null) return { hit: "wall", position: from.add(travel.scale(wall / length)), damage: 0 };
     if (bolt.age >= bolt.data.life) return { hit: "expired", position: to, damage: 0 };
     bolt.position.copyFrom(to);
     bolt.mesh.position.copyFrom(to);
@@ -215,11 +240,6 @@ export class EnemyProjectiles implements Simulated {
     return null;
   }
 
-  /** Walls and props stop bolts; robots, practice targets, effects and the viewmodel do not. */
-  private blocks(mesh: AbstractMesh): boolean {
-    return mesh.isPickable && mesh.isVisible && mesh.isEnabled() && mesh.renderingGroupId === 0 && DamageTargets.find(mesh) === null;
-  }
-
   private emitTrail(bolt: Bolt, dt: number): void {
     bolt.trailDebt += bolt.data.trailPerSecond * dt;
     while (bolt.trailDebt >= 1) {
@@ -238,12 +258,40 @@ export class EnemyProjectiles implements Simulated {
   }
 
   private addFlash(position: Vector3, data: ProjectileData): void {
-    const mesh = MeshBuilder.CreateSphere("enemy-muzzle-flash", { diameter: 1, segments: BOLT_SEGMENTS }, this.scene);
-    mesh.material = this.glow(data.color, data.glow * FLASH_GLOW_BOOST);
-    mesh.isPickable = false;
+    const mesh = this.sphere(this.glow(data.color, data.glow * FLASH_GLOW_BOOST));
     mesh.position.copyFrom(position);
     mesh.scaling.setAll(data.flashSize);
     this.flashes.push({ mesh, age: 0, life: data.flashTime, size: data.flashSize });
+  }
+
+  /** A sphere from the pool (enabled), or a new one when every sphere is in flight. */
+  private sphere(material: StandardMaterial): Mesh {
+    const mesh = this.pool(material).pop() ?? this.createSphere(material);
+    mesh.setEnabled(true);
+    return mesh;
+  }
+
+  private pool(material: StandardMaterial): Mesh[] {
+    let pool = this.spares.get(material);
+    if (pool === undefined) {
+      pool = [];
+      this.spares.set(material, pool);
+    }
+    return pool;
+  }
+
+  private createSphere(material: StandardMaterial): Mesh {
+    const mesh = MeshBuilder.CreateSphere(`enemy-bolt-${this.spheres++}`, { diameter: 1, segments: BOLT_SEGMENTS }, this.scene);
+    mesh.isPickable = false;
+    mesh.material = material;
+    mesh.setEnabled(false);
+    return mesh;
+  }
+
+  private release(mesh: Mesh): void {
+    mesh.setEnabled(false);
+    if (mesh.material instanceof StandardMaterial) this.pool(mesh.material).push(mesh);
+    else mesh.dispose();
   }
 
   private glow(color: string, intensity: number): StandardMaterial {

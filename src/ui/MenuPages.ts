@@ -166,7 +166,19 @@ export class MenuPages {
         this.refresh();
       },
     }));
-    return { id: "quality", texts: t, items: [...items, this.backItem()], onBack: () => this.back() };
+    // FEEDBACK 2026-10-04: the in-game adaptation (render scale, sparks) can be switched off; on by default.
+    const adaptive = this.settings.values.adaptive;
+    const adaptiveItem: MenuItem = {
+      key: "quality:adaptive",
+      label: `${t.adaptive.label}: ${adaptive ? t.adaptive.on : t.adaptive.off}`,
+      detail: t.adaptive.detail,
+      selected: adaptive,
+      action: () => {
+        this.settings.set({ adaptive: !this.settings.values.adaptive });
+        this.refresh();
+      },
+    };
+    return { id: "quality", texts: t, items: [...items, adaptiveItem, this.backItem()], onBack: () => this.back() };
   }
 
   private controls(): MenuPage {

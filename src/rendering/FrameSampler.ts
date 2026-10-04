@@ -24,7 +24,27 @@ export interface FrameWindow {
   gpuFrameMs: FrameRange | null;
   /** Phase 27: GPU measurements in the window (0 without `?gpuTiming=1`). */
   gpuSamples: number;
+  /**
+   * Combat benchmark: wall-clock time from one frame's begin to the next one's, ms. Unlike `cpuFrameMs` it also holds
+   * what runs between frames (garbage collection, timers, the browser), so a hitch shows here even outside the frame.
+   */
+  frameIntervalMs: FrameRange;
+  /** Combat benchmark: per-frame effect load (`FrameCounters`) over the window; null when no counters were given. */
+  counters: Record<keyof FrameCounters, FrameRange> | null;
 }
+
+/** Per-frame numbers of the scene sampled at the end of every frame (combat benchmark). */
+export interface FrameCounters {
+  /** Particles alive in all particle systems. */
+  particles: number;
+  /** Particle systems with at least one live particle. */
+  activeParticleSystems: number;
+  lights: number;
+  meshes: number;
+  activeMeshes: number;
+}
+
+const FRAME_COUNTER_KEYS: readonly (keyof FrameCounters)[] = ["particles", "activeParticleSystems", "lights", "meshes", "activeMeshes"];
 
 /** Draw-call counts listed in `FrameWindow.drawCallModes`. */
 const DRAW_CALL_MODES = 4;
@@ -55,6 +75,9 @@ export class FrameSampler {
   private gpuCount = 0;
   private gpu = new FrameRangeAccumulator();
   private gpuWindowSamples = 0;
+  private interval = new FrameRangeAccumulator();
+  private lastBegin = 0;
+  private counterRanges: Record<keyof FrameCounters, FrameRangeAccumulator> | null = null;
 
   constructor(
     engine: AbstractEngine,
@@ -62,10 +85,15 @@ export class FrameSampler {
     private readonly samples: number,
     /** Phase 27: GPU frame time in ns, or null when the device cannot measure it. */
     private readonly gpuCounter: PerfCounter | null = null,
+    /** Combat benchmark: the scene's effect load, read at the end of every frame. */
+    private readonly counters: (() => FrameCounters) | null = null,
   ) {
     instrumentation.captureFrameTime = true;
     engine.onBeginFrameObservable.add(() => {
-      this.frameStart = performance.now();
+      const now = performance.now();
+      if (this.lastBegin > 0) this.interval.add(now - this.lastBegin);
+      this.lastBegin = now;
+      this.frameStart = now;
     });
     engine.onEndFrameObservable.add(() => this.endFrame(performance.now() - this.frameStart));
     this.startWindow();
@@ -97,6 +125,9 @@ export class FrameSampler {
     this.drawCounts = new Map();
     this.gpu = new FrameRangeAccumulator();
     this.gpuWindowSamples = 0;
+    this.interval = new FrameRangeAccumulator();
+    this.lastBegin = 0;
+    this.counterRanges = null;
   }
 
   window(): FrameWindow {
@@ -110,6 +141,8 @@ export class FrameSampler {
       drawCallModes: modes,
       gpuFrameMs: this.gpuCounter === null ? null : this.gpu.range(),
       gpuSamples: this.gpuWindowSamples,
+      frameIntervalMs: this.interval.range(),
+      counters: this.counterRanges === null ? null : FrameSampler.ranges(this.counterRanges),
     };
   }
 
@@ -130,6 +163,20 @@ export class FrameSampler {
     this.draws.add(drawCalls);
     this.drawCounts.set(drawCalls, (this.drawCounts.get(drawCalls) ?? 0) + 1);
     this.sampleGpu();
+    this.sampleCounters();
+  }
+
+  private sampleCounters(): void {
+    if (this.counters === null) return;
+    const values = this.counters();
+    if (this.counterRanges === null) {
+      this.counterRanges = Object.fromEntries(FRAME_COUNTER_KEYS.map((key) => [key, new FrameRangeAccumulator()])) as Record<keyof FrameCounters, FrameRangeAccumulator>;
+    }
+    for (const key of FRAME_COUNTER_KEYS) this.counterRanges[key].add(values[key]);
+  }
+
+  private static ranges(accumulators: Record<keyof FrameCounters, FrameRangeAccumulator>): Record<keyof FrameCounters, FrameRange> {
+    return Object.fromEntries(Object.entries(accumulators).map(([key, acc]) => [key, acc.range()])) as Record<keyof FrameCounters, FrameRange>;
   }
 
   /** Takes the GPU measurement that resolved since the last frame, if any (the counter counts its measurements). */

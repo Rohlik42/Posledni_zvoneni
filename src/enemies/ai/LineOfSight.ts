@@ -23,6 +23,8 @@ const LAZY_SLACK = 0.25;
  * `signature`) is compared with the one of the last rebuild, and a difference rebuilds the cache.
  */
 const SIGNATURE_CHECK_STEPS = 30;
+/** Added meshes kept for the candidate test before the cache is simply marked for a rebuild. */
+const MAX_PENDING_ADDED = 512;
 /** Floats per box in the cache: min x, y, z, max x, y, z. */
 const BOX_FLOATS = 6;
 /** Direction components smaller than this are treated as parallel to a slab. */
@@ -95,9 +97,27 @@ export class LineOfSight {
   /** Triangle grids of large frozen meshes (built on their first exact test); null = not worth one / unreadable. */
   private readonly grids = new WeakMap<AbstractMesh, TriangleGrid | null>();
 
+  /**
+   * Combat performance (FEEDBACK 2026-10-04): meshes come and go all the time in a fight (wet spots, sparks' hosts,
+   * debris, drops), and a rebuild walks the whole scene. Added meshes wait here and rebuild the cache only if one of them
+   * is a candidate by the next ray; a removed mesh rebuilds it only if it was cached. A mesh that becomes a candidate
+   * later is caught by the signature check (`SIGNATURE_CHECK_STEPS`), as before.
+   */
+  private added: AbstractMesh[] = [];
+  private cached = new Set<AbstractMesh>();
+
   constructor(private readonly scene: Scene) {
-    scene.onNewMeshAddedObservable.add(() => (this.dirty = true));
-    scene.onMeshRemovedObservable.add(() => (this.dirty = true));
+    scene.onNewMeshAddedObservable.add((mesh) => {
+      // Nobody cast a ray for a long time: rebuild on the next one instead of keeping a long list.
+      if (this.added.length >= MAX_PENDING_ADDED) {
+        this.dirty = true;
+        this.added = [];
+      }
+      this.added.push(mesh);
+    });
+    scene.onMeshRemovedObservable.add((mesh) => {
+      if (this.cached.has(mesh)) this.dirty = true;
+    });
   }
 
   /** Start of a fixed step: boxes of meshes that can move are re-read before the next ray. */
@@ -106,8 +126,8 @@ export class LineOfSight {
   }
 
   /** Distance to the first blocking surface along `direction` (normalised) within `length`, or null. */
-  firstHit(origin: Vector3, direction: Vector3, length: number): number | null {
-    const pick = this.pick(origin, direction, length);
+  firstHit(origin: Vector3, direction: Vector3, length: number, faded = false): number | null {
+    const pick = this.pick(origin, direction, length, faded);
     return pick === null ? null : pick.distance;
   }
 
@@ -172,7 +192,7 @@ export class LineOfSight {
    * door's parts share one), then the boxes of the meshes inside; the meshes whose boxes the segment passes are tested
    * nearest first, and the search stops at the first box that starts beyond the best hit.
    */
-  private pick(origin: Vector3, direction: Vector3, length: number): Hit | null {
+  private pick(origin: Vector3, direction: Vector3, length: number, faded = false): Hit | null {
     this.casts++;
     this.refresh();
     const { boxes, groupBoxes, groupStart, meshes } = this;
@@ -206,7 +226,7 @@ export class LineOfSight {
     for (const { index, near } of hits) {
       if (best !== null && near > best.distance + BOX_SLACK) break;
       const mesh = meshes[index]!;
-      if (!this.blocks(mesh)) continue;
+      if (!this.blocks(mesh, faded)) continue;
       let hit: Hit | null;
       const grid = this.grid(mesh);
       if (grid !== null) {
@@ -257,6 +277,10 @@ export class LineOfSight {
    * boxes of groups that can move once per step.
    */
   private refresh(): void {
+    if (this.added.length > 0) {
+      if (this.added.some((mesh) => !mesh.isDisposed() && LineOfSight.candidate(mesh))) this.dirty = true;
+      this.added = [];
+    }
     if (!this.dirty && this.step - this.signatureStep >= SIGNATURE_CHECK_STEPS) {
       this.signatureStep = this.step;
       if (this.signature() !== this.builtSignature) this.dirty = true;
@@ -279,6 +303,7 @@ export class LineOfSight {
       });
       const groups = [...byRoot.values()];
       this.meshes = groups.flatMap((members) => members.map((m) => m.mesh));
+      this.cached = new Set(this.meshes);
       this.sceneOrder = Int32Array.from(groups.flatMap((members) => members.map((m) => m.order)));
       this.groupStart = new Int32Array(groups.length + 1);
       groups.forEach((members, g) => (this.groupStart[g + 1] = this.groupStart[g]! + members.length));
@@ -375,8 +400,8 @@ export class LineOfSight {
   }
 
   /** Visibility flags, then the owner lookup (a mesh may get an owner after it was added). */
-  private blocks(mesh: AbstractMesh): boolean {
-    if (!mesh.isPickable || !mesh.isVisible || mesh.visibility <= 0 || mesh.renderingGroupId !== 0) return false;
+  private blocks(mesh: AbstractMesh, faded = false): boolean {
+    if (!mesh.isPickable || !mesh.isVisible || (mesh.visibility <= 0 && !faded) || mesh.renderingGroupId !== 0) return false;
     if (mesh.isDisposed() || !mesh.isEnabled()) return false;
     return DamageTargets.find(mesh) === null;
   }

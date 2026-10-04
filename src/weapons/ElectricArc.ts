@@ -66,6 +66,7 @@ export class ElectricArc {
       stretch: [stretch, stretch],
       gravity: 0,
       stretched: true,
+      essential: true,
     });
     this.sparks = new DropletEmitter(`${name}-sparks`, scene, {
       capacity: SPARK_CAPACITY,

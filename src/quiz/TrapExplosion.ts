@@ -53,6 +53,7 @@ export class TrapExplosion {
       size: [data.flashSize, data.flashSize],
       gravity: 0,
       stretched: false,
+      essential: true,
     });
   }
 

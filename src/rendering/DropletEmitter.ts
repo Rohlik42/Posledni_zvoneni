@@ -4,7 +4,9 @@ import type { Particle } from "@babylonjs/core/Particles/particle";
 import { ParticleSystem } from "@babylonjs/core/Particles/particleSystem";
 import "@babylonjs/core/Particles/particleSystemComponent";
 import type { Scene } from "@babylonjs/core/scene";
+import { EffectBudget } from "./EffectBudget";
 import { ParticleTextures } from "./ParticleTextures";
+import { ShaderPrewarm } from "./ShaderPrewarm";
 
 /** One particle to spawn: world position, velocity (m/s) and life (s). */
 export interface Droplet {
@@ -25,10 +27,17 @@ export interface DropletEmitterOptions {
   gravity: number;
   /** Stretch sprites along their velocity (a jet of water); otherwise round sprites (spray). */
   stretched: boolean;
+  /**
+   * What a shot hits shows through it (a water jet, a taser arc, a flash): never thinned by the effect budget. Sparks,
+   * splashes and trails are decorative (the default) and follow `EffectBudget` (FEEDBACK 2026-10-04).
+   */
+  essential?: boolean;
 }
 
 /** Spawned particles that cannot find a queued droplet die at once, out of sight. */
 const NOWHERE = new Vector3(0, -1e4, 0);
+/** Life of the droplet shown during the load-time shader warm-up (s). */
+const PREWARM_LIFE = 0.1;
 
 /**
  * A particle system that spawns exactly the droplets it is given: each `emit` queues a position, velocity and life,
@@ -39,6 +48,9 @@ export class DropletEmitter {
   readonly system: ParticleSystem;
   private readonly queue: Droplet[] = [];
   private current: Droplet | null = null;
+  /** Decorative emitters only: the scene's effect budget and the fraction of a droplet owed by the density. */
+  private readonly budget: EffectBudget | null;
+  private credit = 0;
 
   constructor(name: string, scene: Scene, options: DropletEmitterOptions) {
     const system = new ParticleSystem(name, options.capacity, scene);
@@ -64,9 +76,29 @@ export class DropletEmitter {
     system.startDirectionFunction = (_matrix, direction) => this.startDirection(direction);
     system.start();
     this.system = system;
+    this.budget = options.essential === true ? null : EffectBudget.for(scene);
+    this.budget?.register(system);
+    // One droplet in front of the camera at load, so the particle shader and its pipeline exist before the first shot.
+    ShaderPrewarm.for(scene).addAction((at) => {
+      if (!system.isDisposed) this.push({ position: at.clone(), velocity: Vector3.Zero(), life: PREWARM_LIFE });
+      return () => undefined;
+    });
   }
 
   emit(droplet: Droplet): void {
+    if (this.budget !== null) {
+      // Density below 1 keeps every n-th droplet (deterministic, no extra random draws).
+      this.credit += this.budget.density;
+      if (this.credit < 1) {
+        this.budget.thinned();
+        return;
+      }
+      this.credit -= 1;
+    }
+    this.push(droplet);
+  }
+
+  private push(droplet: Droplet): void {
     // More than the system can hold would only replay stale droplets later; keep the newest.
     if (this.queue.length >= this.system.getCapacity()) this.queue.shift();
     this.queue.push(droplet);
@@ -79,6 +111,7 @@ export class DropletEmitter {
   }
 
   dispose(): void {
+    this.budget?.unregister(this.system);
     this.system.dispose(false);
   }
 

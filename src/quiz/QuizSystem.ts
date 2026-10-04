@@ -1,4 +1,4 @@
-import type { Vector3 } from "@babylonjs/core/Maths/math.vector";
+import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { Observable, type Observer } from "@babylonjs/core/Misc/observable";
 import type { Scene } from "@babylonjs/core/scene";
 import { AudioService } from "../audio/AudioService";
@@ -57,6 +57,8 @@ export interface QuizTestApi {
   view: () => Record<string, string>;
   /** Difficulty multiplier of the trap damage (phase 17 sets it). */
   damageMultiplier: number;
+  /** Sets off the trap's explosion effect (sparks, flash, sound, shake; no damage, no quiz) at a world point (combat benchmark). */
+  trapBlast: (x: number, y: number, z: number) => void;
 }
 
 declare module "../core/TestHooks" {
@@ -319,6 +321,7 @@ export class QuizSystem {
       set damageMultiplier(value: number) {
         quiz.damageMultiplier = value;
       },
+      trapBlast: (x, y, z) => quiz.explosion.blast(new Vector3(x, y, z)),
     });
   }
 }

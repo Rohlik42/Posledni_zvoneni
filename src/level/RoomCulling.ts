@@ -9,6 +9,7 @@ import type { QualityTarget } from "../rendering/QualityManager";
 import type { RenderingData } from "../rendering/RenderingConfig";
 import type { Level } from "./Level";
 import type { LevelData } from "./LevelTypes";
+import { ShaderPrewarm } from "../rendering/ShaderPrewarm";
 
 const MS_PER_SECOND = 1000;
 
@@ -86,6 +87,16 @@ export class RoomCulling implements QualityTarget {
     this.added = scene.onNewMeshAddedObservable.add(dirty);
     this.removed = scene.onMeshRemovedObservable.add(dirty);
     this.frame = scene.onBeforeRenderObservable.add(() => this.update());
+    // The load-time shader warm-up draws every room once (FEEDBACK 2026-10-04), then culling is as it was.
+    let before = this.enabledValue;
+    ShaderPrewarm.for(scene).setCullingSwitch((on) => {
+      if (on) {
+        this.setEnabled(before);
+        return;
+      }
+      before = this.enabledValue;
+      this.setEnabled(false);
+    });
     const culling = this;
     TestHooks.register("culling", {
       get enabled() {

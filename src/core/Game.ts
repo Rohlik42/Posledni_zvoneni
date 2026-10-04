@@ -7,6 +7,9 @@ import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { Observable } from "@babylonjs/core/Misc/observable";
 import { Scene } from "@babylonjs/core/scene";
 import { MatteDefaults } from "../rendering/MatteDefaults";
+import { PerfMonitor } from "../rendering/PerfMonitor";
+import { ShaderPrewarm } from "../rendering/ShaderPrewarm";
+import { PerfOverlay } from "../ui/PerfOverlay";
 import { PaletteColor } from "../rendering/PaletteColor";
 import { RenderPipeline } from "../rendering/RenderPipeline";
 import { RenderingConfig } from "../rendering/RenderingConfig";
@@ -39,6 +42,10 @@ export class Game {
   readonly cheats: Cheats;
   readonly config: GameData;
   readonly fixedStepMs: number;
+  /** Frame times, hitches and shader compiles (FEEDBACK 2026-10-04 „souboj laguje“; overlay F3, `__game.perf`). */
+  readonly perf: PerfMonitor;
+  /** F3 / `?perf=1`: fps, frame times, hitches and shader compiles on screen (FEEDBACK 2026-10-04). */
+  readonly perfOverlay: PerfOverlay;
   pipeline: RenderPipeline | null = null;
   sceneId: string | null = null;
 
@@ -48,6 +55,8 @@ export class Game {
   private accumulatorMs = 0;
   private simulatedMs = 0;
   private isPaused = false;
+  /** The load-time shader warm-up is drawing: frames render, the simulation does not advance. */
+  private warming = false;
 
   private constructor(
     readonly canvas: HTMLCanvasElement,
@@ -58,6 +67,8 @@ export class Game {
     readonly gpuTiming: boolean,
   ) {
     this.config = GameConfig.load();
+    this.perf = new PerfMonitor(engine, renderer);
+    this.perf.registerTestHooks(scene);
     // Babylon cancels pointerdown on the canvas by default, which suppresses the compatibility mousedown event that
     // `Input` turns into fire / door / altFire. Mouse buttons are ours, so let the events through.
     scene.preventDefaultOnPointerDown = false;
@@ -72,6 +83,7 @@ export class Game {
     this.cheats = new Cheats(bindings.cheats);
     this.input.onCheat.add((id) => this.cheats.activate(id));
     this.input.setStepper((ms) => this.step(ms));
+    this.perfOverlay = new PerfOverlay(this);
     this.input.onAction.add(({ action, pressed }) => {
       if (action === "pause" && pressed) this.setPaused(true);
       // Enter does what the canvas click does (touchpad without buttons): resume; Input requests the pointer lock.
@@ -136,6 +148,14 @@ export class Game {
     const firstFrame = new Promise<void>((resolve) => this.scene.onAfterRenderObservable.addOnce(() => resolve()));
     this.engine.runRenderLoop(() => this.frame());
     await firstFrame;
+    // FEEDBACK 2026-10-04: every shader and WebGPU pipeline the scene may need is built now, not in the first fight.
+    // The world stands still meanwhile: the warm-up frames are loading, not play.
+    this.warming = true;
+    try {
+      await ShaderPrewarm.for(this.scene).run(this.scene.activeCamera);
+    } finally {
+      this.warming = false;
+    }
     TestHooks.setCore({ ready: true });
   }
 
@@ -220,7 +240,7 @@ export class Game {
   private frame(): void {
     const deltaMs = this.engine.getDeltaTime();
     this.recordFrameTime(deltaMs);
-    if (!this.isPaused) {
+    if (!this.isPaused && !this.warming) {
       this.accumulatorMs += deltaMs;
       let steps = 0;
       while (this.accumulatorMs >= this.fixedStepMs && steps < this.config.maxStepsPerFrame) {

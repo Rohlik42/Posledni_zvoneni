@@ -44,6 +44,8 @@ export interface PickupsTestApi {
   readonly dropped: number;
   /** Toasts of pickups left lying because they would do nothing (full health, full ammo), oldest first. */
   refusals: () => string[];
+  /** Removes robot drops still lying on the floor; returns how many (combat benchmark: every round starts clean). */
+  removeDrops: () => number;
 }
 
 declare module "../core/TestHooks" {
@@ -164,6 +166,17 @@ export class PickupField {
     this.onMessage.clear();
   }
 
+  private removeDrops(): number {
+    const drops = this.pickups.filter((p) => p.fromDrop && !p.collected);
+    for (const pickup of drops) {
+      this.lighting?.detach(pickup.meshes);
+      pickup.dispose();
+      this.pickups.splice(this.pickups.indexOf(pickup), 1);
+      this.refusedTouching.delete(pickup);
+    }
+    return drops.length;
+  }
+
   private isLying(id: string): boolean {
     return this.pickups.some((p) => p.id === id && !p.collected);
   }
@@ -238,6 +251,7 @@ export class PickupField {
       get dropped() {
         return field.droppedCount;
       },
+      removeDrops: () => field.removeDrops(),
       refusals: () => [...field.refusalLog],
     });
   }

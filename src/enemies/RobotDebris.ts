@@ -4,6 +4,7 @@ import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import type { Scene } from "@babylonjs/core/scene";
 import type { Simulated } from "../core/SceneSetup";
 import { DropletEmitter } from "../rendering/DropletEmitter";
+import { EffectBudget } from "../rendering/EffectBudget";
 import { PaletteColor } from "../rendering/PaletteColor";
 import { Random } from "../utils/Random";
 import type { DeathData } from "./EnemyConfig";
@@ -43,6 +44,8 @@ interface Wreck {
   floorY: number;
   origin: Vector3;
   age: number;
+  /** When the parts are gone (s): `data.life` × the preset's `debrisLife`, shortened when too many wrecks lie around. */
+  life: number;
   lingerDebt: number;
   data: DeathData;
 }
@@ -57,9 +60,12 @@ export class RobotDebris implements Simulated {
   private readonly wrecks: Wreck[] = [];
   private readonly sparks: DropletEmitter;
   private readonly random: Random;
+  /** Wreck lifetime and count caps of the quality preset (FEEDBACK 2026-10-04). */
+  private readonly budget: EffectBudget;
 
   constructor(scene: Scene, data: DeathData) {
     this.random = new Random(data.seed);
+    this.budget = EffectBudget.for(scene);
     const color = PaletteColor.color4(data.sparkColor);
     this.sparks = new DropletEmitter("robot-sparks", scene, {
       capacity: SPARK_CAPACITY,
@@ -97,7 +103,13 @@ export class RobotDebris implements Simulated {
       const extent = mesh.getBoundingInfo().boundingBox.extendSize;
       return { mesh, velocity, axis, spin: this.random.range(SPIN_SHARE[0], SPIN_SHARE[1]) * data.spin, extent: Math.min(extent.x, extent.y, extent.z) * mesh.scaling.y, age: 0 };
     });
-    this.wrecks.push({ pieces, floorY: origin.y, origin: origin.clone(), age: 0, lingerDebt: 0, data });
+    const life = Math.max(data.fade, data.life * this.budget.debrisLife);
+    this.wrecks.push({ pieces, floorY: origin.y, origin: origin.clone(), age: 0, life, lingerDebt: 0, data });
+    // Too many wrecks: the oldest start sinking now (oldest first; one already sinking keeps its pace).
+    for (let i = 0; i < this.wrecks.length - this.budget.maxWrecks; i++) {
+      const old = this.wrecks[i]!;
+      old.life = Math.min(old.life, old.age + old.data.fade);
+    }
     const burstFrom = origin.add(new Vector3(0, LINGER_HEIGHT, 0));
     for (let i = 0; i < data.sparks; i++) this.spark(burstFrom, data, this.random.range(data.sparkSpeed[0], data.sparkSpeed[1]));
   }
@@ -116,7 +128,7 @@ export class RobotDebris implements Simulated {
         }
       }
       for (const piece of wreck.pieces) this.move(piece, wreck, dt);
-      if (wreck.age >= data.life) {
+      if (wreck.age >= wreck.life) {
         for (const piece of wreck.pieces) piece.mesh.dispose();
         this.wrecks.splice(w, 1);
       }
@@ -135,7 +147,7 @@ export class RobotDebris implements Simulated {
     const mesh = piece.mesh;
     piece.velocity.y -= data.gravity * dt;
     mesh.position.addInPlace(piece.velocity.scale(dt));
-    const fadeStart = data.life - data.fade;
+    const fadeStart = wreck.life - data.fade;
     const sink = wreck.age > fadeStart && data.fade > 0 ? ((wreck.age - fadeStart) / data.fade) * SINK_DEPTH : 0;
     const floor = wreck.floorY + piece.extent - sink;
     if (mesh.position.y < floor) {

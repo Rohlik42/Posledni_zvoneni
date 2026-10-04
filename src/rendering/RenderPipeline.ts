@@ -110,6 +110,22 @@ export class RenderPipeline {
     if (this.ssao !== null && this.ssao.samples !== samples) this.ssao.samples = samples;
   }
 
+  /**
+   * Adaptive quality (FEEDBACK 2026-10-04): call before the hardware scaling changes to `nextScaling`. Babylon divides
+   * `bloomKernel` by the scaling on every resize, and a new blur kernel is a new shader compiled on the spot; this keeps
+   * the kernel in render pixels as it is, so a render-scale step compiles nothing (bloom just covers a little more of
+   * the screen while the scale is down).
+   */
+  holdBloomKernel(nextScaling: number): void {
+    const pipeline = this.defaultPipeline as unknown as { _bloomKernel: number; _hardwareScaleLevel: number };
+    pipeline._bloomKernel = (pipeline._bloomKernel / pipeline._hardwareScaleLevel) * nextScaling;
+  }
+
+  /** Back to the configured bloom kernel (a new preset; `holdBloomKernel` may have moved it). */
+  restoreBloomKernel(): void {
+    if (this.defaultPipeline.bloomKernel !== this.config.bloom.kernel) this.defaultPipeline.bloomKernel = this.config.bloom.kernel;
+  }
+
   /** Linear fog range in metres (quality presets: the low preset has denser fog). */
   setFogRange(start: number, end: number): void {
     this.config.fog.start = start;

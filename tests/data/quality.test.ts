@@ -4,6 +4,7 @@ import sharp from "sharp";
 import { LevelConfig } from "../../src/level/LevelConfig";
 import { RoomCulling } from "../../src/level/RoomCulling";
 import { QUALITY_PRESETS, QualityConfig, type QualityPreset } from "../../src/rendering/QualityConfig";
+import { AdaptiveQuality } from "../../src/rendering/AdaptiveQuality";
 import { QualityDetector } from "../../src/rendering/QualityDetector";
 import { RenderingConfig } from "../../src/rendering/RenderingConfig";
 import { SkyboxConfig } from "../../src/rendering/SkyboxConfig";
@@ -103,4 +104,47 @@ test("room culling: a room sees itself and its doors' rooms; floors connect only
   assert.ok([...low].every((id) => Math.abs(floorOf.get(id)! - startFloor) <= 1), [...low].join(", "));
   assert.ok(low.size < level.rooms.length, "something is culled");
   assert.ok(RenderingConfig.load().culling.depth >= quality.presets.high.cullingDepth, "dev scenes keep at least the high preset's depth");
+});
+
+test("FEEDBACK 2026-10-04 effect budgets: cheaper presets show fewer decorative particles, wet spots and wrecks", () => {
+  const [low, medium, high] = quality.order.map((id) => quality.presets[id].effects);
+  for (const [a, b] of [[low!, medium!], [medium!, high!]] as const) {
+    assert.ok(a.density <= b.density, "density");
+    assert.ok(a.maxParticles <= b.maxParticles, "particle cap");
+    assert.ok(a.wetSpots <= b.wetSpots, "wet spots");
+    assert.ok(a.debrisLife <= b.debrisLife, "debris life");
+    assert.ok(a.maxWrecks <= b.maxWrecks, "wrecks");
+  }
+  assert.equal(high!.density, 1, "Vysoké shows every spark");
+  assert.ok(low!.density > 0 && low!.maxParticles > 0 && low!.maxWrecks >= 1, "Nízké still shows a fight");
+});
+
+test("FEEDBACK 2026-10-04 adaptive quality: slow frames step down after downAfter, fast ones back up, no swing into a level that was too slow", () => {
+  const a = quality.adaptive;
+  assert.ok(a.levels.length >= 2);
+  assert.deepEqual(a.levels[0], { renderScale: 1, effects: 1 }, "level 0 is the preset itself");
+  for (let i = 1; i < a.levels.length; i++) {
+    assert.ok(a.levels[i]!.renderScale <= a.levels[i - 1]!.renderScale, "render scale falls");
+    assert.ok(a.levels[i]!.effects <= a.levels[i - 1]!.effects, "effects fall");
+  }
+  const applied: number[] = [];
+  const adaptive = new AdaptiveQuality(a, (level) => applied.push(level.renderScale));
+  const run = (fps: number, seconds: number): void => {
+    for (let t = 0; t < seconds; t += 1 / fps) adaptive.frame(FRAME_MS_AT(fps));
+  };
+  run(60, 5);
+  assert.equal(adaptive.level, 0, "60 fps: stays on the preset");
+  run(a.downFps / 2, a.downAfter + a.window + 0.5);
+  assert.equal(adaptive.level, 1, "slow: one step down");
+  run(a.downFps / 2, a.cooldown + a.downAfter + a.window + 0.5);
+  assert.equal(adaptive.level, Math.min(2, a.levels.length - 1), "still slow: another step after the cooldown");
+  run(60, a.upAfter + a.window + 1);
+  assert.equal(adaptive.level, Math.min(2, a.levels.length - 1), "fast again, but not back into a level left for slowness within retryAfter");
+  run(60, a.retryAfter + a.upAfter + 1);
+  assert.ok(adaptive.level < Math.min(2, a.levels.length - 1), "after retryAfter it steps back up");
+  assert.ok(applied.length >= 3, "every step applied");
+  adaptive.setEnabled(false);
+  assert.equal(adaptive.level, 0, "off: back to the preset");
+  run(a.downFps / 2, 10);
+  assert.equal(adaptive.level, 0, "off: no steps");
 });

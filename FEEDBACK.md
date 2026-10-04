@@ -60,3 +60,9 @@ Zapracováno 2026-10-04 (učitelé jsou zase z kostiček jako dřív — `Proced
 
 ## 2026-10-04 — domalovat panorama pod střechami
 - „Připojil jsi spodní část fasády, ale k té horní vůbec nesedí… spíš horní část chytře doplnit pomocí image generation modelu.“ Zapracováno 2026-10-04 (Gemini Nano Banana 2 outpainting, `tools/outpaint-skyline.ts`).
+
+## 2026-10-04 — výkon v souboji
+
+- „Zkouším hrát na Ryzenu, který má velmi silnou grafiku, ale během souboje, když lítá hodně particles, tak se to dost laguje. Potřebujeme nastavení detailů? Nebo nějakou optimalizaci? Mělo by to běžet i na celkem hloupých počítačích, tak potřebujeme najít způsob, jak to zrychlit.“ Doplněno: na Windows + Chrome to laguje i na Nízké.
+
+Zapracováno 2026-10-04 (příčinou nebyly částice, ale přepojování světel robotů při každé mokré skvrně a rozpadu robota a překlady shaderů za boje; opraveno `RoomLighting`, pevný počet světel pohyblivých věcí, zahřátí shaderů při načtení, střely robotů z bazénu; rozpočty efektů podle předvolby a „Automaticky přizpůsobit výkon“ v menu Kvalita; panel výkonu F3 / `?perf=1` s čísly k nahlášení; měření `tests/e2e/perf-combat.spec.ts`, čísla v PERF.md „Souboj“, rozhodnutí v DECISIONS „FEEDBACK 2026-10-04 — Výkon v souboji“)

@@ -29,6 +29,8 @@ import type { RoomLighting } from "./RoomLighting";
 
 /** Light kinds whose shadows are worth a cube map (emergency lamps are too dim). */
 const SHADOW_KINDS = new Set(["fluorescent", "fire"]);
+/** Level meshes that take no point-light shadow: small details and decals on the walls (`receivers`). */
+const NO_SHADOW_RECEIVER = /:(detail|decal)\b/;
 /** Name part of the merged detail meshes (`StaticGeometry`), so tests can count them. */
 const DETAIL_MESH = ":detail";
 /** Seed offsets of the parts, all derived from `atmosphere.json → seed`. */
@@ -125,7 +127,7 @@ export class LevelAtmosphere implements QualityTarget {
       const lights = room === null ? [] : level.lightsFor(room);
       return candidates.filter((c) => lights.includes(c.light));
     };
-    this.shadows = new PointShadows(RenderingConfig.load().shadows, inRoom, eye);
+    this.shadows = new PointShadows(RenderingConfig.load().shadows, inRoom, eye, () => candidates);
     this.environment = new NightEnvironment(scene, data.environment);
     const glass = level.materials.get(level.layout.greybox.windows.glassMaterial);
     glass.reflectionTexture = this.environment.texture;
@@ -188,6 +190,9 @@ export class LevelAtmosphere implements QualityTarget {
       .map((light) => ({
         light,
         casters: () => light.includedOnlyMeshes.filter((mesh) => !shell.has(mesh) && mesh.renderingGroupId === 0 && mesh.isEnabled() && mesh.isVisible),
+        // FEEDBACK 2026-10-04: walls, floors and ceilings receive; details, decals and furniture do not (every lamp keeps
+        // its generator now, and each receiving mesh pays a shadow binding per lamp per frame).
+        receivers: light.includedOnlyMeshes.filter((mesh) => shell.has(mesh) && !NO_SHADOW_RECEIVER.test(mesh.name)),
       }));
   }
 

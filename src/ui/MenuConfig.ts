@@ -25,6 +25,8 @@ export interface SettingsData {
   /** „Realistické postavy učitelů“: glTF teachers instead of the primitive ones (FEEDBACK 2026-10-04), off by default. */
   realisticPeople: boolean;
   quality: QualityOption;
+  /** „Automaticky přizpůsobit výkon“ (FEEDBACK 2026-10-04, `AdaptiveQuality`) on by default. */
+  adaptive: boolean;
 }
 
 /** Head of a menu page: kicker, title with an optional highlighted second part (LEGACY §4), lead. */
@@ -56,7 +58,13 @@ export interface MenuTexts {
     off: string;
   };
   /** `autoNow`: detail of the automatic option once it chose a preset (`{detail}`, `{value}` = the preset's label; phase 21). */
-  quality: PageTexts & { options: Record<QualityOption, string>; details: Record<QualityOption, string>; autoNow: string };
+  quality: PageTexts & {
+    options: Record<QualityOption, string>;
+    details: Record<QualityOption, string>;
+    autoNow: string;
+    /** The adaptive toggle under the presets (FEEDBACK 2026-10-04): label, its state words and what it does. */
+    adaptive: { label: string; on: string; off: string; detail: string };
+  };
   controls: PageTexts & { rows: { keys: string; action: string }[]; note: string };
   credits: PageTexts & {
     thanks: string[];
@@ -114,6 +122,7 @@ export class MenuConfig {
       invertY: Schema.boolean(),
       realisticPeople: Schema.boolean(),
       quality: Schema.enumOf(QUALITY_OPTIONS),
+      adaptive: Schema.boolean(),
     }),
     qualityOptions: Schema.array(Schema.enumOf(QUALITY_OPTIONS), 1),
     legacyUrl: Schema.string(),
@@ -172,7 +181,12 @@ export class MenuConfig {
         on: Schema.string(),
         off: Schema.string(),
       }),
-      quality: page({ options: qualityRecord(), details: qualityRecord(), autoNow: Schema.string() }),
+      quality: page({
+        options: qualityRecord(),
+        details: qualityRecord(),
+        autoNow: Schema.string(),
+        adaptive: Schema.object({ label: Schema.string(), on: Schema.string(), off: Schema.string(), detail: Schema.string() }),
+      }),
       controls: page({
         rows: Schema.array(Schema.object({ keys: Schema.string(), action: Schema.string() }), 1),
         note: Schema.string(),

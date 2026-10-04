@@ -158,3 +158,72 @@ assertuje jen to, že zařízení dostalo `timestamp-query`, čítač vrací nen
   nezkoumala. Mez CPU času (12 ms) hlídá test 3 bez parametru.
 - Čítač běží jen v Chromiu s `--enable-unsafe-webgpu` (perf test). Běžný Chrome 153 nemá `GPUCommandEncoder.writeTimestamp`,
   Babylon pak hlásí 0 a `stats().gpuFrameMs` zůstane `null`. Ověřeno ve vizuální kontrole fáze 27.
+
+## 2026-10-04 — Souboj (FEEDBACK „laguje to, když lítá hodně particles“, i na Nízké na Windows)
+
+Zdroj čísel: `tests/e2e/perf-combat.spec.ts` (zapisuje `test-results/perf-combat.json` a `.cpuprofile`). Celá hra
+`/?new=1`, hráč v tělocvičně (největší místnost, hoří v ní oheň), 12 robotů všech typů (po čtyřech humanoidech,
+čtyřnožcích a dronech) teleportovaných před něj. Skript v stránce bojuje v reálném čase: míří na nejbližšího robota,
+drží a pouští spoušť (700 / 150 ms), každých 2,4 s přepne na další ze 6 zbraní a doplní ji, každých 1,6 s zničí robota
+(trosky, jiskry, otřes), každé 2 s odpálí past z kvízu (`__game.quiz.trapBlast`); roboti střílí zpět, hráč má IDDQD.
+Každé kolo začíná čistě (roboti zpět, `pickups.removeDrops`), 4 s se bojuje na zahřátí, pak se 8 s měří. Před měřením
+jedno celé kolo navíc („první boj“). Na snímek: CPU čas (engine begin → end), interval mezi snímky (drží i GC a vše mimo
+snímek), p95 a max, draw cally, živé částice, systémy s částicemi, světla, meshe; v okně počet překladů shaderů a nových
+WebGPU pipeline (`CompileCounter`). Adaptace je při měření vypnutá. Stroj: M1 Pro, headless Chromium, WebGPU. Během
+měření běžely i procesy jiných agentů (load average 3,4–6,7; v prvních sondách přes 20, ta čísla nejsou v tabulce).
+„Před“ = main @ 6774b08 + jen měřicí commit (worktree, stejný test), „po“ = tato změna; obě sady za sebou do 20 minut.
+
+| Předvolba | fps | CPU snímku průměr / p95 / max (ms) | nejdelší interval (ms) | draw cally | částice max | překlady + pipeline v okně |
+| --- | --- | --- | --- | --- | --- | --- |
+| Vysoké 720p | 40,2 → **60,0** | 23,3 / 48,4 / 209 → **12,3 / 17,2 / 22** | 210 → **22** | 2866 → 1203 | 1092 → 964 | 0 → 0 |
+| Střední 720p | 50,6 → **60,0** | 14,3 / 18,5 / 226 → **8,9 / 13,3 / 21** | 227 → **21** | 705 → 597 | 936 → 780 | 0 → 0 |
+| Nízké 720p | 50,7 → **60,1** | 13,3 / 15,8 / 273 → **8,3 / 11,5 / 18** | 273 → **19** | 722 → 572 | 688 → 566 | 5 → 0 |
+| Vysoké 720p CPU 4× | 3,2 → **11,2** | 300,5 / 685,8 / 910 → **85,7 / 128,3 / 152** | 915 → **159** | 4262 → 1333 | 976 → 976 | 0 → 0 |
+| Střední 720p CPU 4× | 3,6 → **17,3** | 270,1 / 659,4 / 1090 → **54,6 / 97,7 / 153** | 1096 → **156** | 1193 → 601 | 662 → 721 | 0 → 0 |
+| Nízké 720p CPU 4× | 3,6 → **20,8** | 271,9 / 764,2 / 1064 → **45,1 / 90,5 / 162** | 1071 → **166** | 1159 → 492 | 457 → 493 | 2 → 0 |
+| Vysoké 1080p | 41,0 → **60,1** | 22,8 / 54,3 / 330 → **12,1 / 17,4 / 21** | 330 → **22** | 2787 → 1113 | 1124 → 990 | 2 → 0 |
+| Střední 1080p | 52,5 → **60,1** | 13,2 / 17,6 / 177 → **9,6 / 13,5 / 19** | 178 → **23** | 614 → 616 | 858 → 751 | 2 → 0 |
+| Nízké 1080p | 51,3 → **60,1** | 13,3 / 17,2 / 178 → **8,1 / 11,9 / 19** | 179 → **24** | 652 → 567 | 731 → 529 | 0 → 0 |
+| Vysoké 1080p CPU 4× | 2,6 → **9,8** | 368,3 / 1033,6 / 1069 → **98,2 / 165,5 / 175** | 1165 → **183** | 4505 → 1442 | 888 → 914 | 0 → 0 |
+| Střední 1080p CPU 4× | 4,0 → **15,9** | 239,0 / 692,2 / 1608 → **59,6 / 97,8 / 153** | 1615 → **157** | 1114 → 614 | 847 → 723 | 2 → 0 |
+| Nízké 1080p CPU 4× | 4,2 → **22,3** | 232,9 / 616,9 / 709 → **41,9 / 87,4 / 144** | 620 → **147** | 1086 → 495 | 453 → 507 | 0 → 0 |
+| WebGL2 (`?renderer=webgl2`) Vysoké 1080p | 45,9 → **60,0** | 19,7 / 36,7 / 195 → **9,6 / 14,0 / 17** | 205 → **17** | 3355 → 1169 | – | 1 → 0 |
+| WebGL2 Nízké 1080p | 50,8 → **60,1** | 11,6 / 15,1 / 289 → **5,8 / 8,2 / 15** | 290 → **17** | 715 → 516 | – | 1 → 0 |
+| Procházka celou trasou na Vysoké (28 lamp se stíny) | – | – | – | – | – | **94 + 114 → 0 + 1** |
+
+Světla 51 → 55 (3 tmavá doplňková světla pohyblivých věcí a 1 „držák“ stínových shaderů), systémů s částicemi nejvýš
+27–28 v obou, meshů ~2900 v obou. Rozpočet efektů na Nízké v boji vynechal 11 711 ozdobných částic (hustota 0,45), strop
+živých částic se nedotkl (`culled` 0). Adaptace (Nízké 1080p, CPU 6×): po 6 s sestoupila na úroveň 1 (render scale 0,6
+→ 0,51, ozdobné částice × 0,75) bez jediného překladu; vypnutí v menu vrátí předvolbu hned.
+
+Cíle zadání na tomto stroji: Vysoké 1080p průměr CPU ≤ 12 ms — **12,1 ms** (téměř, dřív 22,8), p95 ≤ 20 ms — **17,4**
+(splněno, dřív 54,3); žádný snímek nad 100 ms po zahřátí — **splněno** bez throttlingu (nejdelší 24 ms, dřív 178–330
+ms), s CPU 4× ne (144–183 ms); **Nízké s CPU 4× ≥ 30 fps — nesplněno: 20,8–22,3 fps** (dřív 3,6–4,2). Kontrola
+(`COMBAT_MODE=idle`, roboti v tělocvičně stojí a nikdo nestřílí): Nízké 1080p s CPU 4× má **20,1 fps** i bez boje —
+zbývající cena je vykreslení scény (~500 draw callů: díly robotů po ~50, level, učitelé) a AI, ne efekty boje. Test proto
+hlídá jen meze proti regresi (Vysoké 1080p ≤ 16 / p95 ≤ 25 ms, Nízké CPU 4× ≥ 14 fps, interval ≤ 100 ms, 0 překladů).
+Zrychlit dál by šlo jen sloučením dílů robotů do méně meshů (draw cally), to je mimo tuto změnu.
+
+Kde byl čas (CPU profil Vysoké 1080p, CPU 4×, 5 s boje; `.cpuprofile` v test-results):
+- **Před:** `RoomLighting.update → relink → exclude` **29,5 %** (Babylonův hook na `includedOnlyMeshes.splice` projde
+  celou scénu za každý mesh a světlo; spouštěla ho každá mokrá skvrna na robotovi a každý rozpad robota),
+  `EnemyProjectiles.advance` **8,1 %** (`scene.pickWithRay` přes ~2700 meshů každým krokem každé střely, k tomu
+  `CreateSphere`/`dispose` na výstřel). V mezikroku po opravě `RoomLighting` zbyly na Vysoké stínové mapy ~25 % (díly
+  robotů v cube mapách lamp, ~2000 draw callů navíc). Částice samy (sonda Nízké): animace 2,2 % + kreslení 1 %, GC 0,2 % —
+  „laguje to s particles“ byla souvislost s bojem, ne příčina.
+- **Po:** vykreslení 51 % (z toho stínové mapy 9 %), `(program)` (nativní WebGPU) 29 %, simulace 17,6 % (roboti 8,3 %,
+  zbraně 3 %, `LineOfSight` 3,4 %, `RoomCulling` 2,8 %), částice 2,1 %, `RoomLighting` 0,8 %, střely robotů 0,2 %.
+- **Překlady shaderů** (`CompileCounter`, WebGPU): v měřených oknech před 0–5 za 8 s (robot v místnosti s jiným počtem
+  lamp, první mokrá skvrna, trosky bez světel, efekty po změně předvolby), po 0. Procházka celou trasou na Vysoké: před
+  94 efektů a 114 pipeline (každá lampa, která dostala stín, přeložila materiály celé místnosti; jeden snímek ~83 ms),
+  po 0 efektů a 1 pipeline (nevystopovaná, je i na Střední bez stínů).
+
+Statická scéna (`tests/e2e/perf.spec.ts`, start v učebně 30, 1080p): Vysoké CPU 11,7 ms (main před touto změnou 10,5 ms,
+fáze 25 7,8 ms — mezitím přibyli lidé a světla jiných agentů); trvalé stínové generátory všech 40 lamp stojí v tomto
+pohledu ~1,3 ms vazeb stínů za snímek (sonda: stíny zapnuté/vypnuté 12,3 / 10,9 ms, main 10,6 / 9,6 ms), proto mez testu
+12 → 14 ms (DECISIONS). Nízké s CPU 4× ve statické scéně: 21,6 fps po, **23,2 fps na main před touto změnou** — test 4
+perf.spec (≥ 30 fps) padal už na main @ 6774b08, nezpůsobila to tato změna.
+
+Panel výkonu: F3 nebo `?perf=1` v adrese ukáže renderer, předvolbu a úroveň adaptace, fps, CPU snímku, interval snímku,
+počet zaseknutí > 100 ms, překlady shaderů (celkem / za poslední sekundu), WebGPU pipeline, částice, draw cally, meshe a
+světla — čísla, která může člověk opsat z Windows (Ryzen) a poslat.
