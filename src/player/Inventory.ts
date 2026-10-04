@@ -84,6 +84,8 @@ export class Inventory {
   private readonly active = new Map<string, ActivePowerUp>();
   private readonly counts = new Map<string, number>();
   private readonly removeSystem: () => void;
+  /** Scales the amount an item gives (difficulty `pickups`, phase 17); identity by default. */
+  private amountScale: (kind: string, amount: number) => number = (_kind, amount) => amount;
 
   private constructor(
     private readonly game: Game,
@@ -140,13 +142,21 @@ export class Inventory {
     }
   }
 
-  /** Applies an item of `data/pickups.json` (`amount` overrides the item's own, e.g. a robot drop). */
+  /**
+   * The difficulty's pickup multiplier (phase 17): every pickup, robot drop and teacher reward goes through `give`,
+   * so the amount is scaled here once.
+   */
+  setAmountScale(scale: (kind: string, amount: number) => number): void {
+    this.amountScale = scale;
+  }
+
+  /** Applies an item of `data/pickups.json` (`amount` overrides the item's own, e.g. a robot drop; scaled by the difficulty). */
   give(itemId: string, amount?: number): GiveResult {
     const item = PickupConfig.item(itemId);
     if (!this.canTake(itemId, amount)) {
       return { taken: false, message: item.kind === "health" ? this.texts.fullHealth : null };
     }
-    const values = this.apply(item, amount ?? item.amount ?? 0);
+    const values = this.apply(item, this.amountScale(item.kind, amount ?? item.amount ?? 0));
     this.counts.set(itemId, (this.counts.get(itemId) ?? 0) + 1);
     SynthSounds.for(this.game).play(item.kind === "key" ? this.data.sounds.key : item.kind === "powerUp" ? this.data.sounds.powerUp : this.data.sounds.item);
     const template = this.texts.items[itemId];

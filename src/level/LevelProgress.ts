@@ -48,6 +48,8 @@ export interface ProgressOptions {
    * `continueStored()`, so opening the main page never overwrites the stored checkpoint.
    */
   deferred?: boolean;
+  /** Id of the run's difficulty (phase 17), saved with every checkpoint. */
+  difficulty?: string;
 }
 
 /** `window.__game.progress` — checkpoints, statistics, the story and level-end screens. */
@@ -103,6 +105,7 @@ export class LevelProgress {
   private deathHandler: (() => void) | null = null;
   /** Replaces the reload behind „HRÁT ZNOVU“ on the end screen (the menu flow, phase 18). */
   private playAgainHandler: (() => void) | null = null;
+  private readonly difficultyId: string | null;
 
   constructor(
     private readonly game: Game,
@@ -111,6 +114,7 @@ export class LevelProgress {
     /** Difficulty name for the end screen (phase 17 passes the chosen one). */
     private readonly difficultyName: string | null = null,
   ) {
+    this.difficultyId = options.difficulty ?? null;
     this.data = ProgressionConfig.load();
     this.texts = Texts.load();
     const c = this.data.checkpoint;
@@ -157,6 +161,15 @@ export class LevelProgress {
   /** Label of the stored checkpoint (`start`, `red`, …), or null (the menu's „Pokračovat“). */
   get storedLabel(): string | null {
     return this.checkpoint.load()?.label ?? null;
+  }
+
+  /**
+   * Difficulty id of the stored checkpoint (phase 17); null without a checkpoint. A checkpoint saved before phase 17
+   * has none and reads as `legacyDifficulty` (it was played on the default level).
+   */
+  storedDifficulty(legacyDifficulty: string): string | null {
+    const stored = this.checkpoint.load();
+    return stored === null ? null : (stored.difficulty ?? legacyDifficulty);
   }
 
   /** A new run on this (fresh) level: start checkpoint, optionally the story screen. */
@@ -253,6 +266,7 @@ export class LevelProgress {
     return {
       version: this.data.checkpoint.version,
       label,
+      ...(this.difficultyId === null ? {} : { difficulty: this.difficultyId }),
       player: { position: [p.x, p.y, p.z], yaw: player.camera.yaw, health: player.health.health },
       inventory: inventory.snapshot(),
       weapons: weapons.snapshot([HOSE_WEAPON]),

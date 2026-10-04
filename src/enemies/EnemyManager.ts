@@ -113,8 +113,9 @@ export class EnemyManager {
     readonly navmesh: NavMeshService,
     encounter: EncounterData,
     colliders: boolean,
+    data: EnemiesData | null,
   ) {
-    this.data = EnemyConfig.load();
+    this.data = data ?? EnemyConfig.load();
     const { scene } = game;
     this.lineOfSight = new LineOfSight(scene);
     this.cover = new CoverPoints(encounter.coverPoints, this.lineOfSight);
@@ -180,9 +181,17 @@ export class EnemyManager {
     this.registerTestHooks();
   }
 
-  /** `colliders`: give robots a Havok capsule the player bumps into (needs `Physics` in the scene). */
-  static create(game: Game, player: Player, navmesh: NavMeshService, encounter: EncounterData, colliders = true): EnemyManager {
-    return new EnemyManager(game, player, navmesh, encounter, colliders);
+  /**
+   * `colliders`: give robots a Havok capsule the player bumps into (needs `Physics` in the scene). `data`: the robots'
+   * data scaled by the difficulty (`Difficulty.enemies`, phase 17); default data/enemies.json as is.
+   */
+  static create(game: Game, player: Player, navmesh: NavMeshService, encounter: EncounterData, colliders = true, data: EnemiesData | null = null): EnemyManager {
+    return new EnemyManager(game, player, navmesh, encounter, colliders, data);
+  }
+
+  /** The robots' data this manager uses (data/enemies.json scaled by the difficulty). */
+  get config(): EnemiesData {
+    return this.data;
   }
 
   get(id: string): Enemy | undefined {
