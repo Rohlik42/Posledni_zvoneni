@@ -173,7 +173,10 @@ export class StaticGeometry {
     }
   }
 
-  /** A box in world space with UVs in metres projected along the face's dominant axis. */
+  /**
+   * A box in world space with UVs in metres projected along the face's dominant axis; with `uvOriginY` (wall bands) v
+   * is the height above it on every face and horizontal faces run u along the box's longer side.
+   */
   private static boxData(box: BoxPiece): VertexData {
     const data = CreateBoxVertexData({ width: box.size.x, height: box.size.y, depth: box.size.z });
     const matrix = Matrix.Compose(
@@ -185,10 +188,13 @@ export class StaticGeometry {
     const positions = data.positions!;
     const normals = data.normals!;
     const uvs = new Array<number>((positions.length / XYZ) * UV_PER_VERTEX);
+    const band = box.uvOriginY;
     for (let v = 0; v < positions.length / XYZ; v++) {
       const [x, y, z] = [positions[v * XYZ]!, positions[v * XYZ + 1]!, positions[v * XYZ + 2]!];
       const [nx, ny, nz] = [Math.abs(normals[v * XYZ]!), Math.abs(normals[v * XYZ + 1]!), Math.abs(normals[v * XYZ + 2]!)];
-      const [u, w] = ny >= nx && ny >= nz ? [x, z] : nx >= nz ? [z, y] : [x, y];
+      const horizontal = ny >= nx && ny >= nz;
+      let [u, w] = horizontal ? [x, z] : nx >= nz ? [z, y] : [x, y];
+      if (band !== undefined) [u, w] = [horizontal ? (box.size.x >= box.size.z ? x : z) : u, y - band];
       uvs[v * UV_PER_VERTEX] = u;
       uvs[v * UV_PER_VERTEX + 1] = w;
     }

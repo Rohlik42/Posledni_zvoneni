@@ -71,9 +71,10 @@ export interface Room {
   floor: FloorId;
   type: RoomType;
   rect: Rect;
-  /** Texture ids from `public/textures/index.json` (phase 7). */
+  /** Material id from `data/materials.json` (phase 7). */
   floorMaterial: string;
-  wallMaterial: string;
+  /** How the inside of the walls looks: a style id from `data/interior.json` (base material + optional lower band). */
+  wallStyle: string;
   /** Floor offset relative to `floor.elevation` (m), e.g. the gym is sunk 1.4 m. Default 0. */
   elevation?: number;
   /** Overrides `floor.ceilingHeight` (clear height from this room's floor). */

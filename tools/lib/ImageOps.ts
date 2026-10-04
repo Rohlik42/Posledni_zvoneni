@@ -411,6 +411,20 @@ export function recolour(img: Img, target: [number, number, number]): Img {
   return out;
 }
 
+/** Stacks images of the same width top to bottom. */
+export function stackRows(parts: Img[]): Img {
+  const first = parts[0];
+  if (first === undefined) throw new Error("stackRows: no parts");
+  const out = create(first.w, parts.reduce((sum, p) => sum + p.h, 0), first.c);
+  let y = 0;
+  for (const part of parts) {
+    if (part.w !== first.w || part.c !== first.c) throw new Error("stackRows: parts differ in width or channels");
+    out.d.set(part.d, y * first.w * first.c);
+    y += part.h;
+  }
+  return out;
+}
+
 export function tile(img: Img, rx: number, ry: number): Img {
   const out = create(img.w * rx, img.h * ry, img.c);
   for (let y = 0; y < out.h; y++) {
@@ -425,13 +439,17 @@ export function tile(img: Img, rx: number, ry: number): Img {
 
 /**
  * Resizes to w×h. Repeating textures are resampled from a 3×3 tiling so the filter wraps around
- * the edges (no seam). `pixelate` > 1 renders at w/pixelate and enlarges with nearest neighbour.
+ * the edges (no seam); `wrap` "x" (bands) wraps sideways only. `pixelate` > 1 renders at w/pixelate and enlarges with nearest neighbour.
  */
-export async function resize(img: Img, w: number, h: number, wrap: boolean, pixelate: number): Promise<Img> {
+export async function resize(img: Img, w: number, h: number, wrap: boolean | "x", pixelate: number): Promise<Img> {
   const sw = Math.max(1, Math.round(w / pixelate));
   const sh = Math.max(1, Math.round(h / pixelate));
   let small: Img;
-  if (wrap) {
+  if (wrap === "x") {
+    // A band repeats along u only: wrap the filter sideways, clamp it at the top and bottom edge.
+    const big = await fromSharp(sharpOf(tile(img, 3, 1)).resize(sw * 3, sh, { fit: "fill", kernel: "lanczos3" }), img.c);
+    small = crop(big, [sw, 0, sw, sh]);
+  } else if (wrap) {
     const big = await fromSharp(sharpOf(tile(img, 3, 3)).resize(sw * 3, sh * 3, { fit: "fill", kernel: "lanczos3" }), img.c);
     small = crop(big, [sw, sh, sw, sh]);
   } else {

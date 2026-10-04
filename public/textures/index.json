@@ -371,6 +371,24 @@
       "notes": "Granite (terrazzo-like) stair tread surface of the main staircase, from inside one tread of the down face."
     },
     {
+      "id": "wall-dado-paint",
+      "group": "mp",
+      "file": "textures/mp/wall-dado-paint.png",
+      "px": [
+        256,
+        512
+      ],
+      "sizeM": [
+        1.131,
+        1.5
+      ],
+      "tiling": "band",
+      "kind": "wall",
+      "source": "reference/matterport/panoramas/schodiste_litina/b.jpg",
+      "license": "derived from the school's Matterport tour (reference/matterport, see ASSETS.md); non-commercial school project",
+      "notes": "Oil-painted dado of the school's halls and corridors (cream paint under the white plaster, top at ~1.5 m like the stair hall of schodiste_litina/b and the faint line beside the classroom door in chodba_dvere_okna/a), with the black tile skirting (border tiles of the corridor floor, chodba_dvere_okna/down) at the bottom. A band: v spans the whole 1.5 m once. Measured: 2 layers, 1.38 m = 408 px / 0.12 m = 35 px."
+    },
+    {
       "id": "wall-plaster",
       "group": "mp",
       "file": "textures/mp/wall-plaster.png",
@@ -387,6 +405,114 @@
       "source": "reference/matterport/panoramas/chodba_dvere_okna/a.jpg",
       "license": "derived from the school's Matterport tour (reference/matterport, see ASSETS.md); non-commercial school project",
       "notes": "White corridor plaster beside the classroom door; lighting flattened, contrast raised so the trowel texture survives posterization."
+    },
+    {
+      "id": "wall-plaster-rough",
+      "group": "mp",
+      "file": "textures/mp/wall-plaster-rough.png",
+      "px": [
+        256,
+        512
+      ],
+      "sizeM": [
+        0.547,
+        1.349
+      ],
+      "tiling": "repeat",
+      "kind": "wall",
+      "source": "reference/matterport/panoramas/satna_skrinky/a.jpg",
+      "license": "derived from the school's Matterport tour (reference/matterport, see ASSETS.md); non-commercial school project",
+      "notes": "Rough limewashed cellar plaster with flaked patches beside the lockers of the changing room (Floor 2), lighting flattened."
+    },
+    {
+      "id": "wall-tiles",
+      "group": "mp",
+      "file": "textures/mp/wall-tiles.png",
+      "px": [
+        256,
+        256
+      ],
+      "sizeM": [
+        0.6,
+        0.6
+      ],
+      "tiling": "repeat",
+      "kind": "wall",
+      "source": "reference/matterport/panoramas/ucebna_obklad/c.jpg",
+      "license": "derived from the school's Matterport tour (reference/matterport, see ASSETS.md); non-commercial school project",
+      "notes": "Glazed 15 cm wall tiles: the glaze (grain and shading) of one tile from the sink corner of the classroom with the pine wainscot (ucebna_obklad), recoloured to a neutral off-white that the materials tint (white in the lab, orange like the tiles behind the director's office door in reditelna/d for the anteroom), with ideal grout lines on the 15 cm grid — the tile walls in the panoramas are only a few px per tile. Measured: recoloured to rgb(218,216,208)."
+    },
+    {
+      "id": "wall-veneer-walnut",
+      "group": "mp",
+      "file": "textures/mp/wall-veneer-walnut.png",
+      "px": [
+        256,
+        256
+      ],
+      "sizeM": [
+        0.392,
+        0.477
+      ],
+      "tiling": "repeat",
+      "kind": "wall",
+      "source": "reference/matterport/panoramas/reditelna/a.jpg",
+      "license": "derived from the school's Matterport tour (reference/matterport, see ASSETS.md); non-commercial school project",
+      "notes": "Walnut veneer of the built-in cabinet wall in the director's office (ředitelna), lower door front under the handle, rectified."
+    },
+    {
+      "id": "wall-wainscot-gym",
+      "group": "mp",
+      "file": "textures/mp/wall-wainscot-gym.png",
+      "px": [
+        256,
+        512
+      ],
+      "sizeM": [
+        1.218,
+        2
+      ],
+      "tiling": "band",
+      "kind": "wall",
+      "source": "reference/matterport/panoramas/telocvicna_obklad/a.jpg",
+      "license": "derived from the school's Matterport tour (reference/matterport, see ASSETS.md); non-commercial school project",
+      "notes": "Vertical pine boards of gym 1 up to the capping board (~2 m, the white walls start above it), rectified from the long wall right of the camera; ~14 boards × 10 cm. A band from the floor. Measured: 1 layers, 2 m = 549 px."
+    },
+    {
+      "id": "wall-wainscot-hall",
+      "group": "mp",
+      "file": "textures/mp/wall-wainscot-hall.png",
+      "px": [
+        256,
+        512
+      ],
+      "sizeM": [
+        0.87,
+        1.2
+      ],
+      "tiling": "band",
+      "kind": "wall",
+      "source": "reference/matterport/panoramas/vstupni_hala/d.jpg",
+      "license": "derived from the school's Matterport tour (reference/matterport, see ASSETS.md); non-commercial school project",
+      "notes": "Dark framed wood panelling with light inlay lines and the top rail of the entrance hall from Josefská (left wall by the stairs), rectified. A band from the floor. Measured: 1 layers, 1.2 m = 461 px."
+    },
+    {
+      "id": "wall-wainscot-pine",
+      "group": "mp",
+      "file": "textures/mp/wall-wainscot-pine.png",
+      "px": [
+        256,
+        512
+      ],
+      "sizeM": [
+        0.523,
+        1.4
+      ],
+      "tiling": "band",
+      "kind": "wall",
+      "source": "reference/matterport/panoramas/ucebna_obklad/c.jpg",
+      "license": "derived from the school's Matterport tour (reference/matterport, see ASSETS.md); non-commercial school project",
+      "notes": "Pine-board wainscot of the classroom with the literary frieze (Floor 4, yellow linoleum), top board included, rectified right of the desks. A band from the floor. Measured: 1 layers, 1.4 m = 597 px."
     },
     {
       "id": "wall-wainscot-wood",

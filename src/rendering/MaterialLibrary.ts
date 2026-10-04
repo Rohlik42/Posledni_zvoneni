@@ -17,7 +17,7 @@ export interface TextureEntry {
   px: [number, number];
   /** Metres covered by one repeat of the texture. */
   sizeM: [number, number];
-  tiling: "repeat" | "repeat-x" | "clamp" | "decal";
+  tiling: "repeat" | "repeat-x" | "band" | "clamp" | "decal";
   plan?: { floor: number; rectPx: [number, number, number, number] };
 }
 
@@ -44,7 +44,8 @@ const HEX_RGB_LENGTH = 7;
 
 /**
  * Named level materials from `data/materials.json` on top of the textures in `public/textures/index.json`
- * (phase 7). Repeating textures are scaled for UVs in world metres (`LevelBuilder` writes such UVs), clamp/decal
+ * (phase 7). Repeating textures are scaled for UVs in world metres (`LevelBuilder` writes such UVs; a `band` texture
+ * repeats along u and spans its band once in v, measured from the room floor), clamp/decal
  * textures span the unit square. A material whose texture is missing from the index, or fails to load, gets a
  * procedural canvas texture (checker / grid / noise in palette colours).
  *
@@ -165,6 +166,9 @@ export class MaterialLibrary {
       const scale = def.uvScale ?? 1;
       texture.uScale = 1 / (entry.sizeM[0] * scale);
       texture.vScale = 1 / (entry.sizeM[1] * scale);
+      // A wall band (dado, wainscot) spans v 0..1 from the room floor up once; clamped, its top row never bleeds into
+      // the skirting at the bottom.
+      if (entry.tiling === "band") texture.wrapV = Texture.CLAMP_ADDRESSMODE;
     }
     return texture;
   }

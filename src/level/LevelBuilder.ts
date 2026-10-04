@@ -16,6 +16,7 @@ import type { PaletteKey } from "../utils/Palette";
 import { GreyboxConfig, type GreyboxData } from "./GreyboxConfig";
 import { DetailGenerator } from "./DetailGenerator";
 import { FacadeBuilder } from "./FacadeBuilder";
+import { InteriorConfig } from "./InteriorConfig";
 import { PieceList, type PieceSink } from "./GreyboxTypes";
 import { Level } from "./Level";
 import { LevelConfig } from "./LevelConfig";
@@ -48,7 +49,7 @@ export class LevelBuilder {
     const railings = new RailingBuilder(greybox.railings, pieces);
     // Phase 19: some windows are smashed (no glass, shards), decided before the walls are built.
     const openings = new OpeningBuilder(layout, greybox, pieces, DetailGenerator.brokenWindows(layout));
-    new WallBuilder(layout, greybox, pieces, railings, openings, new FacadeBuilder(layout, greybox, pieces)).build();
+    new WallBuilder(layout, greybox, pieces, railings, openings, new FacadeBuilder(layout, greybox, pieces), InteriorConfig.load()).build();
     const stairs = new StairBuilder(greybox.stairs, pieces, railings);
     for (const stair of layout.level.stairs) stairs.build(stair);
     openings.doorFrames();

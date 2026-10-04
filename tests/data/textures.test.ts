@@ -8,7 +8,7 @@ import sharp from "sharp";
 const INDEX = "public/textures/index.json";
 const MAX_PX = 1024;
 const MAX_TOTAL_BYTES = 25 * 1024 * 1024;
-const TILINGS = ["repeat", "repeat-x", "clamp", "decal"];
+const TILINGS = ["repeat", "repeat-x", "band", "clamp", "decal"];
 // Textures PLAN.md phase 7 asks for from the Matterport reference (+ the gym court-line decal).
 const REQUIRED_MP = [
   "floor-checker",

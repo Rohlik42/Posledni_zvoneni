@@ -107,3 +107,8 @@ Zapracováno 2026-10-04 (na startovním 2. patře je jediná extra zbraň vodní
 - „Fyzikář se bude jmenovat Jungwirth.“ Zapracováno 2026-10-04.
 - „Předěláme ty testy, dáme tam jenom 1 2 3 4, písmenka pryč, je to matoucí.“ Zapracováno 2026-10-04 (tlačítka kvízu jen s čísly 1–4).
 - „BFG má vypadat nějak takhle (Sketchfab BFG 9000), předělej to.“ Zapracováno 2026-10-04.
+
+## 2026-10-04 — textury vnitřních stěn
+- „Všiml jsem si, že chybí textury na stěnách uvnitř budovy. Doplň je, kde to dává smysl, a také podle skutečné mapy, aby to zhruba sedělo, kde co je.“
+
+Zapracováno 2026-10-04 (každá místnost má styl stěn v `data/interior.json` podle skutečné místnosti z Matterportu: chodby a schodišťové haly bílá omítka s krémovým olejovým soklem do 1,5 m a černým obkladem u podlahy, učebny 2. patra smrková lamperie, ostatní učebny krémové stěny se soklem, laboratoř (kabinet fyziky) bílý obklad, ateliér mátový obklad, ředitelna (kabinet češtiny) ořechová dýha, předpokoj ředitelny oranžový obklad, tělocvična lamperie do 2 m a nad ní bílé stěny místo dřeva až ke stropu, vstupní chodba a zádveří tmavé rámové obložení, šatna hrubá vápenná omítka, schodiště bílá omítka; 7 nových textur z fotek školy (`tools/matterport-textures.ts`); dveře, zárubně a okna beze změny; noční jas zůstal (`lighting.spec.ts`); snímky `screenshots/interior-<místnost>-before.png` / `-after.png`, test `tests/data/interior.test.ts` a `tests/e2e/interior.spec.ts`; mapování místností v DECISIONS „FEEDBACK 2026-10-04 — Textury vnitřních stěn podle skutečné školy“)

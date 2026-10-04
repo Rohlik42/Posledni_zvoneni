@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { GreyboxConfig } from "../../src/level/GreyboxConfig";
+import { InteriorConfig } from "../../src/level/InteriorConfig";
 import type { BoxPiece } from "../../src/level/GreyboxTypes";
 import { LevelBuilder } from "../../src/level/LevelBuilder";
 import { LevelConfig } from "../../src/level/LevelConfig";
@@ -23,6 +24,7 @@ const PASSAGE_INSET = 0.05;
 const level = LevelConfig.load();
 const greybox = GreyboxConfig.load();
 const materials = MaterialsConfig.load();
+const interior = InteriorConfig.load();
 const layout = new LevelLayout(level, greybox);
 const index = JSON.parse(readFileSync("public/textures/index.json", "utf8")) as {
   textures: Array<{ id: string; tiling: string; plan?: { rectPx: [number, number, number, number] } }>;
@@ -46,7 +48,8 @@ test("materials.json: palette keys exist, textures are in public/textures/index.
 
 test("every material the level and the generator use is defined", () => {
   const used = new Set<string>([
-    ...level.rooms.flatMap((r) => [r.floorMaterial, r.wallMaterial]),
+    ...level.rooms.map((r) => r.floorMaterial),
+    ...Object.values(interior.styles).flatMap((s) => [s.base, ...(s.band === undefined ? [] : [s.band.material])]),
     greybox.slabs.ceilingMaterial,
     greybox.stairs.material,
     greybox.railings.material,

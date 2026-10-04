@@ -55,6 +55,7 @@ export class OverlapResolver {
           material: piece.material,
           role: piece.role,
           ...(piece.pickable === false ? { pickable: false } : {}),
+          ...(piece.uvOriginY === undefined ? {} : { uvOriginY: piece.uvOriginY }),
           center: { x: (fragment.min.x + fragment.max.x) / 2, y: (fragment.min.y + fragment.max.y) / 2, z: (fragment.min.z + fragment.max.z) / 2 },
           size: { x: fragment.max.x - fragment.min.x, y: fragment.max.y - fragment.min.y, z: fragment.max.z - fragment.min.z },
           visible: true,

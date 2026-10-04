@@ -36,7 +36,7 @@ export class LevelConfig {
           type: Schema.enumOf(["ucebna", "kabinet", "chodba", "schodiste", "telocvicna", "satna", "hala", "exterier"]),
           rect: RECT,
           floorMaterial: Schema.string(),
-          wallMaterial: Schema.string(),
+          wallStyle: Schema.string(),
           elevation: Schema.number(),
           ceilingHeight: POSITIVE,
           realName: Schema.string(),

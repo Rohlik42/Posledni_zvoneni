@@ -48,6 +48,12 @@ export interface BoxPiece {
    * rubble and cables. Merged into separate meshes per owner × material.
    */
   pickable?: boolean;
+  /**
+   * World height where the texture's v = 0 lies (a wall band starting at the room floor, `data/interior.json`): v is
+   * then the height above it, and the horizontal faces take u along the box's longer side and v at their height, so a
+   * band texture covers the band exactly once and a sill top continues the wall below it. Absent = world-metre UVs.
+   */
+  uvOriginY?: number;
 }
 
 /**

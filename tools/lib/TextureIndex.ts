@@ -5,8 +5,12 @@ import { writeIfChanged } from "./ImageOps";
 export const INDEX_PATH = "public/textures/index.json";
 
 export type TextureGroup = "mp" | "ph";
-/** repeat = tileable both ways, repeat-x = tileable along u only, clamp = one whole object (door, window view), decal = RGBA overlay. */
-export type Tiling = "repeat" | "repeat-x" | "clamp" | "decal";
+/**
+ * repeat = tileable both ways, repeat-x = tileable along u only, band = tileable along u and spanning v exactly once (a
+ * wall band such as a dado: v = 0 at its bottom, 1 at its top, `sizeM[1]` = the band height), clamp = one whole object
+ * (door, window view), decal = RGBA overlay.
+ */
+export type Tiling = "repeat" | "repeat-x" | "band" | "clamp" | "decal";
 
 export interface TextureEntry {
   id: string;

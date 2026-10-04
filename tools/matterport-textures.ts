@@ -18,6 +18,7 @@ import {
   rotate90,
   savePng,
   seamless,
+  stackRows,
   fitDiamondChecker,
   tile,
   twoTone,
@@ -30,6 +31,8 @@ import { updateIndex, type TextureEntry, type Tiling } from "./lib/TextureIndex"
 
 const CONFIG_PATH = "tools/matterport-textures.json";
 const LUMA = [0.299, 0.587, 0.114] as const;
+/** The layers of a stacked band must add up to its height within this (m). */
+const STACK_HEIGHT_TOLERANCE_M = 0.005;
 
 interface Processing {
   outPx: [number, number];
@@ -57,6 +60,19 @@ interface NightGlass {
   gain: number;
 }
 
+/**
+ * Ideal grout lines over a sampled glaze (wall tiles, FEEDBACK 2026-10-04 interior walls): the tile walls in the
+ * panoramas are a few px per tile, too small for a crop, so the photo gives the glaze and the lines are drawn on the
+ * known tile grid (like the ideal checker of `floor-checker`). A line sits on the left and top edge of every cell, so
+ * the texture repeats without a double line.
+ */
+interface Grout {
+  cells: [number, number];
+  /** Line width as a fraction of a cell. */
+  widthFrac: number;
+  colour: [number, number, number];
+}
+
 interface SpecBase extends Partial<Processing> {
   id: string;
   kind: string;
@@ -69,6 +85,9 @@ interface SpecBase extends Partial<Processing> {
   sizeM?: [number, number];
   /** Keep the photo grain but take the colour from another reference area (median colour of `rect`). */
   recolourFrom?: { src: string; rect: Rect };
+  /** Keep the photo grain but scale it to this mean colour (a neutral base that the materials tint). */
+  recolourTo?: [number, number, number];
+  grout?: Grout;
   nightGlass?: NightGlass;
 }
 
@@ -100,7 +119,33 @@ interface LinesSpec extends SpecBase {
   floor: number;
   lines: Omit<CourtLineParams, "pxPerM">;
 }
-type Spec = CropSpec | QuadSpec | FoldSpec | LinesSpec;
+/**
+ * One horizontal layer of a stacked wall band (FEEDBACK 2026-10-04 interior walls): a perspective quad of a photo,
+ * rectified to the band's sample width and to `heightM` of it, with its own lighting flatten and colour.
+ */
+interface StackPart {
+  src: string;
+  quad: [Point, Point, Point, Point];
+  heightM: number;
+  flattenSigma?: number;
+  flattenStrength?: number;
+  brightness?: number;
+  contrast?: number;
+  saturation?: number;
+  /** Mean colour the layer is scaled to (keeps the grain). */
+  recolour?: [number, number, number];
+}
+/**
+ * A wall band (dado, wainscot) built from layers stacked top to bottom (e.g. oil paint over a tile skirting), each
+ * from the photo that shows it best. `sizeM` = [sample width, band height]; the heights of the parts add up to it.
+ */
+interface StackSpec extends SpecBase {
+  method: "stack";
+  widthPx: number;
+  sizeM: [number, number];
+  parts: StackPart[];
+}
+type Spec = CropSpec | QuadSpec | FoldSpec | LinesSpec | StackSpec;
 
 interface Config {
   outDir: string;
@@ -116,7 +161,26 @@ interface Sampled {
   note?: string;
 }
 
+/** Rectifies, flattens and colours every layer of a stack and puts them on top of each other. */
+async function sampleStack(spec: StackSpec): Promise<Sampled> {
+  const [widthM, heightM] = spec.sizeM;
+  const total = spec.parts.reduce((sum, part) => sum + part.heightM, 0);
+  if (Math.abs(total - heightM) > STACK_HEIGHT_TOLERANCE_M) throw new Error(`${spec.id}: parts are ${total} m high, sizeM says ${heightM} m`);
+  const layers: Img[] = [];
+  for (const part of spec.parts) {
+    const h = Math.max(1, Math.round((spec.widthPx * part.heightM) / widthM));
+    let img = warpQuad(await load(part.src), part.quad, spec.widthPx, h);
+    if ((part.flattenSigma ?? 0) > 0) img = await flatten(img, part.flattenSigma ?? 0, part.flattenStrength ?? 1);
+    img = adjust(img, part.brightness ?? 1, part.contrast ?? 1, part.saturation ?? 1);
+    if (part.recolour) img = recolour(img, part.recolour);
+    layers.push(img);
+  }
+  const img = stackRows(layers);
+  return { img, sizeM: [widthM, heightM], note: `${layers.length} layers, ${layers.map((l, i) => `${spec.parts[i]?.heightM} m = ${l.h} px`).join(" / ")}` };
+}
+
 async function sampleSpec(spec: Spec, cfg: Processing): Promise<Sampled> {
+  if (spec.method === "stack") return sampleStack(spec);
   const src = await load(spec.src);
   switch (spec.method) {
     case "crop": {
@@ -155,8 +219,9 @@ async function sampleSpec(spec: Spec, cfg: Processing): Promise<Sampled> {
       const tileM = (px + py) / 2 / Math.SQRT2 / ppm;
       return {
         img: tile(cell, spec.reps, spec.reps),
-        sizeM: [(spec.reps * px) / ppm, (spec.reps * py) / ppm],
-        note: `lattice period ${px.toFixed(2)}×${py.toFixed(2)} px; tiles laid at 45°, tile edge ≈ ${(tileM * 100).toFixed(1)} cm${tones}`,
+        // An explicit size wins (tiles of known size photographed at an angle, so the px periods differ).
+        sizeM: spec.sizeM ?? [(spec.reps * px) / ppm, (spec.reps * py) / ppm],
+        note: `lattice period ${px.toFixed(2)}×${py.toFixed(2)} px${spec.idealDiamond ? `; tiles laid at 45°, tile edge ≈ ${(tileM * 100).toFixed(1)} cm` : `, ${spec.reps}×${spec.reps} periods`}${tones}`,
       };
     }
     case "lines":
@@ -192,6 +257,24 @@ async function buildLines(spec: LinesSpec, cfg: Processing, outDir: string, lice
   ];
 }
 
+/** Draws the grout lines of `grout` (see `Grout`). */
+function drawGrout(img: Img, { cells, widthFrac, colour }: Grout): Img {
+  const out = { ...img, d: Float32Array.from(img.d) };
+  const [nx, ny] = cells;
+  const cw = img.w / nx;
+  const ch = img.h / ny;
+  const lw = Math.max(1, Math.round(Math.min(cw, ch) * widthFrac));
+  for (let y = 0; y < img.h; y++) {
+    for (let x = 0; x < img.w; x++) {
+      const onLine = x - Math.floor(x / cw) * cw < lw || y - Math.floor(y / ch) * ch < lw;
+      if (!onLine) continue;
+      const i = (y * img.w + x) * img.c;
+      for (let k = 0; k < 3; k++) out.d[i + k] = colour[k] ?? 0;
+    }
+  }
+  return out;
+}
+
 /** Darkens the pixels below `pivot` luma (see `NightGlass`). */
 function darkenBelow(img: Img, { pivot, width, gain }: NightGlass): Img {
   const out = { ...img, d: Float32Array.from(img.d) };
@@ -220,6 +303,10 @@ async function build(spec: Spec, defaults: Processing, outDir: string, license: 
     img = recolour(img, target);
     sampled.note = `${sampled.note ? `${sampled.note}; ` : ""}recoloured to rgb(${target.join(",")}) from ${spec.recolourFrom.src}`;
   }
+  if (spec.recolourTo) {
+    img = recolour(img, spec.recolourTo);
+    sampled.note = `${sampled.note ? `${sampled.note}; ` : ""}recoloured to rgb(${spec.recolourTo.join(",")})`;
+  }
   let sizeM = sampled.sizeM;
   if (cfg.rotate % 4 !== 0) {
     img = rotate90(img, cfg.rotate);
@@ -228,7 +315,7 @@ async function build(spec: Spec, defaults: Processing, outDir: string, license: 
   if (cfg.flattenSigma > 0) img = await flatten(img, cfg.flattenSigma, cfg.flattenStrength);
   img = adjust(img, cfg.brightness, cfg.contrast, cfg.saturation);
   if (spec.nightGlass) img = darkenBelow(img, spec.nightGlass);
-  const repeats = spec.tiling === "repeat" || spec.tiling === "repeat-x";
+  const repeats = spec.tiling === "repeat" || spec.tiling === "repeat-x" || spec.tiling === "band";
   if (repeats && cfg.seamBlend > 0 && spec.method !== "fold") {
     const before = [img.w, img.h];
     img = seamless(img, cfg.seamBlend, spec.tiling === "repeat" ? "xy" : "x");
@@ -236,7 +323,9 @@ async function build(spec: Spec, defaults: Processing, outDir: string, license: 
   }
   if (!sizeM) throw new Error(`${spec.id}: needs pxPerM or sizeM`);
   const [outW, outH] = cfg.outPx;
-  img = await resize(img, outW, outH, repeats, cfg.pixelate);
+  img = await resize(img, outW, outH, spec.tiling === "band" ? "x" : repeats, cfg.pixelate);
+  // Drawn at the output size, so the lines stay crisp.
+  if (spec.grout) img = drawGrout(img, spec.grout);
   const file = `${outDir}/${spec.id}.png`;
   const changed = await savePng(img, file, cfg.colours);
   if (sampled.note) console.log(`  ${spec.id}: ${sampled.note}`);

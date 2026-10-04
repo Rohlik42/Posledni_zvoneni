@@ -12,6 +12,13 @@
   "world": {
     "plaster": "#8a8270",
     "plasterDark": "#4f4a40",
+    "plasterCream": "#a8946c",
+    "plasterGym": "#7a8590",
+    "dado": "#8c7a5e",
+    "dadoClassroom": "#a8844c",
+    "tileWhite": "#c8ccc6",
+    "tileMint": "#8fc4ae",
+    "tileOrange": "#d9823e",
     "plinth": "#2f5a57",
     "floorTile": "#5c6660",
     "floorTileDark": "#1f2422",

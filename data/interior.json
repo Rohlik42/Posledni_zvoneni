@@ -1,0 +1,62 @@
+{
+  "//": "Vnitřní stěny místností (FEEDBACK 2026-10-04 „chybí textury na stěnách uvnitř budovy“). Místnost si styl vybírá v level.json → rooms[].wallStyle. 'base' = materiál stěny nad pásem, 'band' = spodní pás od podlahy místnosti do 'height' m (sokl, lamperie, obklad); UV pásu začínají na podlaze, takže textura typu 'band' (public/textures/index.json) pokryje pás přesně jednou a její sizeM[1] se musí rovnat 'height' (hlídá tests/data/interior.test.ts). 'source' = panorama Matterportu, podle kterého styl je.",
+  "styles": {
+    "corridor": {
+      "base": "wall-plaster",
+      "band": { "material": "wall-dado-paint", "height": 1.5 },
+      "source": "chodba_dvere_okna/a (bílá omítka, olejový sokl do ~1,5 m, černý obklad u podlahy), schodiste_litina/b (krémový sokl v hale u hlavního schodiště)"
+    },
+    "stair": {
+      "base": "wall-plaster",
+      "source": "schodiste_zabradli (bílé stěny schodiště; sokl tam jde šikmo podél ramen, vodorovný pás by ramena křížil, proto bez pásu)"
+    },
+    "classroom-pine": {
+      "base": "wall-plaster-cream",
+      "band": { "material": "wall-wainscot-pine", "height": 1.4 },
+      "source": "ucebna_obklad (učebna 2. patra se žlutým linoleem: smrková palubková lamperie, nad ní krémová stěna)"
+    },
+    "classroom-paint": {
+      "base": "wall-plaster-cream",
+      "band": { "material": "wall-dado-classroom", "height": 1.5 },
+      "source": "ucebna_zelena, views/ucebna_31_hudebna (krémové stěny učeben, olejový sokl jako na chodbách v teplejším odstínu)"
+    },
+    "lab": {
+      "base": "wall-plaster-cream",
+      "band": { "material": "wall-tiles-lab", "height": 1.5 },
+      "source": "laborator_chemie, laborator_fyzika (krémové stěny, bílý obklad u pracovních linek a výlevek)"
+    },
+    "atelier": {
+      "base": "wall-plaster-cream",
+      "band": { "material": "wall-tiles-mint", "height": 1.5 },
+      "source": "ucebna_zelena (ateliér se zeleným linoleem: krémové stěny, světle mátový obklad u umyvadel)"
+    },
+    "office": {
+      "base": "wall-plaster",
+      "band": { "material": "wall-veneer-walnut", "height": 1.1 },
+      "source": "reditelna/a (bílé stěny, ořechová stěna vestavěných skříní)"
+    },
+    "anteroom": {
+      "base": "wall-plaster",
+      "band": { "material": "wall-tiles-orange", "height": 1.5 },
+      "source": "reditelna/d (předpokoj za dveřmi ředitelny: parkety, oranžový obklad)"
+    },
+    "gym": {
+      "base": "wall-plaster-gym",
+      "band": { "material": "wall-wainscot-gym", "height": 2.0 },
+      "source": "telocvicna_obklad, telocvicna_parkety (smrková lamperie do ~2 m, nad ní bílé stěny se studeným šedomodrým nádechem)"
+    },
+    "changing": {
+      "base": "wall-plaster-rough",
+      "source": "satna_skrinky, satna_skrinky2 (hrubá vápenná omítka sklepní šatny, stěny zakryté skříňkami)"
+    },
+    "entrance": {
+      "base": "wall-plaster-cream",
+      "band": { "material": "wall-wainscot-hall", "height": 1.2 },
+      "source": "vstupni_hala (tmavé rámové dřevěné obložení se světlými intarziemi a madlem, nad ním krémová omítka)"
+    },
+    "street": {
+      "base": "wall-plaster",
+      "source": "exteriér (ulice Josefská): beze změny, zdi ulice nejsou interiér"
+    }
+  }
+}

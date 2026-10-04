@@ -1,6 +1,7 @@
 import type { FacadeBuilder } from "./FacadeBuilder";
 import type { GreyboxData } from "./GreyboxConfig";
-import type { PieceSink } from "./GreyboxTypes";
+import type { BoxPiece, PieceSink } from "./GreyboxTypes";
+import type { InteriorData, WallStyleData } from "./InteriorConfig";
 import { LevelLayout, type RoomSide, type SideOpening, type SideSegment } from "./LevelLayout";
 import type { Room } from "./LevelTypes";
 import type { OpeningBuilder } from "./OpeningBuilder";
@@ -15,6 +16,9 @@ const MIN_PIECE = 0.01;
  * carries the material of the room it faces. Openings (doors, windows) split a wall into full-height pieces plus a
  * sill below and a lintel above. Walls of the first and last stretch of a side reach past the corner (clipped against
  * other rooms and door passages) to close the corner. A room looking into a touching stair shaft gets a railing.
+ * The inside of the walls follows the room's style (`data/interior.json`): a piece reaching into the lower band (dado,
+ * wainscot, tiles) is drawn as two boxes split at the band top, the band one with its UVs starting at the room floor,
+ * and collides as the one box it was.
  */
 export class WallBuilder {
   constructor(
@@ -24,6 +28,7 @@ export class WallBuilder {
     private readonly railings: RailingBuilder,
     private readonly openings: OpeningBuilder,
     private readonly facade: FacadeBuilder,
+    private readonly interior: InteriorData,
   ) {}
 
   build(): void {
@@ -116,17 +121,30 @@ export class WallBuilder {
     if (a1 - a0 < MIN_PIECE || y1 - y0 < MIN_PIECE || thickness < MIN_PIECE) return;
     const across = side.line + (WallBuilder.direction(side, segment) * thickness) / 2;
     const along = (a0 + a1) / 2;
-    const y = (y0 + y1) / 2;
-    const vertical = y1 - y0;
-    this.sink.box({
-      owner: room.id,
-      material: room.wallMaterial,
-      center: side.axis === "x" ? LevelLayout.toWorld(across, y, along) : LevelLayout.toWorld(along, y, across),
-      size: side.axis === "x" ? { x: thickness, y: vertical, z: a1 - a0 } : { x: a1 - a0, y: vertical, z: thickness },
-      visible: true,
-      collide: true,
-      role: "wall",
+    const box = (from: number, to: number): Pick<BoxPiece, "center" | "size"> => ({
+      center: side.axis === "x" ? LevelLayout.toWorld(across, (from + to) / 2, along) : LevelLayout.toWorld(along, (from + to) / 2, across),
+      size: side.axis === "x" ? { x: thickness, y: to - from, z: a1 - a0 } : { x: a1 - a0, y: to - from, z: thickness },
     });
+    const style = this.style(room);
+    const floor = this.layout.floorY(room);
+    const bandTop = style.band === undefined ? -Infinity : floor + style.band.height;
+    const base = { owner: room.id, role: "wall" as const };
+    const band = style.band === undefined ? null : { ...base, material: style.band.material, uvOriginY: floor };
+    const upper = { ...base, material: style.base };
+    // Wholly above or below the band top: one box, as before the styles.
+    if (y0 >= bandTop - MIN_PIECE || y1 <= bandTop + MIN_PIECE || band === null) {
+      this.sink.box({ ...(band !== null && y1 <= bandTop + MIN_PIECE ? band : upper), ...box(y0, y1), visible: true, collide: true });
+      return;
+    }
+    this.sink.box({ ...upper, ...box(y0, y1), visible: false, collide: true });
+    this.sink.box({ ...band, ...box(y0, bandTop), visible: true, collide: false });
+    this.sink.box({ ...upper, ...box(bandTop, y1), visible: true, collide: false });
+  }
+
+  private style(room: Room): WallStyleData {
+    const style = this.interior.styles[room.wallStyle];
+    if (style === undefined) throw new Error(`WallBuilder: room ${room.id} has wall style "${room.wallStyle}" missing in data/interior.json`);
+    return style;
   }
 
   /**
