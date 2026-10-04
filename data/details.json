@@ -141,7 +141,7 @@
     { "room": "f3-wing", "wall": "maxX", "at": 8, "height": 1.5, "width": 1.6, "text": 2 }
   ],
   "loose": {
-    "//": "Dynamická Havok tělesa (jen v celé hře, src/level/LooseDebris.ts): reagují na zásah (impuls od hráče × damage × impulsePerDamage podle typu), výbuch pasti a zničení robota (radiální impuls do radius). 'hanging' kusy stropu visí staticky, dokud je něco netrefí. Pozice v plánových souřadnicích, mimo trasu (datový test).",
+    "//": "Dynamická Havok tělesa (jen v celé hře, src/level/LooseDebris.ts): reagují na zásah (impuls od hráče × damage × impulsePerDamage podle typu), výbuch pasti a zničení robota (radiální impuls do radius). 'hanging' kusy stropu visí staticky, dokud je něco netrefí. Židle v tělocvičně stojí na dostřel hadice od hydrantu (fáze 24). Pozice v plánových souřadnicích, mimo trasu (datový test).",
     "impulsePerDamage": { "water": 1.0, "electric": 1.0, "kinetic": 1.2, "explosion": 1.5, "quiz": 0 },
     "maxImpulse": 40,
     "blast": { "radius": 4.5, "impulse": 30 },
@@ -161,7 +161,8 @@
       { "kind": "ceiling", "room": "f3-corridor", "x": 40.0, "z": 21.75, "yawDeg": 0, "hanging": true },
       { "kind": "chair", "room": "f2-corridor", "x": 24.0, "z": 19.85, "yawDeg": 0 },
       { "kind": "plank", "room": "f2-corridor", "x": 16.0, "z": 19.75, "yawDeg": 0 },
-      { "kind": "chunk", "room": "f2-gym", "x": 56.0, "z": 23.4, "yawDeg": 40 }
+      { "kind": "chunk", "room": "f2-gym", "x": 56.0, "z": 23.4, "yawDeg": 40 },
+      { "kind": "chair", "room": "f2-gym", "x": 46.8, "z": 29.3, "yawDeg": 200 }
     ]
   },
   "textures": {
