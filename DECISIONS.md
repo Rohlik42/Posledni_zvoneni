@@ -328,3 +328,63 @@ Každé rozhodnutí je jedna věta s důvodem. Člověk je může změnit. Agent
 - **Písmeno, které rozepsaný kód prodlouží na 2 a více znaků, hra spolkne (keydown i jeho keyup):** všechny kódy začínají I-D a I nemá akci, takže F v IDKFA nevystřelí, Q v IDDQD neotevře dveře a C v IDCLIP nesjede dolů; cena je, že D hned po náhodném I (do 2,5 s) jednou neuskročí.
 - **Stav cheatů drží `Game.cheats` (`Cheats`) a každý systém si je aplikuje sám:** `Player` (nesmrtelnost = `PlayerHealth.invulnerable`, která ignoruje veškeré poškození včetně pasti kvízu; noclip), `WeaponInventory` (všech 6 zbraní včetně hadice, plný zásobník i rezerva), `Inventory` (všechny klíče potichu, bez `onKey`, aby se na místě cheatu neuložil checkpoint), `Hud` (toast a štítky vlevo nahoře); cheat tak funguje v každé scéně, která ty systémy má.
 - **Noclip vůbec neintegruje Havok character controller, jen mu nastavuje pozici (WASD podle směru pohledu, mezerník nahoru, Shift nebo C dolů, bez gravitace):** po vypnutí `Player` vždy postaví hráče na nejbližší bod navmeshe (`NavMeshService.forScene`, hledá v `queryExtent`), který je na podlaze a mimo zdi; když v dosahu žádný není nebo scéna navmesh nemá, vrátí ho tam, kde noclip zapnul. Detekce „uvnitř geometrie“ by s Havok raycasty nebyla spolehlivá (paprsek začínající uvnitř kvádru ho nezasáhne), navmesh to vyřeší vždy.
+
+## FEEDBACK 2026-10-04 — Vyvážení zbraní (pistolka je základ, každá sebraná zbraň je upgrade a dá se s ní trefit)
+
+Měřeno ve hře, ne spočítáno: `tests/e2e/weapons-balance.spec.ts` v nové dev scéně `weapons-long` (chodba 12 × 120 m, `data/weapon-longrange.json`), obtížnost Záškoláček (všechny násobiče 1). dmg/zásah = damage × odolnost robota; zásahů (výstřelů) = kolik zásahů zabije a kolik výstřelů na to padlo; TTK = simulovaný čas od prvního stisku do zničení z 3 m, palba tak rychle, jak zbraň dovolí (railgun: nabít, pustit; jednorázové zbraně: klikání co snímek); DPS = dmg / (1 / kadence), railgun dmg / (nabití + přebití); dostřel = nejdelší vzdálenost, na kterou vycentrovaná rána ještě zraní humanoida (≥ 112 = konec chodby); tolerance = o kolik stupňů do strany smí zaměřovač mířit od středu robota a pořád zasáhne (jedna rána na úhel, u zbraní s náhodným rozptylem — pistolka, hadice — je to šum ±1°; „–“ = ani vycentrovaná rána nedolétne). Výstup testu: `screenshots/weapons-balance-before.md` / `-after.md`.
+
+**Před (stav do 2026-10-04):**
+
+| zbraň | robot | dmg/zásah | zásahů (výstřelů) | TTK s | DPS | dostřel m (humanoid) | tolerance 3 m ° | tolerance 10 m ° |
+|---|---|---|---|---|---|---|---|---|
+| waterPistol | humanoid | 9.0 | 7 (7) | 1.02 | 54 | 27.8 | 9.1 | 2.8 |
+| waterPistol | quadruped | 9.0 | 5 (5) | 0.68 | 54 | 27.8 | 10.8 | 2.9 |
+| waterPistol | drone | 9.0 | 3 (3) | 0.35 | 54 | 27.8 | 7.4 | 0.5 |
+| extinguisher | humanoid | 3.0 | 20 (20) | 1.60 | 36 | 5.0 | 18.2 | – |
+| extinguisher | quadruped | 3.0 | 15 (15) | 1.18 | 36 | 5.0 | 24.8 | – |
+| extinguisher | drone | 3.0 | 8 (8) | 0.60 | 36 | 5.0 | 24.8 | – |
+| waterBalloons | humanoid | 45.0 | 2 (2) | 0.90 | 63 | 13.6 | 11.1 | 1.5 |
+| waterBalloons | quadruped | 45.0 | 1 (1) | 0.17 | 63 | 13.6 | 28.8 | 18.8 |
+| waterBalloons | drone | 45.0 | 1 (1) | 0.20 | 63 | 13.6 | 8.5 | – |
+| taser | humanoid | 28.0 | 3 (3) | 1.93 | 45 | 4.1 | 11.0 | – |
+| taser | quadruped | 28.0 | 2 (2) | 0.67 | 45 | 4.1 | 10.4 | – |
+| taser | drone | 35.0 | 1 (1) | 0.03 | 56 | 4.1 | 7.7 | – |
+| railgun | humanoid | 240.0 | 1 (1) | 1.02 | 92 | 59.8 | 5.8 | 1.7 |
+| railgun | quadruped | 240.0 | 1 (1) | 1.02 | 92 | 59.8 | 7.9 | 3.1 |
+| railgun | drone | 300.0 | 1 (1) | 1.02 | 115 | 59.8 | 2.9 | 1.1 |
+| hose | humanoid | 6.0 | 10 (10) | 0.47 | 120 | 11.9 | 8.9 | – |
+| hose | quadruped | 6.0 | 8 (8) | 0.37 | 120 | 11.9 | 9.2 | 0.2 |
+| hose | drone | 6.0 | 4 (4) | 0.17 | 120 | 11.9 | 6.8 | 0.4 |
+
+**Po:**
+
+| zbraň | robot | dmg/zásah | zásahů (výstřelů) | TTK s | DPS | dostřel m (humanoid) | tolerance 3 m ° | tolerance 10 m ° |
+|---|---|---|---|---|---|---|---|---|
+| waterPistol | humanoid | 6.0 | 10 (10) | 1.52 | 36 | 20.1 | 10.0 | 3.7 |
+| waterPistol | quadruped | 6.0 | 8 (8) | 1.18 | 36 | 20.1 | 11.6 | 4.1 |
+| waterPistol | drone | 6.0 | 4 (4) | 0.52 | 36 | 20.1 | 11.3 | 3.6 |
+| extinguisher | humanoid | 5.3 | 12 (12) | 0.93 | 63 | 33.9 | 18.8 | 6.8 |
+| extinguisher | quadruped | 5.3 | 9 (9) | 0.68 | 63 | 33.9 | 20.5 | 7.2 |
+| extinguisher | drone | 5.3 | 5 (5) | 0.35 | 63 | 33.9 | 20.5 | 7.2 |
+| waterBalloons | humanoid | 45.0 | 2 (2) | 0.90 | 63 | 13.6 | 11.1 | 1.5 |
+| waterBalloons | quadruped | 45.0 | 1 (1) | 0.17 | 63 | 13.6 | 28.8 | 18.8 |
+| waterBalloons | drone | 45.0 | 1 (1) | 0.20 | 63 | 13.6 | 8.5 | – |
+| taser | humanoid | 46.0 | 2 (2) | 0.67 | 74 | 3.2 | 49.5 | – |
+| taser | quadruped | 46.0 | 1 (1) | 0.03 | 74 | 3.2 | 51.0 | – |
+| taser | drone | 57.5 | 1 (1) | 0.03 | 92 | 3.2 | 50.5 | – |
+| railgun | humanoid | 240.0 | 1 (1) | 1.02 | 92 | ≥112 | 11.8 | 4.1 |
+| railgun | quadruped | 240.0 | 1 (1) | 1.02 | 92 | ≥112 | 11.9 | 4.4 |
+| railgun | drone | 300.0 | 1 (1) | 1.02 | 115 | ≥112 | 12.0 | 4.3 |
+| hose | humanoid | 6.0 | 10 (10) | 0.47 | 120 | 23.9 | 17.5 | 5.7 |
+| hose | quadruped | 6.0 | 8 (8) | 0.37 | 120 | 23.9 | 20.0 | 7.3 |
+| hose | drone | 6.0 | 4 (4) | 0.17 | 120 | 23.9 | 20.0 | 6.6 |
+
+- **Vodní pistolka je nejslabší základ: damage 6 → 4 (TTK humanoida 1,0 → 1,5 s, 1,5×), dostřel 28 → 20 m, malá pomoc s mířením `aimAssistDeg` 0,75°:** startovní zbraň s nekonečnou vodou nesmí přebíjet sebrané zbraně; 20 m je pořád víc než dostřel robotů (humanoid 10 m, dron 9 m), takže se jim pistolka umí bránit.
+- **Hasičák už není krátký kužel pěny, ale proud vody pod tlakem jako silnější hadice (`kind: stream`): 12 tiků/s po 3,5 water (63 DPS proti 36 u pistolky), dostřel 5 → 34 m (1,7× pistolka), zasáhne první robot v proudu a zpomalí ho jako dřív; nádržka 120 tiků a doplňování ze skříněk beze změny:** FEEDBACK chce paprsek, který dostřelí dál a silněji než pistolka; plošný kužel přes víc robotů tím mizí (na skupiny jsou balónky a paralyzér).
+- **Hasičák a hadice mají tlustý proud (`params.beamRadius` 0,35 / 0,3 m) a k tomu `aimAssistDeg` 2° / 1,5°; railgun 1,25°, pistolka 0,75°:** „dá se fakt trefit“ — když přesný paprsek mine robota, zasáhne robota, jehož obalový kvádr je od paprsku blíž než beamRadius + vzdálenost × tan(aimAssistDeg) a je z oka vidět (`AreaQuery.nearRay`, `Weapon.assistedCast`); přitahuje jen k věcem se stavem (roboti), ne k terčům ani k nábytku; zeď mezi robotem a hráčem pomoc zruší (paprsek viditelnosti).
+- **Proud hasičáku kreslí `RailBeam` s vodními barvami (jádro + záře od hubice k zásahu, každým tikem znovu rozsvícené) a `WaterEffects` (šplouchnutí, mokrá skvrna, pár kapek):** souvislý paprsek místo mraku částic, bez nové třídy — RailBeam je obecný zářící válec s jiskrami, pro vodu stačí jiný blok `effect`.
+- **Paralyzér je zbraň na blízko se širokým bleskem: dostřel 4 → 3,5 m, ale jeden výboj zasáhne každého viditelného v kuželu `arcAngleDeg` 80° (nejvýš `maxTargets` 5 nejbližších), damage 14 → 23 electric (humanoid 2 výboje, čtyřnožec a dron 1) + stun 2,2 s; nabíjení beze změny:** FEEDBACK „víc na blízko a s širším dosahem blesku“; kužel přes `AreaQuery.cone` se stejným testem viditelnosti jako dřív pěna hasičáku. Ke každému zasaženému vede rozvětvený blesk (`ElectricArc` má nově `effect.forks` odboček), prázdný výboj zapraská do kuželu (`fizzleArcs`).
+- **Railgun má „nekonečný“ dostřel 300 m (= do první zdi; v levelu ani v chodbě nic delšího není) a malou pomoc 1,25°, průraz 3 robotů a damage 120 beze změny:** při minutí přesného paprsku se směr stočí na robota v toleranci a průraz pokračuje po novém směru.
+- **Hadice 12 → 24 m, damage beze změny (120 DPS, nejsilnější stacionární zbraň, TTK humanoida 0,47 s):** tělocvična má úhlopříčku ~18 m, s 12 m nedostřelila přes celý boss fight; hasičák (63 DPS) zůstává slabší než hadice. Balónky beze změny (45 přímý zásah, AoE 2,5 m, TTK humanoida 0,9 s) — po zeslabení pistolky jsou jasný upgrade a na skupiny nejlepší.
+- **Pořadí po změně (data i testy `weapons-all.spec.ts` → long hall): dostřel railgun 300 > hasičák 34 > hadice 24 > pistolka 20 > paralyzér 3,5; TTK humanoida z 3 m: hadice 0,47 < paralyzér 0,67 < balónky 0,90 < hasičák 0,93 < railgun 1,02 < pistolka 1,52 s:** každá sebraná zbraň zabije humanoida rychleji než pistolka. Obtížnost dál násobí životy robotů (enemyHealth), takže poměry platí na všech stupních.
+- **`__game.weapons.refill(id)` (nové pole test API) naplní zásobník zbraně jako nástěnná skříňka:** měřicí testy potřebují začínat s plnou zbraní bez stanic.

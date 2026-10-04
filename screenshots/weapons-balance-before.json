@@ -1,0 +1,265 @@
+{
+  "label": "before",
+  "ranges": {
+    "waterPistol": 27.830078125,
+    "extinguisher": 4.953125,
+    "waterBalloons": 13.5859375,
+    "taser": 4.08984375,
+    "railgun": 59.771484375,
+    "hose": 11.859375
+  },
+  "rows": [
+    {
+      "weapon": "waterPistol",
+      "enemy": "humanoid",
+      "damagePerHit": 9,
+      "measuredHit": 9,
+      "shotsFired": 7,
+      "hitsToKill": 7,
+      "ttkSeconds": 1.0166666666666657,
+      "peakDps": 54,
+      "toleranceDeg": {
+        "3m": 9.125,
+        "10m": 2.8125
+      }
+    },
+    {
+      "weapon": "waterPistol",
+      "enemy": "quadruped",
+      "damagePerHit": 9,
+      "measuredHit": 9,
+      "shotsFired": 5,
+      "hitsToKill": 5,
+      "ttkSeconds": 0.6833333333333331,
+      "peakDps": 54,
+      "toleranceDeg": {
+        "3m": 10.75,
+        "10m": 2.875
+      }
+    },
+    {
+      "weapon": "waterPistol",
+      "enemy": "drone",
+      "damagePerHit": 9,
+      "measuredHit": 9,
+      "shotsFired": 3,
+      "hitsToKill": 3,
+      "ttkSeconds": 0.35000000000000003,
+      "peakDps": 54,
+      "toleranceDeg": {
+        "3m": 7.375,
+        "10m": 0.49609375
+      }
+    },
+    {
+      "weapon": "extinguisher",
+      "enemy": "humanoid",
+      "damagePerHit": 3,
+      "measuredHit": 3,
+      "shotsFired": 20,
+      "hitsToKill": 20,
+      "ttkSeconds": 1.6000000000000016,
+      "peakDps": 36,
+      "toleranceDeg": {
+        "3m": 18.25,
+        "10m": null
+      }
+    },
+    {
+      "weapon": "extinguisher",
+      "enemy": "quadruped",
+      "damagePerHit": 3,
+      "measuredHit": 3,
+      "shotsFired": 15,
+      "hitsToKill": 15,
+      "ttkSeconds": 1.1833333333333331,
+      "peakDps": 36,
+      "toleranceDeg": {
+        "3m": 24.75,
+        "10m": null
+      }
+    },
+    {
+      "weapon": "extinguisher",
+      "enemy": "drone",
+      "damagePerHit": 3,
+      "measuredHit": 3,
+      "shotsFired": 8,
+      "hitsToKill": 8,
+      "ttkSeconds": 0.6,
+      "peakDps": 36,
+      "toleranceDeg": {
+        "3m": 24.75,
+        "10m": null
+      }
+    },
+    {
+      "weapon": "waterBalloons",
+      "enemy": "humanoid",
+      "damagePerHit": 45,
+      "measuredHit": 45,
+      "shotsFired": 2,
+      "hitsToKill": 2,
+      "ttkSeconds": 0.9000000000000004,
+      "peakDps": 62.99999999999999,
+      "toleranceDeg": {
+        "3m": 11.125,
+        "10m": 1.5
+      }
+    },
+    {
+      "weapon": "waterBalloons",
+      "enemy": "quadruped",
+      "damagePerHit": 45,
+      "measuredHit": 45,
+      "shotsFired": 1,
+      "hitsToKill": 1,
+      "ttkSeconds": 0.16666666666666669,
+      "peakDps": 62.99999999999999,
+      "toleranceDeg": {
+        "3m": 28.75,
+        "10m": 18.75
+      }
+    },
+    {
+      "weapon": "waterBalloons",
+      "enemy": "drone",
+      "damagePerHit": 45,
+      "measuredHit": 22,
+      "shotsFired": 1,
+      "hitsToKill": 1,
+      "ttkSeconds": 0.20000000000000004,
+      "peakDps": 62.99999999999999,
+      "toleranceDeg": {
+        "3m": 8.5,
+        "10m": null
+      }
+    },
+    {
+      "weapon": "taser",
+      "enemy": "humanoid",
+      "damagePerHit": 28,
+      "measuredHit": 28,
+      "shotsFired": 3,
+      "hitsToKill": 3,
+      "ttkSeconds": 1.9333333333333316,
+      "peakDps": 44.800000000000004,
+      "toleranceDeg": {
+        "3m": 11,
+        "10m": null
+      }
+    },
+    {
+      "weapon": "taser",
+      "enemy": "quadruped",
+      "damagePerHit": 28,
+      "measuredHit": 28,
+      "shotsFired": 2,
+      "hitsToKill": 2,
+      "ttkSeconds": 0.6666666666666667,
+      "peakDps": 44.800000000000004,
+      "toleranceDeg": {
+        "3m": 10.375,
+        "10m": null
+      }
+    },
+    {
+      "weapon": "taser",
+      "enemy": "drone",
+      "damagePerHit": 35,
+      "measuredHit": 22,
+      "shotsFired": 1,
+      "hitsToKill": 1,
+      "ttkSeconds": 0.03333333333333333,
+      "peakDps": 56,
+      "toleranceDeg": {
+        "3m": 7.6875,
+        "10m": null
+      }
+    },
+    {
+      "weapon": "railgun",
+      "enemy": "humanoid",
+      "damagePerHit": 240,
+      "measuredHit": 60,
+      "shotsFired": 1,
+      "hitsToKill": 1,
+      "ttkSeconds": 1.0166666666666657,
+      "peakDps": 144,
+      "toleranceDeg": {
+        "3m": 5.8125,
+        "10m": 1.6875
+      }
+    },
+    {
+      "weapon": "railgun",
+      "enemy": "quadruped",
+      "damagePerHit": 240,
+      "measuredHit": 45,
+      "shotsFired": 1,
+      "hitsToKill": 1,
+      "ttkSeconds": 1.0166666666666657,
+      "peakDps": 144,
+      "toleranceDeg": {
+        "3m": 7.9375,
+        "10m": 3.0625
+      }
+    },
+    {
+      "weapon": "railgun",
+      "enemy": "drone",
+      "damagePerHit": 300,
+      "measuredHit": 22,
+      "shotsFired": 1,
+      "hitsToKill": 1,
+      "ttkSeconds": 1.0166666666666657,
+      "peakDps": 180,
+      "toleranceDeg": {
+        "3m": 2.90625,
+        "10m": 1.09375
+      }
+    },
+    {
+      "weapon": "hose",
+      "enemy": "humanoid",
+      "damagePerHit": 6,
+      "measuredHit": 6,
+      "shotsFired": 10,
+      "hitsToKill": 10,
+      "ttkSeconds": 0.46666666666666684,
+      "peakDps": 120,
+      "toleranceDeg": {
+        "3m": 8.875,
+        "10m": null
+      }
+    },
+    {
+      "weapon": "hose",
+      "enemy": "quadruped",
+      "damagePerHit": 6,
+      "measuredHit": 6,
+      "shotsFired": 8,
+      "hitsToKill": 8,
+      "ttkSeconds": 0.36666666666666675,
+      "peakDps": 120,
+      "toleranceDeg": {
+        "3m": 9.25,
+        "10m": 0.23046875
+      }
+    },
+    {
+      "weapon": "hose",
+      "enemy": "drone",
+      "damagePerHit": 6,
+      "measuredHit": 6,
+      "shotsFired": 4,
+      "hitsToKill": 4,
+      "ttkSeconds": 0.16666666666666666,
+      "peakDps": 120,
+      "toleranceDeg": {
+        "3m": 6.75,
+        "10m": 0.4296875
+      }
+    }
+  ]
+}

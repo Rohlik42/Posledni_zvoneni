@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import { ConsoleGuard } from "../support/ConsoleGuard";
+import { ShotPath } from "../support/ShotPath";
+import { WeaponBench, type BenchWeapon } from "../support/WeaponBench";
 
 // The remaining weapons (phase 13) in their own dev scene `weapons`: box room, five humanoid robots, a wall extinguisher,
 // a gym hydrant and a bucket of balloons. One page for all checks, paused and driven by `__game.step(ms)`. Damage,
@@ -154,9 +156,9 @@ test("the scene has every weapon, the stations and the robots; viewmodels stay w
   }
 });
 
-test("extinguisher: cone of foam damages and slows only robots inside the cone and range; tank drains", async () => {
-  // A 2.5 m straight ahead (in the cone), B 2.5 m to the side (90°, outside the cone), C 8 m ahead (beyond range).
-  await setup(extinguisher.slot, { [A]: { x: 0, y: 0, z: -1.5 }, [B]: { x: 2.5, y: 0, z: -4 }, [C]: { x: 0.4, y: 0, z: 4 } });
+test("extinguisher: a water jet hits the robot it is aimed at, slows it, stops there and misses robots beside it; tank drains", async () => {
+  // A 2.5 m ahead, B 2.5 m to the side (90°, outside the jet), C straight behind A (the jet stops at the first robot).
+  await setup(extinguisher.slot, { [A]: { x: 0, y: 0, z: -1.5 }, [B]: { x: 2.5, y: 0, z: -4 }, [C]: { x: 0, y: 0, z: 3 } });
   await aimAt(A);
   const before = await state(extinguisher.id);
   expect(before.magazine).toBe(extinguisher.ammo.capacity);
@@ -174,15 +176,31 @@ test("extinguisher: cone of foam damages and slows only robots inside the cone a
   // Slowed by params.slowStrength (the phase 5 hit stagger is weaker, the strongest slow wins).
   expect((await robot(A)).speedFactor).toBeCloseTo(1 - extinguisher.params.slowStrength!, 5);
   expect((await robot(B)).speedFactor).toBe(1);
-  expect((await state(extinguisher.id)).extra.coneAngleDeg).toBe(extinguisher.params.coneAngleDeg);
-  // The hiss is throttled to params.soundInterval, the foam is visible.
+  // A coherent jet (not a cone of foam): lit while firing, with water drops and a splash.
+  expect(after.extra.beamRadius).toBe(extinguisher.params.beamRadius);
+  expect(after.extra.jetVisible).toBe(1);
+  expect(after.extra.jets).toBeGreaterThanOrEqual(ticks);
+  expect((await page.evaluate(() => window.__game!.weapons!.effects())).droplets).toBeGreaterThan(0);
+  // The hiss is throttled to params.soundInterval.
   const hisses = (await plays(extinguisher.sounds.fire)) - hissesBefore;
   expect(hisses).toBeGreaterThan(0);
   expect(hisses).toBeLessThan(ticks);
-  expect((await state(extinguisher.id)).extra.foam).toBeGreaterThan(0);
-  // The slow wears off after slowSeconds × statusResistance.
+  // The slow wears off after slowSeconds × statusResistance; the jet goes out.
   await page.evaluate((ms) => window.__game!.step(ms), extinguisher.params.slowSeconds! * humanoid.statusResistance.slow * 1000 + 200);
   expect((await robot(A)).speedFactor).toBe(1);
+  expect((await state(extinguisher.id)).extra.jetVisible).toBe(0);
+});
+
+test("extinguisher: the thick jet still hits a robot when the crosshair is a little beside it", async () => {
+  await setup(extinguisher.slot, { [A]: { x: 0, y: 0, z: 2 } });
+  // Aim past A's side: its half-width plus most of the jet radius.
+  await page.evaluate(([id, off]) => {
+    const g = window.__game!;
+    const c = g.enemies!.get(id)!.center;
+    g.player!.lookAt(c.x + off, c.y, c.z);
+  }, [A, 0.3 + extinguisher.params.beamRadius! * 0.8] as const);
+  await page.evaluate(() => window.__game!.input!.simulate("fire", 1000 / 60));
+  expect((await robot(A)).health).toBeLessThan(humanoid.health);
 });
 
 test("wall extinguisher refills the tank once when the player walks up; an empty cabinet does nothing", async () => {
@@ -260,28 +278,48 @@ test("water balloons are collected from the bucket into the weapon's reserve", a
   expect((await page.evaluate(() => window.__game!.weaponStations!.pickups()))[0]!.available).toBe(false);
 });
 
-test("taser: short-range zap damages and stuns a robot, misses beyond its range, recharges by itself", async () => {
-  // A 2.5 m ahead, B 6 m ahead and to the side (beyond the taser's range).
-  await setup(taser.slot, { [A]: { x: 0, y: 0, z: -1.5 }, [B]: { x: 3, y: 0, z: 1 } });
+test("taser: misses a robot beyond its short range", async () => {
+  // B straight ahead, beyond the taser's range.
+  await setup(taser.slot, { [B]: { x: 0, y: 0, z: -4 + taser.range + 2.5 } });
   expect((await state(taser.id)).magazine).toBe(taser.ammo.capacity);
   await aimAt(B);
   await page.evaluate(() => window.__game!.input!.simulate("fire", 1000 / 60));
   expect((await robot(B)).health).toBe(humanoid.health);
   expect((await robot(B)).stunned).toBe(false);
   expect(await page.evaluate(() => window.__game!.weapons!.lastShot()?.damageDealt)).toBe(0);
-
-  await page.evaluate((ms) => window.__game!.step(ms), 1000 / taser.fireRate + 50);
-  await aimAt(A);
-  await page.evaluate(() => window.__game!.input!.simulate("fire", 1000 / 60));
-  const hit = await robot(A);
-  expect(hit.health).toBeCloseTo(humanoid.health - taser.damage * humanoid.resistances[taser.damageType]!, 5);
-  expect(hit.stunned).toBe(true);
-  expect(hit.speedFactor).toBe(0);
-  expect((await state(taser.id)).extra.stuns).toBeGreaterThan(0);
+  // An empty zap still crackles (fizzle arcs into the cone).
   expect((await state(taser.id)).extra.arc).toBeGreaterThan(0);
+  expect((await state(taser.id)).extra.lastTargets).toBe(0);
+});
+
+test("taser: one zap's wide lightning arc hits and stuns every robot spread in front at close range, nobody outside it", async () => {
+  // A, B, C 2.5 m away spread across the arc (−30°, 0°, +30°); D 2.5 m away at 90° (outside); E beyond the range.
+  const half = taser.params.arcAngleDeg! / 2;
+  const at = (deg: number, r: number): Vec => ({ x: STAND.x + r * Math.sin((deg * Math.PI) / 180), y: 0, z: STAND.z + r * Math.cos((deg * Math.PI) / 180) });
+  const spread = Math.min(30, half - 8);
+  await setup(taser.slot, { [A]: at(-spread, 2.5), [B]: at(0, 2.5), [C]: at(spread, 2.5), [D]: at(90, 2.5), [E]: at(0, taser.range + 3) });
+  await aimAt(B);
+  // The previous zap's cooldown has run out.
+  await page.evaluate((ms) => window.__game!.step(ms), 1000 / taser.fireRate);
+  await page.evaluate(() => window.__game!.input!.simulate("fire", 1000 / 60));
+  const perZap = taser.damage * humanoid.resistances[taser.damageType]!;
+  for (const id of [A, B, C]) {
+    const hit = await robot(id);
+    expect(hit.health, id).toBeCloseTo(Math.max(0, humanoid.health - perZap), 5);
+    if (hit.alive) {
+      expect(hit.stunned, id).toBe(true);
+      expect(hit.speedFactor, id).toBe(0);
+    }
+  }
+  for (const id of [D, E]) expect((await robot(id)).health, id).toBe(humanoid.health);
+  const zapped = await state(taser.id);
+  expect(zapped.extra.lastTargets).toBe(3);
+  expect(zapped.extra.stuns).toBeGreaterThanOrEqual(3);
+  expect(zapped.extra.arc).toBeGreaterThan(0);
+  expect(await page.evaluate(() => window.__game!.weapons!.lastShot()?.damageDealt)).toBeCloseTo(3 * perZap, 5);
   // The stun ends after stunSeconds × statusResistance.
   await page.evaluate((ms) => window.__game!.step(ms), taser.params.stunSeconds! * humanoid.statusResistance.stun * 1000 + 100);
-  expect((await robot(A)).stunned).toBe(false);
+  expect((await robot(B)).stunned).toBe(false);
 });
 
 test("taser: the charge drops per zap, a too-low charge clicks empty, then it recharges after the delay", async () => {
@@ -407,4 +445,99 @@ test("every new weapon fires its own sound", async () => {
   for (const w of [extinguisher, balloons, taser, railgun, hose]) {
     expect(await plays(w.sounds.fire), w.id).toBeGreaterThan(0);
   }
+});
+
+// FEEDBACK 2026-10-04 (weapon balance): ranges and kill times in the 120 m hall `weapons-long`, one robot at a time
+// (tests/support/WeaponBench.ts). Pistol = the weakest baseline; every weapon picked up is an upgrade in its niche.
+/** Screenshots in the hall: real frames rendered while firing (Babylon particles age per rendered frame). */
+const SCREENSHOT_FRAMES = 12;
+const SCREENSHOT_FRAME_MS = 40;
+
+test.describe("long hall: ranges, kill times and hit tolerance", () => {
+  const pistol = WeaponBench.weapon("waterPistol");
+  const hallHumanoid = WeaponBench.robots("humanoid")[0]!;
+  const hallHumanoids = WeaponBench.robots("humanoid");
+  const hallDrone = WeaponBench.robots("drone")[0]!;
+  const longRange = (w: WeaponJson): BenchWeapon => WeaponBench.weapon(w.id);
+  let hall: Page;
+  let hallGuard: ConsoleGuard;
+  let bench: WeaponBench;
+
+  test.beforeAll(async ({ browser }) => {
+    hall = await browser.newPage();
+    hallGuard = new ConsoleGuard(hall);
+    bench = new WeaponBench(hall);
+    await bench.open();
+  });
+
+  test.afterAll(async () => {
+    expect(hallGuard.problems).toEqual([]);
+    await hall.close();
+  });
+
+  test("ranges in the data: railgun > extinguisher > pistol > taser", () => {
+    expect(railgun.range).toBeGreaterThan(extinguisher.range);
+    expect(extinguisher.range).toBeGreaterThanOrEqual(pistol.range * 1.5);
+    expect(pistol.range).toBeGreaterThan(taser.range);
+  });
+
+  test("each weapon reaches a humanoid just inside its range and not beyond it; the taser only up close", async () => {
+    for (const w of [pistol, longRange(extinguisher), longRange(taser)]) {
+      const inside = w.range - 1.5;
+      expect(await bench.shot(WeaponBench.plan(w, hallHumanoid, inside)), `${w.id} at ${inside} m`).toBeGreaterThan(0);
+      expect(await bench.shot(WeaponBench.plan(w, hallHumanoid, w.range + 2)), `${w.id} at ${w.range + 2} m`).toBe(0);
+    }
+  });
+
+  test("the extinguisher jet hits a humanoid at a distance where the pistol does not", async () => {
+    const distance = (pistol.range + extinguisher.range) / 2;
+    expect(await bench.shot(WeaponBench.plan(pistol, hallHumanoid, distance))).toBe(0);
+    expect(await bench.shot(WeaponBench.plan(longRange(extinguisher), hallHumanoid, distance))).toBeGreaterThan(0);
+    expect((await hall.evaluate((id) => window.__game!.enemies!.get(id)!, hallHumanoid)).speedFactor).toBeLessThanOrEqual(1 - extinguisher.params.slowStrength! + 1e-6);
+    // Screenshot: the jet held on a humanoid 12 m away for a while (particles live in rendered frames, so real time passes).
+    await bench.setup([WeaponBench.plan(longRange(extinguisher), hallHumanoid, 12)]);
+    for (let i = 0; i < SCREENSHOT_FRAMES; i++) {
+      await hall.evaluate(() => window.__game!.input!.simulate("fire", 1000 / 60));
+      await hall.waitForTimeout(SCREENSHOT_FRAME_MS);
+    }
+    await hall.screenshot({ path: ShotPath.of("weapons-extinguisher-beam.png") });
+  });
+
+  test("the railgun reaches far down the hall (≥ 60 m) and its small aim assist catches a drone just beside the crosshair", async () => {
+    const far = 100;
+    await hall.waitForTimeout(SCREENSHOT_FRAMES * SCREENSHOT_FRAME_MS);
+    const damage = await bench.shot(WeaponBench.plan(longRange(railgun), hallHumanoid, far));
+    expect(damage).toBe(humanoid.health);
+    const beam = await hall.evaluate((id) => window.__game!.weapons!.state(id)!.extra, railgun.id);
+    expect(beam.beamVisible).toBe(1);
+    expect(beam.lastPierced).toBe(1);
+    await hall.screenshot({ path: ShotPath.of("weapons-railgun-long.png") });
+    // A drone 60 m away, the crosshair half the assist angle beside it: still a hit.
+    const offset = railgun.params.aimAssistDeg! / 2;
+    expect(await bench.shot(WeaponBench.plan(longRange(railgun), hallDrone, 60, offset))).toBeGreaterThan(0);
+    // Far outside the assist cone it misses.
+    expect(await bench.shot(WeaponBench.plan(longRange(railgun), hallDrone, 60, railgun.params.aimAssistDeg! * 4))).toBe(0);
+  });
+
+  test("every weapon picked up kills a humanoid faster than the water pistol (3 m)", async () => {
+    const ttk = async (w: BenchWeapon): Promise<number> => {
+      const result = await bench.timeToKill(WeaponBench.plan(w, hallHumanoid, 3));
+      expect(result.seconds, `${w.id} kills`).not.toBeNull();
+      return result.seconds!;
+    };
+    const baseline = await ttk(pistol);
+    for (const w of [extinguisher, balloons, taser, railgun, hose]) {
+      expect(await ttk(longRange(w)), `${w.id} vs pistol ${baseline.toFixed(2)} s`).toBeLessThan(baseline);
+    }
+  });
+
+  test("screenshot: the taser's lightning arcs branch to three robots spread in front", async () => {
+    const at = (deg: number): { distance: number; lateral: number } => ({ distance: 2.6 * Math.cos((deg * Math.PI) / 180), lateral: 2.6 * Math.sin((deg * Math.PI) / 180) });
+    const plans = [0, -28, 28].map((deg, i) => ({ ...WeaponBench.plan(longRange(taser), hallHumanoids[i]!, at(deg).distance), lateral: at(deg).lateral }));
+    // Let the previous tests' particles die out (they live in rendered frames).
+    await hall.waitForTimeout(SCREENSHOT_FRAMES * SCREENSHOT_FRAME_MS);
+    const damage = await bench.shotAll(plans);
+    for (const [i, d] of damage.entries()) expect(d, hallHumanoids[i]).toBeGreaterThan(0);
+    await hall.screenshot({ path: ShotPath.of("weapons-taser-arc.png") });
+  });
 });

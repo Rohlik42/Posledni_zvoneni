@@ -32,7 +32,8 @@ interface Glowing {
  * Weapon 5, the school railgun (DESIGN §4: strong, slow, rare ammo): hold the trigger to charge the capacitor
  * (`params.chargeTime`), release with a full charge to fire; released early, the charge drains away
  * (`chargeDrainPerSecond`). The shot is an instant ray that passes through up to `params.pierce` robots, damaging each,
- * and stops at the first wall. A bright blooming beam (`RailBeam`) shows it. One shot per magazine: it reloads from the
+ * and stops at the first wall; its `range` is practically endless (FEEDBACK 2026-10-04: „nekonečný dostřel“), and a
+ * near miss within `params.aimAssistDeg` is pulled onto the robot it was meant for. A bright blooming beam (`RailBeam`) shows it. One shot per magazine: it reloads from the
  * scarce reserve right after firing (`ammo.reloadTime`). Coils, cells and the charge tube glow with the charge.
  */
 export class Railgun extends Weapon {
@@ -120,10 +121,35 @@ export class Railgun extends Weapon {
 
   protected shoot(aim: { origin: Vector3; direction: Vector3 }): void {
     const { range } = this.data;
+    let pierced = this.pierceAlong(aim.origin, aim.direction, range);
+    if (pierced.hits.length === 0) {
+      // Aim assist (params.aimAssistDeg): a near miss is pulled onto the robot it was meant for, then pierces on.
+      const near = this.assistedCast(aim.origin, aim.direction, range);
+      if (near?.target != null && Railgun.assistable(near.target)) {
+        pierced = this.pierceAlong(aim.origin, near.point.subtract(aim.origin).normalize(), range);
+      }
+    }
+    const { hits, end, direction } = pierced;
+    this.pierced = hits.length;
+    const first = hits[0]?.hit ?? end;
+    this.playImpact(first);
+    const to = end?.point ?? aim.origin.add(direction.scale(range));
+    this.beam.fire(this.muzzlePosition(), to, hits.map(({ hit }) => hit));
+    const total = hits.reduce((sum, h) => sum + h.damageDealt, 0);
+    this.onShot.notifyObservers({ weapon: this.id, origin: aim.origin, direction, hit: first, damageDealt: total, hits });
+    // One shot per magazine: start reloading from the reserve at once.
+    this.startReload();
+  }
+
+  /**
+   * Damages up to `pierce` robots along the ray and returns them with where the shot ended (the first wall, or the last
+   * robot it could pierce). Nothing is damaged when the ray reaches no robot.
+   */
+  private pierceAlong(origin: Vector3, direction: Vector3, range: number): { hits: TargetHit[]; end: HitResult | null; direction: Vector3 } {
     const hits: TargetHit[] = [];
     const seen = new Set<IDamageable>();
     let end: HitResult | null = null;
-    for (const hit of this.context.hitscan.castAll(aim.origin, aim.direction, range)) {
+    for (const hit of this.context.hitscan.castAll(origin, direction, range)) {
       const target = hit.target;
       if (target === null) {
         end = hit;
@@ -137,15 +163,7 @@ export class Railgun extends Weapon {
         break;
       }
     }
-    this.pierced = hits.length;
-    const first = hits[0]?.hit ?? end;
-    this.playImpact(first);
-    const to = end?.point ?? aim.origin.add(aim.direction.scale(range));
-    this.beam.fire(this.muzzlePosition(), to, hits.map(({ hit }) => hit));
-    const total = hits.reduce((sum, h) => sum + h.damageDealt, 0);
-    this.onShot.notifyObservers({ weapon: this.id, origin: aim.origin, direction: aim.direction, hit: first, damageDealt: total, hits });
-    // One shot per magazine: start reloading from the reserve at once.
-    this.startReload();
+    return { hits, end, direction };
   }
 
   protected override animate(): void {

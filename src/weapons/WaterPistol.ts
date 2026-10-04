@@ -12,7 +12,7 @@ const HALF_TURN = Math.PI;
 
 /**
  * Weapon 1, the water pistol (DESIGN §4: hitscan, weak, fast, endless water). Each shot is an instant ray from the eye
- * (`Hitscan`, i.e. `scene.pickWithRay`); a hit damages the target's owner with `water` damage from data. Visible water:
+ * (`Hitscan`, i.e. `scene.pickWithRay`, with a small aim assist `params.aimAssistDeg`); a hit damages the target's owner with `water` damage from data. Visible water:
  * a jet of droplets from the nozzle, a splash and a wet spot where it lands (`WaterEffects`). The tank glows less as
  * it empties; an empty trigger pull clicks and the pistol pumps itself full again (`ammo.reloadTime`).
  */
@@ -56,7 +56,7 @@ export class WaterPistol extends Weapon {
   }
 
   protected shoot(aim: { origin: Vector3; direction: Vector3 }): void {
-    const hit = this.context.hitscan.cast(aim.origin, aim.direction, this.data.range);
+    const hit = this.assistedCast(aim.origin, aim.direction, this.data.range);
     const damageDealt = this.damage(hit);
     this.playImpact(hit);
     const end = hit?.point ?? aim.origin.add(aim.direction.scale(this.data.range));

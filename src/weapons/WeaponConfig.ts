@@ -80,13 +80,13 @@ export interface StreamData {
   tankGlowEmpty: number;
 }
 
-/** Look of a weapon effect (phase 13): extinguisher foam, taser arc, railgun beam. Colours are palette keys. */
+/** Look of a weapon effect (phase 13): extinguisher water jet, taser arc, railgun beam. Colours are palette keys. */
 export interface EffectData {
   color: string;
   colorEnd: string;
   /** Colour multiplier of the particles (above 1 reaches the bloom threshold). */
   glow: number;
-  /** Particles per shot (foam puffs, impact sparks, sparks along the beam). */
+  /** Particles per shot (drops off the water jet, impact sparks, sparks along the beam). */
   particles: number;
   size: Range2;
   life: Range2;
@@ -97,6 +97,8 @@ export interface EffectData {
   /** Arc: length of one glowing stroke (m) and the sideways jitter of its kinks (m). */
   segment?: number;
   jitter?: number;
+  /** Arc: short side forks per zap that split off and fizzle out (FEEDBACK 2026-10-04). */
+  forks?: number;
   /** Beam or arc thickness (m); the beam's outer glow is `glowWidth` times wider. */
   width?: number;
   glowWidth?: number;
@@ -242,10 +244,11 @@ export class WeaponConfig {
               time: Schema.number({ min: 0.01 }),
               segment: Schema.number({ min: 0.01 }),
               jitter: positive(),
+              forks: Schema.integer({ min: 0 }),
               width: Schema.number({ min: 0.001 }),
               glowWidth: Schema.number({ min: 1 }),
             },
-            ["time", "segment", "jitter", "width", "glowWidth"],
+            ["time", "segment", "jitter", "forks", "width", "glowWidth"],
           ),
           params: Schema.record(Schema.number()),
         },

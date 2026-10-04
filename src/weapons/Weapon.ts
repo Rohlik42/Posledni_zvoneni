@@ -7,6 +7,7 @@ import type { SynthSounds } from "../audio/SynthSounds";
 import type { Game } from "../core/Game";
 import type { Player } from "../player/Player";
 import type { Random } from "../utils/Random";
+import type { IDamageable } from "../core/IDamageable";
 import type { AreaQuery } from "./AreaQuery";
 import type { HitResult, Hitscan } from "./Hitscan";
 import type { FeelData } from "./FeelConfig";
@@ -99,6 +100,9 @@ export abstract class Weapon {
   private sinceShot = Number.POSITIVE_INFINITY;
   /** Shortest gap between two fire (or impact) sounds, `params.soundInterval` (fast-ticking weapons; 0 = every shot). */
   private readonly soundInterval: number;
+  /** Aim assist half-angle (rad, `params.aimAssistDeg`) and jet radius (m, `params.beamRadius`) of `assistedCast`. */
+  private readonly assistAngle: number;
+  private readonly beamRadius: number;
   private sinceFireSound = Number.POSITIVE_INFINITY;
   private sinceImpactSound = Number.POSITIVE_INFINITY;
   private recoil = 0;
@@ -122,6 +126,8 @@ export abstract class Weapon {
     this.magazineAmmo = data.ammo.capacity;
     this.reserveAmmo = data.ammo.infiniteReserve ? Number.POSITIVE_INFINITY : data.ammo.reserveStart;
     this.soundInterval = data.params.soundInterval ?? 0;
+    this.assistAngle = (data.params.aimAssistDeg ?? 0) * DEG_TO_RAD;
+    this.beamRadius = data.params.beamRadius ?? 0;
     this.pivot = new TransformNode(`viewmodel-${data.id}`, context.scene);
     this.pivot.parent = context.player.camera.camera;
     this.model = this.createModel();
@@ -348,6 +354,24 @@ export abstract class Weapon {
   /** The fire-rate timer allows the next shot. */
   protected get cooledDown(): boolean {
     return this.cooldown <= COOLDOWN_EPSILON;
+  }
+
+  /**
+   * The instant ray of a shot with the weapon's hit tolerance (FEEDBACK 2026-10-04 „dá se fakt trefit“): when the exact
+   * ray does not hit a robot, a robot within `params.beamRadius` m plus `params.aimAssistDeg` of it (and in sight) takes
+   * the hit instead (`AreaQuery.nearRay`). Without either param it is the plain `Hitscan.cast`.
+   */
+  protected assistedCast(origin: Vector3, direction: Vector3, range: number): HitResult | null {
+    const { hitscan, area } = this.context;
+    const hit = hitscan.cast(origin, direction, range);
+    if (hit?.target != null && hit.target.alive && Weapon.assistable(hit.target)) return hit;
+    if (this.assistAngle <= 0 && this.beamRadius <= 0) return hit;
+    return area.nearRay(origin, direction, range, this.assistAngle, this.beamRadius, Weapon.assistable)?.hit ?? hit;
+  }
+
+  /** Aim assist pulls only towards robots (things with a status), never towards practice targets or loose furniture. */
+  protected static assistable(target: IDamageable): boolean {
+    return target.applyStatus !== undefined;
   }
 
   /** Applies damage of this weapon (× `scale`) to a hit's owner; returns the damage it took. */

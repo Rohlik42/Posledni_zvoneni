@@ -1,0 +1,470 @@
+{
+  "//": "Dev scéna 'weapons-long' (dev/scenes/WeaponsLongScene.ts, FEEDBACK 2026-10-04 vyvážení zbraní): dlouhá chodba 12 × 120 m (vnitřek x ∈ ⟨−6, 6⟩, z ∈ ⟨−10, 110⟩, strop 5 m) na měření dostřelu, tolerance míření a TTK všech zbraní proti všem třem typům robotů (tests/e2e/weapons-balance.spec.ts). Hráč začíná na jihu čelem k +z; svislé neonové pruhy na západní zdi každých 10 m (každých 50 m červené) ukazují vzdálenost. room = rozvržení ve formátu data/boxroom.json (dev/BoxRoom.ts), give = zbraně do ruky, bonusAmmo = munice navíc, encounter = roboti ve formátu data/encounters.json (testy je rozestaví samy).",
+  "give": [
+    "extinguisher",
+    "waterBalloons",
+    "taser",
+    "railgun"
+  ],
+  "select": 1,
+  "bonusAmmo": {
+    "waterBalloons": 8,
+    "railgun": 7
+  },
+  "encounter": {
+    "navExclude": [
+      "ceiling"
+    ],
+    "enemies": [
+      {
+        "id": "humanoidA",
+        "type": "humanoid",
+        "position": [
+          -3,
+          0,
+          20
+        ],
+        "yaw": 3.14,
+        "patrol": []
+      },
+      {
+        "id": "humanoidB",
+        "type": "humanoid",
+        "position": [
+          0,
+          0,
+          20
+        ],
+        "yaw": 3.14,
+        "patrol": []
+      },
+      {
+        "id": "humanoidC",
+        "type": "humanoid",
+        "position": [
+          3,
+          0,
+          20
+        ],
+        "yaw": 3.14,
+        "patrol": []
+      },
+      {
+        "id": "quadrupedA",
+        "type": "quadruped",
+        "position": [
+          -3,
+          0,
+          40
+        ],
+        "yaw": 3.14,
+        "patrol": []
+      },
+      {
+        "id": "droneA",
+        "type": "drone",
+        "position": [
+          3,
+          0,
+          40
+        ],
+        "yaw": 3.14,
+        "patrol": []
+      }
+    ],
+    "coverPoints": []
+  },
+  "room": {
+    "spawn": {
+      "position": [
+        0,
+        0,
+        -8
+      ],
+      "yaw": 0
+    },
+    "respawnDelayMs": 1200,
+    "floor": {
+      "name": "floor",
+      "position": [
+        0,
+        -0.2,
+        50.0
+      ],
+      "size": [
+        12.8,
+        0.4,
+        120.8
+      ],
+      "tileSize": 1,
+      "color": "world.floorTile",
+      "altColor": "world.floorTileDark"
+    },
+    "boxes": [
+      {
+        "name": "wallSouth",
+        "position": [
+          0,
+          2.5,
+          -10.2
+        ],
+        "size": [
+          12.8,
+          5,
+          0.4
+        ],
+        "color": "world.plaster"
+      },
+      {
+        "name": "wallNorth",
+        "position": [
+          0,
+          2.5,
+          110.2
+        ],
+        "size": [
+          12.8,
+          5,
+          0.4
+        ],
+        "color": "world.plaster"
+      },
+      {
+        "name": "wallWest",
+        "position": [
+          -6.2,
+          2.5,
+          50.0
+        ],
+        "size": [
+          0.4,
+          5,
+          120.8
+        ],
+        "color": "world.plaster"
+      },
+      {
+        "name": "wallEast",
+        "position": [
+          6.2,
+          2.5,
+          50.0
+        ],
+        "size": [
+          0.4,
+          5,
+          120.8
+        ],
+        "color": "world.plaster"
+      },
+      {
+        "name": "ceiling",
+        "position": [
+          0,
+          5.2,
+          50.0
+        ],
+        "size": [
+          12.8,
+          0.4,
+          120.8
+        ],
+        "color": "world.ceiling"
+      }
+    ],
+    "stairs": [],
+    "ramps": [],
+    "lights": [
+      {
+        "position": [
+          0,
+          4.5,
+          0
+        ],
+        "color": "light.lamp",
+        "intensity": 2.0,
+        "range": 26
+      },
+      {
+        "position": [
+          0,
+          4.5,
+          25
+        ],
+        "color": "light.lamp",
+        "intensity": 2.0,
+        "range": 26
+      },
+      {
+        "position": [
+          0,
+          4.5,
+          50
+        ],
+        "color": "light.lamp",
+        "intensity": 2.0,
+        "range": 26
+      },
+      {
+        "position": [
+          0,
+          4.5,
+          75
+        ],
+        "color": "light.lamp",
+        "intensity": 2.0,
+        "range": 26
+      },
+      {
+        "position": [
+          0,
+          4.5,
+          100
+        ],
+        "color": "light.lamp",
+        "intensity": 2.0,
+        "range": 26
+      }
+    ],
+    "panels": [
+      {
+        "position": [
+          0,
+          4.98,
+          0
+        ],
+        "size": [
+          1.6,
+          0.04,
+          0.5
+        ],
+        "color": "light.lamp",
+        "emissive": 2.4
+      },
+      {
+        "position": [
+          0,
+          4.98,
+          25
+        ],
+        "size": [
+          1.6,
+          0.04,
+          0.5
+        ],
+        "color": "light.lamp",
+        "emissive": 2.4
+      },
+      {
+        "position": [
+          0,
+          4.98,
+          50
+        ],
+        "size": [
+          1.6,
+          0.04,
+          0.5
+        ],
+        "color": "light.lamp",
+        "emissive": 2.4
+      },
+      {
+        "position": [
+          0,
+          4.98,
+          75
+        ],
+        "size": [
+          1.6,
+          0.04,
+          0.5
+        ],
+        "color": "light.lamp",
+        "emissive": 2.4
+      },
+      {
+        "position": [
+          0,
+          4.98,
+          100
+        ],
+        "size": [
+          1.6,
+          0.04,
+          0.5
+        ],
+        "color": "light.lamp",
+        "emissive": 2.4
+      },
+      {
+        "position": [
+          -5.97,
+          1.2,
+          0
+        ],
+        "size": [
+          0.06,
+          2.4,
+          0.1
+        ],
+        "color": "neon.robot",
+        "emissive": 2.2
+      },
+      {
+        "position": [
+          -5.97,
+          1.2,
+          10
+        ],
+        "size": [
+          0.06,
+          2.4,
+          0.1
+        ],
+        "color": "neon.water",
+        "emissive": 2.2
+      },
+      {
+        "position": [
+          -5.97,
+          1.2,
+          20
+        ],
+        "size": [
+          0.06,
+          2.4,
+          0.1
+        ],
+        "color": "neon.water",
+        "emissive": 2.2
+      },
+      {
+        "position": [
+          -5.97,
+          1.2,
+          30
+        ],
+        "size": [
+          0.06,
+          2.4,
+          0.1
+        ],
+        "color": "neon.water",
+        "emissive": 2.2
+      },
+      {
+        "position": [
+          -5.97,
+          1.2,
+          40
+        ],
+        "size": [
+          0.06,
+          2.4,
+          0.1
+        ],
+        "color": "neon.water",
+        "emissive": 2.2
+      },
+      {
+        "position": [
+          -5.97,
+          1.2,
+          50
+        ],
+        "size": [
+          0.06,
+          2.4,
+          0.1
+        ],
+        "color": "neon.robot",
+        "emissive": 2.2
+      },
+      {
+        "position": [
+          -5.97,
+          1.2,
+          60
+        ],
+        "size": [
+          0.06,
+          2.4,
+          0.1
+        ],
+        "color": "neon.water",
+        "emissive": 2.2
+      },
+      {
+        "position": [
+          -5.97,
+          1.2,
+          70
+        ],
+        "size": [
+          0.06,
+          2.4,
+          0.1
+        ],
+        "color": "neon.water",
+        "emissive": 2.2
+      },
+      {
+        "position": [
+          -5.97,
+          1.2,
+          80
+        ],
+        "size": [
+          0.06,
+          2.4,
+          0.1
+        ],
+        "color": "neon.water",
+        "emissive": 2.2
+      },
+      {
+        "position": [
+          -5.97,
+          1.2,
+          90
+        ],
+        "size": [
+          0.06,
+          2.4,
+          0.1
+        ],
+        "color": "neon.water",
+        "emissive": 2.2
+      },
+      {
+        "position": [
+          -5.97,
+          1.2,
+          100
+        ],
+        "size": [
+          0.06,
+          2.4,
+          0.1
+        ],
+        "color": "neon.robot",
+        "emissive": 2.2
+      },
+      {
+        "position": [
+          -5.97,
+          1.2,
+          110
+        ],
+        "size": [
+          0.06,
+          2.4,
+          0.1
+        ],
+        "color": "neon.water",
+        "emissive": 2.2
+      }
+    ]
+  }
+}

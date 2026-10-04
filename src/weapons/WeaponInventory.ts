@@ -70,6 +70,8 @@ export interface WeaponsTestApi {
   addAmmo: (id: string, amount: number) => number;
   /** Any owned weapon's ammo and its own numbers (railgun charge, balloons in flight…), phase 13. */
   state: (id: string) => WeaponStateInfo | null;
+  /** Fills an owned weapon's magazine (tank, charge) to capacity like a wall extinguisher; returns the amount added. */
+  refill: (id: string) => number;
 }
 
 /** Owned weapons and their ammo in a checkpoint (phase 16); `reserve` null = endless. */
@@ -415,6 +417,7 @@ export class WeaponInventory {
         return weapon?.effectStats ?? { droplets: 0, wetSpots: 0 };
       },
       addAmmo: (id, amount) => inventory.addAmmo(id, amount),
+      refill: (id) => inventory.owned.get(id)?.refill() ?? 0,
       state: (id) => {
         const weapon = inventory.owned.get(id);
         if (weapon === undefined) return null;

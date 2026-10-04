@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { GalleryData } from "../../dev/GalleryData";
+import { WeaponLongRangeData } from "../../dev/WeaponLongRangeData";
 import { SoundConfig } from "../../src/audio/SoundConfig";
 import { SoundSynthesizer } from "../../src/audio/SoundSynthesizer";
 import { MODEL_CATEGORIES, ModelBlueprints } from "../../src/rendering/ModelBlueprints";
@@ -42,6 +43,7 @@ const files = [
   { name: "targets", load: () => TargetConfig.load(), schema: TargetConfig.schema },
   { name: "gallery", load: () => GalleryData.load(), schema: GalleryData.schema },
   { name: "weapon-range", load: () => WeaponRangeConfig.load(), schema: WeaponRangeConfig.schema },
+  { name: "weapon-longrange", load: () => WeaponLongRangeData.load(), schema: WeaponLongRangeData.schema },
 ];
 
 for (const { name, load, schema } of files) {
@@ -67,17 +69,20 @@ test("weapons.json: phase 13 weapons carry the numbers and looks their classes r
     const weapon = WeaponConfig.weapon(id);
     for (const name of params) assert.ok(typeof weapon.params[name] === "number", `${id}.params.${name}`);
   };
-  need("extinguisher", ["coneAngleDeg", "slowStrength", "slowSeconds", "refillRadius", "refillCharges"]);
+  need("extinguisher", ["beamRadius", "aimAssistDeg", "slowStrength", "slowSeconds", "refillRadius", "refillCharges"]);
   need("waterBalloons", ["aoeRadius", "aoeEdgeDamage", "throwSpeed", "throwUpDeg", "projectileRadius", "projectileMass", "maxFlightTime", "projectileScale", "regrowTime"]);
-  need("taser", ["stunSeconds", "stunStrength"]);
-  need("railgun", ["chargeTime", "pierce", "chargeDrainPerSecond"]);
+  need("taser", ["arcAngleDeg", "maxTargets", "stunSeconds", "stunStrength"]);
+  need("railgun", ["chargeTime", "pierce", "aimAssistDeg", "chargeDrainPerSecond"]);
   need("hose", ["grabDistance", "releaseDistance", "slowStrength", "slowSeconds"]);
   for (const id of ["extinguisher", "taser", "railgun"]) assert.ok(WeaponConfig.weapon(id).effect !== undefined, `${id} needs an effect block`);
-  for (const id of ["waterBalloons", "hose"]) assert.ok(WeaponConfig.weapon(id).stream !== undefined, `${id} needs a stream block`);
+  for (const id of ["waterBalloons", "hose", "extinguisher"]) assert.ok(WeaponConfig.weapon(id).stream !== undefined, `${id} needs a stream block`);
 
+  // FEEDBACK 2026-10-04: the extinguisher is a long water jet, not a short foam cone.
+  const pistol = WeaponConfig.weapon("waterPistol");
   const extinguisher = WeaponConfig.weapon("extinguisher");
-  assert.equal(extinguisher.kind, "cone");
-  assert.ok(extinguisher.range <= 8, "short range");
+  assert.equal(extinguisher.kind, "stream");
+  assert.ok(extinguisher.range >= pistol.range * 1.5, "reaches well past the pistol");
+  assert.ok(extinguisher.damage * extinguisher.fireRate > pistol.damage * pistol.fireRate, "more damage per second than the pistol");
   assert.ok(!extinguisher.ammo.infiniteReserve && !extinguisher.ammo.autoReload && extinguisher.ammo.capacity > 0, "limited tank, refilled from walls");
   assert.ok(extinguisher.params.slowStrength! > 0 && extinguisher.params.slowStrength! <= 1, "slows");
   const balloons = WeaponConfig.weapon("waterBalloons");
@@ -85,13 +90,18 @@ test("weapons.json: phase 13 weapons carry the numbers and looks their classes r
   assert.equal(balloons.ammo.capacity, 0, "balloons are the reserve itself");
   assert.ok(balloons.params.aoeEdgeDamage! > 0 && balloons.params.aoeEdgeDamage! <= 1);
   const taser = WeaponConfig.weapon("taser");
-  assert.ok(taser.range <= 6 && taser.ammo.rechargePerSecond > 0, "short range, recharges");
+  assert.ok(taser.range < pistol.range && taser.ammo.rechargePerSecond > 0, "shorter range than the pistol, recharges");
+  assert.ok(taser.params.arcAngleDeg! >= 60 && taser.params.arcAngleDeg! <= 90, "wide lightning arc (60–90°)");
+  assert.ok(taser.params.maxTargets! >= 2, "hits several robots at once");
   const railgun = WeaponConfig.weapon("railgun");
+  assert.ok(railgun.range >= 150, "practically endless range (stops at the first wall)");
+  assert.ok(railgun.params.aimAssistDeg! >= 1 && railgun.params.aimAssistDeg! <= 1.5, "thin beam, small aim-assist cone");
   assert.ok(railgun.params.pierce! >= 2, "pierces several robots");
   assert.ok(railgun.ammo.reserveMax <= 12, "rare ammo");
   const hose = WeaponConfig.weapon("hose");
   assert.ok(hose.ammo.infiniteReserve, "endless at its place");
   assert.ok(hose.params.releaseDistance! < hose.params.grabDistance! * 2);
+  assert.ok(hose.damage * hose.fireRate > extinguisher.damage * extinguisher.fireRate, "the hose stays the strongest stream");
 });
 
 test("weapons.json: water pistol is a fast, weak hitscan with water damage and endless water (DESIGN §4)", () => {

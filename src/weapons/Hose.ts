@@ -9,7 +9,7 @@ const EFFECTS_SEED_OFFSET = 6;
 
 /**
  * Weapon 6, the hose (DESIGN §4: stationary stream, endless at its place): a strong automatic water stream — many
- * hitscan ticks per second (`fireRate`) with a dense jet (`stream` block, `WaterEffects`), water damage and a short
+ * hitscan ticks per second (`fireRate`, a thick jet: `params.beamRadius` + `aimAssistDeg`) with a dense jet (`stream` block, `WaterEffects`), water damage and a short
  * slow on every robot hit (the pressure pushes it back; `params.slowStrength`/`slowSeconds`). The player only holds it
  * at a hydrant: `HoseStation` gives it and takes it away again when the player walks off.
  */
@@ -44,7 +44,7 @@ export class Hose extends Weapon {
   }
 
   protected shoot(aim: { origin: Vector3; direction: Vector3 }): void {
-    const hit = this.context.hitscan.cast(aim.origin, aim.direction, this.data.range);
+    const hit = this.assistedCast(aim.origin, aim.direction, this.data.range);
     const damageDealt = this.damage(hit);
     const target = hit?.target ?? null;
     if (damageDealt > 0 && target !== null && target.alive) target.applyStatus?.("slow", this.slowSeconds, this.slowStrength);

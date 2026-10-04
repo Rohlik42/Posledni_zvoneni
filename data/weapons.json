@@ -1,5 +1,5 @@
 {
-  "//": "Zbraně (src/weapons/*, DESIGN §4). Jednotky: metry, sekundy, radiány kromě polí *Deg. fireRate = výstřelů (nebo tiků) za sekundu. ammo.capacity = zásobník/nádržka (0 = bez zásobníku, střílí pořád), perShot = spotřeba na výstřel, infiniteReserve = nekonečná zásoba na doplnění, reloadTime = doplnění zásobníku (pistolka: napumpování), rechargePerSecond = samovolné dobíjení zásobníku po rechargeDelay bez střelby (paralyzér). enabled = implementovaná a použitelná zbraň (fáze 13: všech šest). class = třída v src/weapons/WeaponFactory.ts. 'params' jsou zvláštní čísla typu zbraně (kužel, zpomalení, stun, AoE, nabíjení, průraz; soundInterval = nejkratší rozestup zvuku výstřelu a dopadu u rychle tikajících zbraní). 'effect' = vzhled efektu zbraně (pěna, výboj, paprsek): barvy jsou klíče palety, glow > 1 svítí do bloomu, particles/size/life/speed/gravity = částice, time = jak dlouho efekt svítí, segment/jitter = úsečky a zlomy výboje, width/glowWidth = tloušťka paprsku a jeho záře.",
+  "//": "Zbraně (src/weapons/*, DESIGN §4). Jednotky: metry, sekundy, radiány kromě polí *Deg. fireRate = výstřelů (nebo tiků) za sekundu. ammo.capacity = zásobník/nádržka (0 = bez zásobníku, střílí pořád), perShot = spotřeba na výstřel, infiniteReserve = nekonečná zásoba na doplnění, reloadTime = doplnění zásobníku (pistolka: napumpování), rechargePerSecond = samovolné dobíjení zásobníku po rechargeDelay bez střelby (paralyzér). enabled = implementovaná a použitelná zbraň (fáze 13: všech šest). class = třída v src/weapons/WeaponFactory.ts. 'params' jsou zvláštní čísla typu zbraně (kužel, zpomalení, stun, AoE, nabíjení, průraz; soundInterval = nejkratší rozestup zvuku výstřelu a dopadu u rychle tikajících zbraní; FEEDBACK 2026-10-04 'dá se fakt trefit': aimAssistDeg = když paprsek mine, zasáhne robota, který je od něj do tohoto úhlu (a je vidět), beamRadius = tloušťka proudu v m, kterou robot ještě chytí). Vyvážení (FEEDBACK 2026-10-04, tabulka v DECISIONS.md, měří tests/e2e/weapons-balance.spec.ts): pistolka je nejslabší základ, každá sebraná zbraň je ve své roli lepší; dostřel railgun (300 = do první zdi) > hasičák > hadice > pistolka > paralyzér. 'effect' = vzhled efektu zbraně (pěna, výboj, paprsek): barvy jsou klíče palety, glow > 1 svítí do bloomu, particles/size/life/speed/gravity = částice, time = jak dlouho efekt svítí, segment/jitter = úsečky a zlomy výboje, width/glowWidth = tloušťka paprsku a jeho záře.",
   "switchTime": 0.36,
   "viewmodelRenderingGroup": 1,
   "aimRandomSeed": 2066,
@@ -13,11 +13,11 @@
       "class": "WaterPistol",
       "enabled": true,
       "kind": "hitscan",
-      "damage": 6,
+      "damage": 4,
       "damageType": "water",
       "fireRate": 6,
       "automatic": true,
-      "range": 28,
+      "range": 20,
       "spreadDeg": 0.6,
       "ammo": { "capacity": 30, "perShot": 1, "reserveStart": 0, "reserveMax": 0, "infiniteReserve": true, "reloadTime": 1.0, "autoReload": true, "rechargePerSecond": 0, "rechargeDelay": 0 },
       "model": "WaterPistolModel",
@@ -72,7 +72,7 @@
         "maxWetSpots": 32,
         "tankGlowEmpty": 0.15
       },
-      "params": {}
+      "params": { "aimAssistDeg": 0.75 }
     },
     {
       "id": "extinguisher",
@@ -80,19 +80,46 @@
       "name": "Hasicí přístroj",
       "class": "Extinguisher",
       "enabled": true,
-      "kind": "cone",
-      "damage": 2,
+      "kind": "stream",
+      "damage": 3.5,
       "damageType": "water",
       "fireRate": 12,
       "automatic": true,
-      "range": 5,
+      "range": 34,
       "spreadDeg": 0,
       "ammo": { "capacity": 120, "perShot": 1, "reserveStart": 0, "reserveMax": 0, "infiniteReserve": false, "reloadTime": 0, "autoReload": false, "rechargePerSecond": 0, "rechargeDelay": 0 },
       "model": "ExtinguisherModel",
       "sounds": { "fire": "extinguisherHiss", "empty": "emptyClick", "impact": "splash", "reload": "pump" },
       "viewmodel": { "variant": "default", "scale": 1, "lightScale": 0.4, "position": [0.24, -0.27, 0.5], "rotationDeg": [0, -18, 0], "swayPerRadPerSec": 0.016, "swayMax": 0.04, "swayReturn": 7, "recoilKick": 0.005, "recoilPitchDeg": 0.5, "recoilReturn": 12, "bobAmplitude": 0.01, "bobStepsPerMeter": 0.75, "switchDrop": 0.4, "pumpTravel": 0, "moveSwayPerMps": 0.004, "moveSwayMax": 0.02, "strafeRollDeg": 3, "recoilRollDeg": 0, "pumpShotTravel": 0 },
-      "effect": { "//": "Pěna: particles částic na tik letí z hubice kuželem coneAngleDeg.", "color": "base.white", "colorEnd": "world.glass", "glow": 1.3, "particles": 9, "size": [0.07, 0.2], "life": [0.35, 0.6], "speed": [6, 10], "gravity": 1.2 },
-      "params": { "coneAngleDeg": 28, "slowStrength": 0.5, "slowSeconds": 2.5, "soundInterval": 0.2, "refillRadius": 1.4, "refillCharges": 1 }
+      "effect": { "//": "Proud vody pod tlakem (FEEDBACK 2026-10-04: místo kužele pěny paprsek jako silnější hadice): jádro tloušťky width m a záře glowWidth × width od hubice k zásahu, přesvítí se každým tikem a za time s zhasne; particles = kapky odletující z proudu (gravity).", "color": "neon.water", "colorEnd": "neon.waterDeep", "glow": 1.7, "particles": 4, "size": [0.03, 0.07], "life": [0.2, 0.45], "speed": [0.6, 1.8], "gravity": 7, "time": 0.14, "width": 0.07, "glowWidth": 2.6 },
+      "stream": {
+        "//": "Šplouchnutí a mokrá skvrna v místě dopadu proudu a pár kapek podél něj (stejná pole jako waterPistol.stream).",
+        "color": "neon.water",
+        "colorDeep": "neon.waterDeep",
+        "glow": 1.8,
+        "dropletsPerShot": 4,
+        "dropletSpeed": 34,
+        "dropletSpeedSpread": 0.5,
+        "dropletSize": [0.04, 0.08],
+        "dropletStretch": [4, 10],
+        "dropletJitter": 0.02,
+        "splashDroplets": 10,
+        "splashSpeed": [1.5, 4.5],
+        "splashSize": [0.03, 0.08],
+        "splashLife": [0.25, 0.55],
+        "splashFullDistance": 2.5,
+        "gravity": 9.81,
+        "streamGravity": 1.5,
+        "wetSize": [0.45, 0.7],
+        "wetDepth": 0.5,
+        "wetAlpha": 0.6,
+        "wetGlow": 0.35,
+        "wetLifetime": 10,
+        "wetFade": 3,
+        "maxWetSpots": 24,
+        "tankGlowEmpty": 0.15
+      },
+      "params": { "beamRadius": 0.35, "aimAssistDeg": 2, "slowStrength": 0.5, "slowSeconds": 2.5, "soundInterval": 0.2, "refillRadius": 1.4, "refillCharges": 1 }
     },
     {
       "id": "waterBalloons",
@@ -146,19 +173,19 @@
       "name": "Paralyzér",
       "class": "Taser",
       "enabled": true,
-      "kind": "hitscan",
-      "damage": 14,
+      "kind": "cone",
+      "damage": 23,
       "damageType": "electric",
       "fireRate": 1.6,
       "automatic": false,
-      "range": 4,
+      "range": 3.5,
       "spreadDeg": 0,
       "ammo": { "capacity": 100, "perShot": 34, "reserveStart": 0, "reserveMax": 0, "infiniteReserve": false, "reloadTime": 0, "autoReload": false, "rechargePerSecond": 18, "rechargeDelay": 0.8 },
       "model": "TaserModel",
       "sounds": { "fire": "taserZap", "empty": "emptyClick", "impact": "spark", "reload": "charge" },
       "viewmodel": { "variant": "default", "scale": 1, "lightScale": 0.4, "position": [0.15, -0.15, 0.36], "rotationDeg": [0, -12, 0], "swayPerRadPerSec": 0.012, "swayMax": 0.035, "swayReturn": 9, "recoilKick": 0.02, "recoilPitchDeg": 3, "recoilReturn": 16, "bobAmplitude": 0.007, "bobStepsPerMeter": 0.75, "switchDrop": 0.3, "pumpTravel": 0, "moveSwayPerMps": 0.004, "moveSwayMax": 0.02, "strafeRollDeg": 3, "recoilRollDeg": 0, "pumpShotTravel": 0 },
-      "effect": { "//": "Výboj: lomená čára z hrotů k zásahu (nebo na konec dosahu), úsečky segment m, zlomy ±jitter m, svítí time s; particles = jiskry v místě zásahu.", "color": "neon.electric", "colorEnd": "accent.violet", "glow": 2.6, "particles": 18, "size": [0.02, 0.05], "life": [0.12, 0.3], "speed": [1.5, 4.5], "gravity": 4, "time": 0.14, "segment": 0.12, "jitter": 0.07, "width": 0.03 },
-      "params": { "stunSeconds": 2.2, "stunStrength": 1 }
+      "effect": { "//": "Výboj: lomená čára z hrotů ke každému zasaženému (nebo do prázdna), úsečky segment m, zlomy ±jitter m, forks = krátké odbočky blesku, svítí time s; particles = jiskry v místě zásahu.", "color": "neon.electric", "colorEnd": "accent.violet", "glow": 2.6, "particles": 18, "size": [0.02, 0.05], "life": [0.12, 0.3], "speed": [1.5, 4.5], "gravity": 4, "time": 0.16, "segment": 0.12, "jitter": 0.12, "forks": 3, "width": 0.03 },
+      "params": { "//": "FEEDBACK 2026-10-04: blízko, ale široký oblouk blesku. arcAngleDeg = šířka kužele (celý úhel), ve kterém zasáhne každého viditelného do range, nejvýš maxTargets nejbližších; fizzleArcs = výboje do prázdna, když nikoho nezasáhne.", "arcAngleDeg": 80, "maxTargets": 5, "fizzleArcs": 3, "stunSeconds": 2.2, "stunStrength": 1 }
     },
     {
       "id": "railgun",
@@ -171,14 +198,14 @@
       "damageType": "electric",
       "fireRate": 0.6,
       "automatic": false,
-      "range": 60,
+      "range": 300,
       "spreadDeg": 0,
       "ammo": { "capacity": 1, "perShot": 1, "reserveStart": 3, "reserveMax": 10, "infiniteReserve": false, "reloadTime": 1.6, "autoReload": true, "rechargePerSecond": 0, "rechargeDelay": 0 },
       "model": "RailgunModel",
       "sounds": { "fire": "railgunShot", "empty": "emptyClick", "impact": "spark", "reload": "charge" },
       "viewmodel": { "variant": "default", "scale": 0.85, "lightScale": 0.4, "position": [0.19, -0.2, 0.38], "rotationDeg": [0, -4, 0], "swayPerRadPerSec": 0.018, "swayMax": 0.045, "swayReturn": 6, "recoilKick": 0.09, "recoilPitchDeg": 9, "recoilReturn": 8, "bobAmplitude": 0.009, "bobStepsPerMeter": 0.75, "switchDrop": 0.4, "pumpTravel": 0, "moveSwayPerMps": 0.004, "moveSwayMax": 0.02, "strafeRollDeg": 3, "recoilRollDeg": 0, "pumpShotTravel": 0 },
       "effect": { "//": "Paprsek: válec z ústí ke zdi tloušťky width m s vnější září glowWidth × width, svítí glow (bloom) a zhasne za time s; particles = jiskry podél paprsku.", "color": "neon.electric", "colorEnd": "accent.violet", "glow": 4, "particles": 60, "size": [0.03, 0.07], "life": [0.2, 0.5], "speed": [0.4, 1.6], "gravity": 0.5, "time": 0.4, "width": 0.04, "glowWidth": 2.5 },
-      "params": { "chargeTime": 1.0, "pierce": 3, "chargeDrainPerSecond": 2.5, "chargeShake": 0.004 }
+      "params": { "chargeTime": 1.0, "pierce": 3, "aimAssistDeg": 1.25, "chargeDrainPerSecond": 2.5, "chargeShake": 0.004 }
     },
     {
       "id": "hose",
@@ -191,7 +218,7 @@
       "damageType": "water",
       "fireRate": 20,
       "automatic": true,
-      "range": 12,
+      "range": 24,
       "spreadDeg": 1.5,
       "ammo": { "capacity": 0, "perShot": 0, "reserveStart": 0, "reserveMax": 0, "infiniteReserve": true, "reloadTime": 0, "autoReload": false, "rechargePerSecond": 0, "rechargeDelay": 0 },
       "model": "HoseModel",
@@ -224,7 +251,7 @@
         "maxWetSpots": 24,
         "tankGlowEmpty": 0.15
       },
-      "params": { "grabDistance": 1.8, "releaseDistance": 1.2, "slowStrength": 0.6, "slowSeconds": 0.3, "soundInterval": 0.16 }
+      "params": { "beamRadius": 0.3, "aimAssistDeg": 1.5, "grabDistance": 1.8, "releaseDistance": 1.2, "slowStrength": 0.6, "slowSeconds": 0.3, "soundInterval": 0.16 }
     }
   ]
 }
