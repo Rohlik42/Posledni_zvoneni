@@ -3,7 +3,11 @@
 Branch `worktree-wf_3a0b54f2-e76-1`, worktree `.claude/worktrees/wf_3a0b54f2-e76-1`, dev port 5301.
 Base: main @ d7e5ef3 (worktree cut from stale 6e5ac74, fast-forwarded to main).
 
-## Status: UNDERSTOOD (milestone 1/5, 2026-10-04)
+## Status: IMPLEMENTED (milestone 2/5, 2026-10-04) — commit 90a8479; remaining: fps check of shadows, final screenshots, DECISIONS, PLAN Done block
+
+Done so far: critique fixes 1–4 (ShotPath, fonts + vite fs.allow for the symlinked node_modules, phase-16 handoff, gallery labels);
+DetailGenerator + DecalTextures + smashed windows; LightAnimator, FireEffects, DamageSparks, PointShadows, NightEnvironment,
+LooseDebris in LevelAtmosphere (wired in LevelGameplay). Data 118/118, smoke + level-walk + visuals.spec green.
 
 ## Plan
 Critique of shift 4 first (small, serial-only):
