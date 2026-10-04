@@ -2,6 +2,7 @@
 // Scenes are found automatically: add dev/scenes/<Name>Scene.ts exporting `id`, optional `title`, and `create(game)`.
 import { Game } from "../src/core/Game";
 import { TestHooks } from "../src/core/TestHooks";
+import "../src/ui/BundledFonts";
 import { PIPELINE_PARTS, type PipelinePart } from "../src/rendering/RenderPipeline";
 import { DevSceneRegistry, type DevSceneModule } from "./DevSceneRegistry";
 

@@ -11,10 +11,23 @@ const TITLE_COLOR = "ui.label";
 const BACKGROUND = "ui.overlayBottom";
 const LABEL_FONT_PX = 11;
 const TITLE_FONT_PX = 15;
+/** Smallest font a label shrinks to when its cell is narrow on screen (px). */
+const MIN_FONT_PX = 8;
+/** On-screen cell width at which model labels use their full font size; narrower cells shrink it. */
+const FULL_FONT_CELL_PX = 110;
+/** Share of its cell a label may take on screen, so neighbours keep a gap. */
+const CELL_FILL = 0.94;
+/** Gap between a section title and the first pedestal of its row (px). */
+const TITLE_GAP_PX = 8;
 
 interface Label {
   element: HTMLElement;
   anchor: Vector3;
+  /** World width the label may take (its cell, or the title margin left of the row). */
+  widthWorld: number;
+  /** Centred under the anchor (model) or ending at it (section title, right-aligned). */
+  align: "center" | "right";
+  fontPx: number;
 }
 
 /**
@@ -35,7 +48,7 @@ export class GalleryLabels {
   }
 
   /** A model label: name (+ variant), its triangles against the budget of its category and the display scale. */
-  addModel(anchor: Vector3, name: string, triangles: number, budget: number, scale: string | null): void {
+  addModel(anchor: Vector3, name: string, triangles: number, budget: number, scale: string | null, cellWidth: number): void {
     const element = this.box(LABEL_FONT_PX);
     const title = document.createElement("div");
     title.textContent = name;
@@ -44,15 +57,15 @@ export class GalleryLabels {
     count.textContent = `${Math.round(triangles)} / ${budget} tri${scale === null ? "" : ` · ×${scale}`}`;
     count.style.color = Palette.hex(triangles > budget ? LABEL_OVER : LABEL_DIM);
     element.append(title, count);
-    this.labels.push({ element, anchor });
+    this.labels.push({ element, anchor, widthWorld: cellWidth, align: "center", fontPx: LABEL_FONT_PX });
   }
 
-  /** A section heading. */
-  addTitle(anchor: Vector3, text: string): void {
+  /** A section heading ending at `anchor` (the left end of its row), wrapped into `width` m left of it. */
+  addTitle(anchor: Vector3, text: string, width: number): void {
     const element = this.box(TITLE_FONT_PX);
     element.textContent = text;
-    Object.assign(element.style, { color: Palette.hex(TITLE_COLOR), fontWeight: "600" });
-    this.labels.push({ element, anchor });
+    Object.assign(element.style, { color: Palette.hex(TITLE_COLOR), fontWeight: "600", textAlign: "right" });
+    this.labels.push({ element, anchor, widthWorld: width, align: "right", fontPx: TITLE_FONT_PX });
   }
 
   dispose(): void {
@@ -64,8 +77,8 @@ export class GalleryLabels {
     const element = document.createElement("div");
     Object.assign(element.style, {
       position: "absolute",
-      transform: "translate(-50%, 0)",
-      whiteSpace: "nowrap",
+      whiteSpace: "normal",
+      overflowWrap: "anywhere",
       textAlign: "center",
       fontSize: `${fontPx}px`,
       lineHeight: "1.2",
@@ -89,15 +102,24 @@ export class GalleryLabels {
     const viewport = camera.viewport.toGlobal(width, height);
     const transform = this.scene.getTransformMatrix();
     const view = camera.getViewMatrix();
+    const side = new Vector3();
     for (const label of this.labels) {
       // In front of the camera = positive view-space z (left-handed); reverse depth makes projected z unreliable here.
       const visible = Vector3.TransformCoordinates(label.anchor, view).z > 0;
       const p = Vector3.Project(label.anchor, Matrix.IdentityReadOnly, transform, viewport);
       label.element.style.display = visible ? "block" : "none";
-      if (visible) {
-        label.element.style.left = `${p.x * cssScale}px`;
-        label.element.style.top = `${p.y * cssScale}px`;
-      }
+      if (!visible) continue;
+      // The label may take its cell's width on screen; narrow cells wrap the text and shrink the font.
+      label.anchor.addToRef(new Vector3(label.widthWorld, 0, 0), side);
+      const q = Vector3.Project(side, Matrix.IdentityReadOnly, transform, viewport);
+      const widthPx = Math.abs(q.x - p.x) * cssScale;
+      const maxWidth = label.align === "center" ? widthPx * CELL_FILL : widthPx - TITLE_GAP_PX;
+      const fontPx = label.align === "center" ? Math.max(MIN_FONT_PX, Math.min(label.fontPx, (label.fontPx * widthPx) / FULL_FONT_CELL_PX)) : label.fontPx;
+      label.element.style.fontSize = `${fontPx}px`;
+      label.element.style.maxWidth = `${Math.max(0, maxWidth)}px`;
+      label.element.style.transform = label.align === "center" ? "translate(-50%, 0)" : `translate(calc(-100% - ${TITLE_GAP_PX}px), 0)`;
+      label.element.style.left = `${p.x * cssScale}px`;
+      label.element.style.top = `${p.y * cssScale}px`;
     }
   }
 }

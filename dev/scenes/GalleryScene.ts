@@ -150,10 +150,10 @@ export function create(game: Game): void {
 
       const budget = ModelRegistry.budget(item.entry.category);
       const scale = Math.abs(fit - 1) < 10 ** -SCALE_DECIMALS ? null : fit.toFixed(SCALE_DECIMALS);
-      labels.addModel(new Vector3(x, top - data.labelDrop, row.z - pedestal.size * HALF), item.label, triangles, budget, scale);
+      labels.addModel(new Vector3(x, top - data.labelDrop, row.z - pedestal.size * HALF), item.label, triangles, budget, scale, data.cell.width);
       items.push({ name: item.entry.name, label: item.label, section: row.section.id, category: item.entry.category, triangles, budget, scale: fit });
     });
-    if (row.first) labels.addTitle(new Vector3(-(row.width * HALF) - TITLE_CELLS * HALF * data.cell.width, row.y + TITLE_RISE, row.z), row.section.title);
+    if (row.first) labels.addTitle(new Vector3(-(row.width * HALF), row.y + TITLE_RISE, row.z), row.section.title, TITLE_CELLS * data.cell.width);
     addRowLights(game, row, rowMeshes, data, r);
   }
 

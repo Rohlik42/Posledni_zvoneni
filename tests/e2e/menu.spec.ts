@@ -3,6 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { AssetCredits } from "../../src/ui/AssetCredits";
 import type { MenuData } from "../../src/ui/MenuConfig";
 import { ConsoleGuard } from "../support/ConsoleGuard";
+import { ShotPath } from "../support/ShotPath";
 
 const json = <T>(file: string): T => JSON.parse(readFileSync(file, "utf8")) as T;
 const menuData = json<MenuData>("data/menu.json");
@@ -72,7 +73,7 @@ test.describe("menu and game flow", () => {
     expect(state).toEqual({ paused: true, begun: false, stored: null, pause: false });
     await page.keyboard.press("Escape");
     expect((await menuView()).page).toBe("main");
-    await page.screenshot({ path: "screenshots/18-main-menu.png" });
+    await page.screenshot({ path: ShotPath.of("18-main-menu.png") });
 
     // Ovládání: every row of menu.json; Esc goes back to the main menu.
     await item("controls").click();
@@ -139,7 +140,7 @@ test.describe("menu and game flow", () => {
     expect(paused.view.items.map((i) => i.key)).toEqual(["resume", "settings", "controls", "mainMenu"]);
     await page.waitForTimeout(SETTLE_MS);
     expect(await page.evaluate(() => window.__game!.simulatedTimeMs())).toBe(paused.time);
-    await page.screenshot({ path: "screenshots/18-pause.png" });
+    await page.screenshot({ path: ShotPath.of("18-pause.png") });
 
     // Zpátky do hry → running; Esc again → pause.
     await item("resume").click();
@@ -206,7 +207,7 @@ test.describe("menu and game flow", () => {
     expect(dead.death["row:checkpoint"]?.toLowerCase()).toBe(t.main.checkpointLabels.red!.toLowerCase());
     expect(dead.death["row:deaths"]).toBe("1");
     expect(dead).toMatchObject({ paused: true, health: 0, pause: false, restores: 0 });
-    await page.screenshot({ path: "screenshots/18-death.png" });
+    await page.screenshot({ path: ShotPath.of("18-death.png") });
     await page.waitForTimeout(ACCEPT_WAIT_MS);
     await page.locator('#death [data-screen="button"]').click();
     const after = await page.evaluate(() => ({
