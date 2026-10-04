@@ -106,3 +106,4 @@ Zapracováno 2026-10-04 (na startovním 2. patře je jediná extra zbraň vodní
 - „A Raubíř je ‚Nevyluzujte!‘ jako nevyluzujte zvuky.“ Zapracováno 2026-10-04.
 - „Fyzikář se bude jmenovat Jungwirth.“ Zapracováno 2026-10-04.
 - „Předěláme ty testy, dáme tam jenom 1 2 3 4, písmenka pryč, je to matoucí.“ Zapracováno 2026-10-04 (tlačítka kvízu jen s čísly 1–4).
+- „BFG má vypadat nějak takhle (Sketchfab BFG 9000), předělej to.“ Zapracováno 2026-10-04.

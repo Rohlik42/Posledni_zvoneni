@@ -7,7 +7,7 @@ import { ModelRegistry } from "../../utils/ModelRegistry";
 
 const BLUEPRINT = "bfg9000";
 /** Parts that glow with the charge: the emitter in the muzzle and the two slits of the barrel housing. */
-const GLOWING = ["core", "ventL", "ventR"];
+const GLOWING = ["core", "rib1", "rib2", "rib3", "rib4", "ventL", "ventR"];
 
 /**
  * BFG 9000 (weapon 6, FEEDBACK 2026-10-04): a chunky capacitor cannon — boxy body with four capacitor cans along its
