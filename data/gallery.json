@@ -82,8 +82,7 @@
         { "model": "EnergyDrinkModel" },
         { "model": "RubberBootsModel" },
         { "model": "BalloonPackModel" },
-        { "model": "CapacitorModel" },
-        { "model": "CanisterModel" }
+        { "model": "CapacitorModel" }
       ]
     },
     {

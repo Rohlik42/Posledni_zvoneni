@@ -1,5 +1,5 @@
 {
-  "//": "Zajatí učitelé a kvíz (fáze 11; src/level/TeacherConfig.ts, Teacher.ts, TeacherSystem.ts, models/TeacherModel.ts, src/quiz/*). 'teachers': 8 učitelů z LEGACY §1 beze změny příjmení a předmětů + nový fiktivní fyzikář (DECISIONS #1); slot a room odpovídají data/level.json → teachers (Evidence → Progrese), rewards = id věcí z data/pickups.json (Inventory.give), look = učitel z kostiček (výchozí): varianta saka podle LEGACY §1 (pořadí v rosteru % 3: violet, orange, sea), barvy dalších slotů (klíče palety) a features (účesy, brýle, vousy z model.features); gltfLook = glTF postava z data/people.json (person), přebarvení jejích materiálů (colors) a měřítko (scale) — jen s přepínačem „Realistické postavy učitelů“ (nastavení realisticPeople v data/menu.json, URL ?people=gltf / ?people=lowpoly; FEEDBACK 2026-10-04: glTF postavy jsou náročnější, výchozí jsou zase kostičky). greeting = věta nad otázkou, wrongLine = po špatné odpovědi, freedLine = po osvobození (i při dalším oslovení E).",
+  "//": "Zajatí učitelé a kvíz (fáze 11; src/level/TeacherConfig.ts, Teacher.ts, TeacherSystem.ts, models/TeacherModel.ts, src/quiz/*). 'teachers': 8 učitelů z LEGACY §1 beze změny příjmení a předmětů + nový fiktivní fyzikář (DECISIONS #1); slot a room odpovídají data/level.json → teachers (Evidence → Progrese), rewards = id věcí z data/pickups.json (Inventory.give; balíček balónků dává power-upová trojice Lambertová, Ditrichová, Novotná — FEEDBACK 2026-10-04 „balónky od lidí a na chodbě“, kdo balónky ještě nemá, dostane s nimi zbraň 3), look = učitel z kostiček (výchozí): varianta saka podle LEGACY §1 (pořadí v rosteru % 3: violet, orange, sea), barvy dalších slotů (klíče palety) a features (účesy, brýle, vousy z model.features); gltfLook = glTF postava z data/people.json (person), přebarvení jejích materiálů (colors) a měřítko (scale) — jen s přepínačem „Realistické postavy učitelů“ (nastavení realisticPeople v data/menu.json, URL ?people=gltf / ?people=lowpoly; FEEDBACK 2026-10-04: glTF postavy jsou náročnější, výchozí jsou zase kostičky). greeting = věta nad otázkou, wrongLine = po špatné odpovědi, freedLine = po osvobození (i při dalším oslovení E).",
   "teachers": [
     {
       "id": "siklova", "slot": 8, "surname": "Šiklová", "subject": "Matematika", "room": "f2-kabinet-matematika",
@@ -30,7 +30,7 @@
     },
     {
       "id": "lambertova", "slot": 1, "surname": "Lambertová", "subject": "Zeměpis", "room": "f4-kabinet-zemepis",
-      "rewards": [{ "item": "medkit" }, { "item": "energy-drink" }],
+      "rewards": [{ "item": "medkit" }, { "item": "energy-drink" }, { "item": "balloons" }],
       "look": { "variant": "violet", "colors": { "hair": "teacher.hairRed" }, "features": ["short", "glasses"] },
       "gltfLook": { "person": "woman-adventurer", "scale": 0.94 },
       "greeting": "Konečně někdo! Ti plecháči mi zabavili atlas. Zkus tohle, ať vím, že se ve světě vyznáš.",
@@ -57,7 +57,7 @@
     },
     {
       "id": "ditrichova", "slot": 3, "surname": "Ditrichová", "subject": "Hudebka", "room": "f4-hudebna",
-      "rewards": [{ "item": "energy-drink" }, { "item": "medkit" }],
+      "rewards": [{ "item": "energy-drink" }, { "item": "medkit" }, { "item": "balloons" }],
       "look": { "variant": "violet", "colors": { "hair": "teacher.hairDark", "tie": "accent.gold" }, "features": ["long"] },
       "gltfLook": { "person": "woman-dress", "scale": 0.94 },
       "greeting": "Ten robot mi rozladil klavír! Odpověz správně, ať tahle past konečně zmlkne.",
@@ -66,7 +66,7 @@
     },
     {
       "id": "novotna", "slot": 6, "surname": "Novotná", "subject": "Výtvarka", "room": "f3-atelier",
-      "rewards": [{ "item": "rubber-boots" }],
+      "rewards": [{ "item": "rubber-boots" }, { "item": "balloons" }],
       "look": { "variant": "orange", "colors": { "hair": "teacher.hairRed", "tie": "accent.violet" }, "features": ["long"] },
       "gltfLook": { "person": "woman-punk", "scale": 0.93 },
       "greeting": "Robot mi přetřel obraz na šedo. Šedá není barva, to je výsměch! Tak co víš o umění?",

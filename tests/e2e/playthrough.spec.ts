@@ -501,7 +501,7 @@ test.describe.serial("playthrough of the level on the main page", () => {
     expect(bump).toBeLessThan(desk.footprint.x0);
   });
 
-  test("floor 4: Hudebka, the extinguisher on the corridor, Zeměpis (one wrong answer → medkit + drink), balloons on the corridor, Dějepis → red key + checkpoint", async () => {
+  test("floor 4: Hudebka, Zeměpis (one wrong answer → medkit + drink), balloons on the corridor (the only extra weapon of the floor), Dějepis → red key + checkpoint", async () => {
     test.setTimeout(RUN_TIMEOUT_MS);
     // A robot standing in a doorway keeps the door open (critique of shift 3): the hudebna quadruped, stunned there.
     const hudebnaDoor = route.findIndex((p) => p.door === "d-f4-hudebna");
@@ -530,25 +530,23 @@ test.describe.serial("playthrough of the level on the main page", () => {
 
     await walk(hudebnaDoor, routeIndex("učitel 3"));
     await free(3);
-    // FEEDBACK 2026-10-04: the extinguisher lies on the corridor on the way to teacher 1 (no teacher gives it any more):
-    // walking over it hands over weapon 2 with a full tank.
-    const extinguisherPickup = level.pickups.find((p) => p.item === "extinguisher")!;
+    // FEEDBACK 2026-10-04 „balónky od lidí a na chodbě“: Ditrichová adds a balloon pack to her power-ups — weapon 3.
+    expect(await page.evaluate(() => window.__game!.weapons!.list().filter((w) => w.owned).map((w) => w.id))).toEqual(["waterPistol", "waterBalloons"]);
+    // „Ať je hasičák až v dalším patře“: the first corridor of floor 4 has no extinguisher (no floor pickup, no wall
+    // extinguisher) — the player reaches teacher 1 with the pistol and the balloons only.
     await walk(routeIndex("učitel 3") + 1, routeIndex("učitel 1"));
-    const corridor = await page.evaluate((id) => {
-      const g = window.__game!;
-      return { owned: g.inventory!.weapons, state: g.weapons!.state("extinguisher"), pickup: g.pickups!.list().find((p) => p.id === id) };
-    }, extinguisherPickup.id);
-    expect(corridor.pickup?.collected).toBe(true);
-    expect(corridor.owned).toContain("extinguisher");
-    expect(corridor.state?.magazine).toBeGreaterThan(0);
+    expect(await page.evaluate(() => window.__game!.inventory!.weapons)).not.toContain("extinguisher");
+    const startFloorY = level.floors.find((f) => f.id === level.spawns.player.floor)!.elevation;
+    const refillsHere = await page.evaluate((y) => window.__game!.weaponStations!.refills().filter((r) => Math.abs(r.position.y - y) < 1).length, startFloorY);
+    expect(refillsHere, "no wall extinguisher on floor 4").toBe(0);
     const first = await free(1, true);
     expect(first.wrong).toBe(1);
     expect(first.asked).toBe(2);
     // Teacher 1 gives power-ups now, no weapon.
     expect(await page.evaluate(() => window.__game!.inventory!.powerUps().map((p) => p.id))).toContain("energyDrink");
 
-    // Balloons on the corridor (Evidence → Progrese) are ammo and weapon in one: the pack hands over weapon 3 with its
-    // balloons, or adds them when a robot's dropped pack already did.
+    // Balloons on the corridor past Zeměpis (Evidence → Progrese) are ammo and weapon in one: the pack hands over weapon 3
+    // with its balloons, or adds them when a teacher's pack already did.
     await walk(routeIndex("učitel 1") + 1, routeIndex("vodní balónky") - 1);
     const pre = await page.evaluate(() => window.__game!.weapons!.state("waterBalloons")?.reserve ?? null);
     await walk(routeIndex("vodní balónky"), routeIndex("vodní balónky"));
@@ -570,7 +568,7 @@ test.describe.serial("playthrough of the level on the main page", () => {
     expect(checkpoint?.label).toBe("red");
     expect(checkpoint?.inventory.keys).toEqual(["red"]);
     expect(checkpoint?.teachers.sort()).toEqual([teacherOfSlot(1), teacherOfSlot(2), teacherOfSlot(3)].sort());
-    expect(checkpoint?.weapons.weapons.map((w) => w.id)).toEqual(expect.arrayContaining(["waterPistol", "extinguisher", "waterBalloons"]));
+    expect(checkpoint?.weapons.weapons.map((w) => w.id).sort()).toEqual(["waterBalloons", "waterPistol"]);
     expect(checkpoint?.doors).toEqual(expect.arrayContaining(["d-f4-u30", "d-f4-hudebna", "d-f4-kab-zem", "d-f4-kab-dej"]));
     expect(checkpoint?.enemies.length).toBeGreaterThan(0);
     expect(await page.evaluate(() => window.__game!.hud!.toasts())).toContain(texts.checkpoint.saved);
@@ -624,17 +622,50 @@ test.describe.serial("playthrough of the level on the main page", () => {
     expect(after.toasts).toContain(texts.checkpoint.restored);
   });
 
-  test("floor 3: red door, more balloons on the corridor, Výtvarka, Angličtina (taser), Čeština → yellow key", async () => {
+  test("floor 3: red door, the extinguisher right past the stairs, more balloons on the corridor, Výtvarka, Angličtina (taser), Čeština → yellow key", async () => {
     test.setTimeout(RUN_TIMEOUT_MS);
     // Down the middle stairs into the floor-3 corridor (the first corridor point after the stairs).
     const corridor = route.findIndex((p, i) => i > routeIndex("učitel 2") && p.room === "f3-corridor");
     await walk(routeIndex("učitel 2") + 1, corridor);
+    expect(await page.evaluate(() => window.__game!.inventory!.weapons)).not.toContain("extinguisher");
+
+    // FEEDBACK 2026-10-04: the extinguisher lies on the floor-3 corridor right past the stairs, on the route: walking over
+    // it hands over weapon 2 with a full tank.
+    const extinguisherAt = routeIndex("hasicí přístroj");
+    const extinguisherPickup = level.pickups.find((p) => p.item === "extinguisher")!;
+    await walk(corridor + 1, extinguisherAt);
+    const taken = await page.evaluate((id) => {
+      const g = window.__game!;
+      return { owned: g.inventory!.weapons, state: g.weapons!.state("extinguisher"), pickup: g.pickups!.list().find((p) => p.id === id) };
+    }, extinguisherPickup.id);
+    expect(taken.pickup?.collected).toBe(true);
+    expect(taken.owned).toContain("extinguisher");
+    expect(taken.state?.magazine).toBe(weaponsData.weapons.find((w) => w.id === "extinguisher")!.ammo.capacity);
 
     // Ammo for the balloons (pickup pk10 on this corridor): +amount into the reserve; one thrown takes one away; the HUD
     // shows the reserve (no magazine) as the big number.
     const ammo = pickupsData.items["balloons"]!.amount!;
     const pk10 = level.pickups.find((p) => p.id === "pk10")!;
+    // The scripted player fights with the pistol, so the teachers' and floor 4's packs filled the balloons up: throw
+    // some first, so the pack fits.
+    const balloonMax = weaponsData.weapons.find((w) => w.id === "waterBalloons")!.ammo.reserveMax;
+    await page.evaluate(
+      ({ room, switchMs, maxThrows }) => {
+        const g = window.__game!;
+        g.weapons!.select(3);
+        g.step(switchMs);
+        for (let i = 0; i < maxThrows && g.weapons!.state("waterBalloons")!.reserve! > room; i++) {
+          g.player!.lookAt(g.player!.eye.x + 5, g.player!.eye.y, g.player!.eye.z);
+          g.input!.simulate("fire", 100);
+          g.step(600);
+        }
+        g.weapons!.select(1);
+        g.step(switchMs);
+      },
+      { room: balloonMax - ammo, switchMs: weaponsData.switchTime * 1000 + 50, maxThrows: balloonMax },
+    );
     const before = await page.evaluate(() => window.__game!.weapons!.state("waterBalloons")!.reserve!);
+    expect(before + ammo).toBeLessThanOrEqual(balloonMax);
     expect(await page.evaluate((p) => window.__pt!.walkTo({ x: p.x, y: 5, z: -p.z }, 0.3), pk10)).toBe(true);
     const balloons = await page.evaluate(
       ({ switchMs }) => {
@@ -657,7 +688,7 @@ test.describe.serial("playthrough of the level on the main page", () => {
     expect(balloons.hud).toBe(String(before + ammo));
     expect(balloons.after).toBe(before + ammo - 1);
 
-    await walk(corridor + 1, routeIndex("učitel 6"));
+    await walk(extinguisherAt + 1, routeIndex("učitel 6"));
     await free(6);
     await walk(routeIndex("učitel 6") + 1, routeIndex("učitel 4"));
     await free(4);
@@ -746,12 +777,13 @@ test.describe.serial("playthrough of the level on the main page", () => {
         g.step(settleMs);
         g.player!.heal(1000);
         const state1 = g.weapons!.state("bfg9000")!;
-        return { before, after: gymRobots().map((e) => e.id), bursts: state1.extra.bursts! - state0.extra.bursts!, kills: state1.extra.lastKills!, reserve: state1.reserve, magazine: state1.magazine, reloading: state1.reloading };
+        const dropped = g.pickups!.list().filter((p) => p.fromDrop && p.collected && p.item === "capacitors").length;
+        return { before, after: gymRobots().map((e) => e.id), bursts: state1.extra.bursts! - state0.extra.bursts!, kills: state1.extra.lastKills!, reserve: state1.reserve, reserve0: state0.reserve, dropped, magazine: state1.magazine, reloading: state1.reloading };
       },
       { switchMs: weaponsData.switchTime * 1000 + 50, settleMs: (bfgData.params.spinUpTime! + 2) * 1000 },
     );
     expect(gym).not.toBeNull();
-    console.log(`gym BFG: robots ${gym!.before.join(",")} → left ${gym!.after.join(",") || "none"}, kills ${gym!.kills}`);
+    console.log(`gym BFG: robots ${gym!.before.join(",")} → left ${gym!.after.join(",") || "none"}, kills ${gym!.kills}; capacitors ${gym!.reserve0} in reserve before the shot (${gym!.dropped} robot drops taken)`);
     expect(gym!.before.length).toBeGreaterThanOrEqual(2);
     expect(gym!.bursts).toBe(1);
     expect(gym!.kills).toBeGreaterThanOrEqual(2);

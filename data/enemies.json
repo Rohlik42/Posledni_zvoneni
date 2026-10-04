@@ -1,15 +1,12 @@
 {
-  "//": "Nepřátelé (src/enemies/*, DESIGN §5). Jednotky: metry, sekundy, m/s, úhly ve stupních (*Deg). health = HP; resistances = násobič damage podle typu (voda a elektřina robotům škodí víc, DESIGN §4). drops = co po smrti padne: item (id pro fázi 10, zatím jen událost), chance 0–1, amount; los je deterministický (dropSeed). statusResistance = násobič trvání zpomalení a omráčení (applyStatus). Typy: humanoid (chodí, střílí, kryje se), quadruped (rychlý melee: sprint, obíhání, výpad), drone (létá, slabý, otravný). sounds = jména zvuků z data/sounds.json.",
+  "//": "Nepřátelé (src/enemies/*, DESIGN §5). Jednotky: metry, sekundy, m/s, úhly ve stupních (*Deg). health = HP; resistances = násobič damage podle typu (voda a elektřina robotům škodí víc, DESIGN §4). drops = co po smrti padne: item (id z data/pickups.json; FEEDBACK 2026-10-04 „balónky od lidí a na chodbě, kondenzátory z robotů“: roboti pouštějí jen kondenzátory), chance 0–1, amount; los je deterministický (dropSeed). statusResistance = násobič trvání zpomalení a omráčení (applyStatus). Typy: humanoid (chodí, střílí, kryje se), quadruped (rychlý melee: sprint, obíhání, výpad), drone (létá, slabý, otravný). sounds = jména zvuků z data/sounds.json.",
   "dropSeed": 4066,
   "humanoid": {
     "model": "HumanoidRobotModel",
     "variant": "patrol",
     "health": 60,
     "resistances": { "water": 1.5, "electric": 2, "kinetic": 0.6, "explosion": 1, "quiz": 0 },
-    "drops": [
-      { "item": "balloons", "chance": 0.3, "amount": 2 },
-      { "item": "ammo-extinguisher", "chance": 0.25, "amount": 20 }
-    ],
+    "drops": [{ "item": "capacitors", "chance": 0.25, "amount": 1 }],
     "statusResistance": { "slow": 1, "stun": 1 },
     "body": {
       "//": "radius = poloměr pro navmesh a zásah projektilem hráče; eyeHeight = odkud robot vidí; aimHeight = kam míří hráč a odkud se počítá střed robota.",
@@ -122,10 +119,7 @@
     "variant": "hound",
     "health": 45,
     "resistances": {"water": 1.5, "electric": 2, "kinetic": 0.6, "explosion": 1, "quiz": 0},
-    "drops": [
-      {"item": "ammo-extinguisher", "chance": 0.3, "amount": 15},
-      {"item": "balloons", "chance": 0.15, "amount": 1}
-    ],
+    "drops": [{"item": "capacitors", "chance": 0.15, "amount": 1}],
     "statusResistance": {"slow": 1, "stun": 0.8},
     "body": {
       "//": "Kapsle pro hráče a navmesh (radius ≤ navigation.agent.radius). eyeHeight = odkud vidí, aimHeight = střed trupu, kam míří hráč.",
@@ -214,7 +208,7 @@
     "variant": "scout",
     "health": 22,
     "resistances": {"water": 1.5, "electric": 2.5, "kinetic": 1, "explosion": 1.5, "quiz": 0},
-    "drops": [{"item": "balloons", "chance": 0.25, "amount": 1}],
+    "drops": [{"item": "capacitors", "chance": 0.15, "amount": 1}],
     "statusResistance": {"slow": 1, "stun": 1.25},
     "body": {
       "//": "radius = poloměr těla (odstup od zdí); height = výška těla; eyeHeight a aimHeight se měří od středu dronu (0 = střed).",

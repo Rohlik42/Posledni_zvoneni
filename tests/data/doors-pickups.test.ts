@@ -49,6 +49,20 @@ test("every level pickup, robot drop and key of level.json is a known item (or p
   for (const key of level.keys) assert.ok(items.some(([, item]) => item.kind === "key" && item.key === key.color), `no item for the ${key.color} key`);
 });
 
+test("ammo items are exactly the extinguisher, the balloons and the capacitors; no refill canister anywhere; robots drop only capacitors (FEEDBACK 2026-10-04)", () => {
+  const ammo = items.filter(([, item]) => item.kind === "ammo").map(([id]) => id).sort();
+  assert.deepEqual(ammo, ["balloons", "capacitors", "extinguisher"]);
+  // The extinguisher is refilled only by extinguisher items (the floor pickup and wall extinguishers), never by a canister.
+  assert.ok(!PickupConfig.has("ammo-extinguisher"), "the refill canister is gone");
+  assert.ok(!existsSync("src/level/models/CanisterModel.ts"), "the canister model is gone");
+  const enemies = EnemyConfig.load();
+  const drops = (["humanoid", "quadruped", "drone"] as const).flatMap((type) => enemies[type].drops.map((d) => d.item));
+  // „Balónky od lidí a na chodbě, kondenzátory z robotů“: robots drop capacitors only.
+  assert.ok(drops.length > 0);
+  for (const item of drops) assert.equal(item, "capacitors", `robots drop ${item}`);
+  for (const pickup of level.pickups) assert.ok(PickupConfig.has(pickup.item) ? PickupConfig.item(pickup.item).kind !== "ammo" || ammo.includes(pickup.item) : true);
+});
+
 test("items: weapons exist in weapons.json, models have a class file, every item has a toast, sounds exist", () => {
   const weapons = WeaponConfig.load().weapons.map((w) => w.id);
   for (const [id, item] of items) {

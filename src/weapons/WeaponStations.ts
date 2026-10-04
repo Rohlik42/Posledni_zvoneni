@@ -10,11 +10,6 @@ import type { WeaponInventory } from "./WeaponInventory";
 import "../level/models/BalloonPackModel";
 
 const EXTINGUISHER_CLASS = "Extinguisher";
-/**
- * Item of data/pickups.json a wall extinguisher hands over when the player has no extinguisher yet (FEEDBACK
- * 2026-10-04: the extinguisher is picked up in the corridor, not given by a teacher).
- */
-const EXTINGUISHER_ITEM = "extinguisher";
 
 /** Where the weapon stations of a scene stand (dev scene `weapons`, level.json in phase 16). */
 export interface StationPlacements {
@@ -22,13 +17,9 @@ export interface StationPlacements {
   ammoPickups: AmmoPickupPlacement[];
 }
 
-/** Hands an item of data/pickups.json to the player (the level's `Inventory`: toast, sound, statistics). */
-export interface ItemGiver {
-  give(item: string): { taken: boolean };
-}
-
 /** `window.__game.weaponStations` — wall extinguishers and ammo pickups (phase 13). */
 export interface WeaponStationsTestApi {
+  /** `grants` is always 0: wall extinguishers only refill (FEEDBACK 2026-10-04); kept because test API fields are never removed. */
   refills: () => { id: string; charges: number; refills: number; grants: number; position: Vec3Like }[];
   pickups: () => { id: string; weapon: string; available: boolean; pickups: number; position: Vec3Like }[];
   /** Always empty: the gym hydrant with the hose is gone (FEEDBACK 2026-10-04); kept because test API fields are never removed. */
@@ -44,8 +35,8 @@ declare module "../core/TestHooks" {
 }
 
 /**
- * The weapon stations of a scene (phase 13): wall extinguishers (`ExtinguisherRefill`) that hand over weapon 2 when
- * the player has none yet and refill it otherwise, and ammo pickups (`AmmoPickup`). Steps them in the fixed step
+ * The weapon stations of a scene (phase 13): wall extinguishers (`ExtinguisherRefill`) that refill an owned weapon 2
+ * (never hand it over, FEEDBACK 2026-10-04), and ammo pickups (`AmmoPickup`). Steps them in the fixed step
  * against the player and the inventory and exposes `__game.weaponStations`. Their numbers come from data/weapons.json
  * (refill reach, pickups); where they stand is the caller's data. (The gym hydrant with the hose is gone, FEEDBACK
  * 2026-10-04: the BFG 9000 took slot 6.)
@@ -60,14 +51,11 @@ export class WeaponStations {
     private readonly player: Player,
     private readonly inventory: WeaponInventory,
     placements: StationPlacements,
-    items: ItemGiver | null,
   ) {
     const data = WeaponConfig.load();
     const { scene } = game;
     const sounds = SynthSounds.for(game);
     const extinguisher = WeaponStations.weaponOfClass(data.weapons, EXTINGUISHER_CLASS);
-    // The level's inventory gives the extinguisher like a pickup (toast); a dev scene without one arms it directly.
-    const grant = (): boolean => (items !== null ? items.give(EXTINGUISHER_ITEM).taken : inventory.give(extinguisher.id));
 
     this.refills = placements.refills.map(
       (placement) =>
@@ -76,8 +64,6 @@ export class WeaponStations {
           radius: WeaponConfig.param(extinguisher, "refillRadius"),
           charges: WeaponConfig.param(extinguisher, "refillCharges"),
           sound: data.ammoPickup.sound,
-          grant,
-          grantSound: items === null,
         }),
     );
     this.pickups = placements.ammoPickups.map((placement) => new AmmoPickup(scene, placement, data.ammoPickup));
@@ -86,8 +72,8 @@ export class WeaponStations {
     this.registerTestHooks();
   }
 
-  static create(game: Game, player: Player, inventory: WeaponInventory, placements: StationPlacements, items: ItemGiver | null = null): WeaponStations {
-    return new WeaponStations(game, player, inventory, placements, items);
+  static create(game: Game, player: Player, inventory: WeaponInventory, placements: StationPlacements): WeaponStations {
+    return new WeaponStations(game, player, inventory, placements);
   }
 
   reset(): void {
@@ -131,7 +117,7 @@ export class WeaponStations {
     const plain = (v: { x: number; y: number; z: number }): Vec3Like => ({ x: v.x, y: v.y, z: v.z });
     TestHooks.register("weaponStations", {
       refills: () =>
-        stations.refills.map((r) => ({ id: r.placement.id, charges: r.charges, refills: r.refills, grants: r.grants, position: plain(r.position) })),
+        stations.refills.map((r) => ({ id: r.placement.id, charges: r.charges, refills: r.refills, grants: 0, position: plain(r.position) })),
       pickups: () =>
         stations.pickups.map((p) => ({ id: p.placement.id, weapon: p.placement.weapon, available: p.available, pickups: p.pickups, position: plain(p.position) })),
       hydrants: () => [],

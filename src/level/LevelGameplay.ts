@@ -283,7 +283,7 @@ export class LevelGameplay {
     hud.setHintSource(() => teachers.hint ?? doors.hint);
     hud.showMessages(quiz.onMessage);
     hud.showMessages(teachers.onMessage);
-    const stations = WeaponStations.create(game, player, weapons, LevelStations.placements(game.scene, level.layout, data.stations), inventory);
+    const stations = WeaponStations.create(game, player, weapons, LevelStations.placements(game.scene, level.layout, data.stations));
     for (const station of stations.refills) {
       const room = lighting.roomAt(station.position);
       if (room !== null) lighting.attach(station.model.meshes, [room]);

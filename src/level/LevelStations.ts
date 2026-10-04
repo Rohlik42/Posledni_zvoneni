@@ -7,7 +7,7 @@ import type { StationPlacements } from "../weapons/WeaponStations";
 import { LevelLayout } from "./LevelLayout";
 import type { ProgressionData } from "./ProgressionConfig";
 
-/** `level.json → pickups[].item` of a wall extinguisher (hands over or refills weapon 2). */
+/** `level.json → pickups[].item` of a wall extinguisher (refills an owned weapon 2). */
 const REFILL_ITEM = "extinguisher-refill";
 /** Level geometry meshes are named `level:<room>:<material>`. */
 const LEVEL_MESH_PREFIX = "level:";

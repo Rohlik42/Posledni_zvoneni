@@ -101,6 +101,8 @@ Vodní balónky (zbraň 3) leží na chodbě mezi učiteli 1 a 2. Vodní pistolk
 
 Hasicí přístroj (zbraň 2) leží na chodbě 2. patra hned za schodišťovou halou (`pk21`, před hlídkou prvního robota) a dávají ho i nástěnné hasičáky; vodní balónky (zbraň 3) jsou balíčky na chodbách (`pk01` mezi učiteli 1 a 2) a v dropech robotů — obojí je zbraň i munice v jednom. Kondenzátory jsou společná munice railgunu (1 na výstřel) a BFG 9000 (4 na výstřel), strop 12; leží na západní hale 1. patra, na chodbě vstupního podlaží a v tělocvičně.
 
+**Změna 2026-10-04 (FEEDBACK „hasičák až v dalším patře, na prvním patře jen první extra zbraň; balónky od lidí a na chodbě, kondenzátory z robotů“; platí místo odstavce výše):** Na startovním 2. patře (floor 4) hráč získá jen vodní balónky (zbraň 3): balíček `pk01` leží na chodbě hned za kabinetem zeměpisu (x 32, před dronem e02 a hlídkou e03), další v učebně 33 (`pk06`) a balíček přidávají k power-upům Ditrichová (Hudebka), Lambertová (Zeměpis) a na 1. patře Novotná (Výtvarka). Hasicí přístroj (zbraň 2) leží až na chodbě 1. patra (floor 3) hned u prostředního schodiště (`pk21`, x 35,3, první bod trasy po schodech, před hlídkou e06 i nástěnnými hasičáky); 2. patro nemá žádný nástěnný hasičák a nástěnné hasičáky 1. patra a vstupního podlaží jen doplňují nádržku vlastněného hasičáku. Náplně (kanystry) do hasičáku jsou zrušené; munice jsou jen hasicí přístroj, balónky a kondenzátory. Roboti pouštějí jen kondenzátory (humanoid 25 %, čtyřnožec a dron 15 %, po 1 kusu).
+
 ## Phase 1 — Core: Game, data loader, rendering pipeline, dev scény
 
 **Implement**

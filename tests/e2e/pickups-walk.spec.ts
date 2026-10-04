@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import { ConsoleGuard } from "../support/ConsoleGuard";
+import { ShotPath } from "../support/ShotPath";
 import type { LevelData } from "../../src/level/LevelTypes";
 
 // FEEDBACK 2026-10-04 „někdy předmět nejde zvednout z podlahy tím, že se přes něj projde“: every pickup of level.json is
@@ -22,7 +23,7 @@ const pickupsData = JSON.parse(readFileSync("data/pickups.json", "utf8")) as {
 };
 const texts = JSON.parse(readFileSync("data/texts.json", "utf8")) as { fullHealth: string; fullAmmo: string };
 const weaponsData = JSON.parse(readFileSync("data/weapons.json", "utf8")) as {
-  weapons: { id: string; name: string; ammo: { reserveMax: number } }[];
+  weapons: { id: string; name: string; ammo: { reserveMax: number }; params: Record<string, number> }[];
   ammoTypes: Record<string, { name: string }>;
 };
 const player = JSON.parse(readFileSync("data/player.json", "utf8")) as { body: { eyeHeight: number } };
@@ -46,6 +47,11 @@ const ON_NAVMESH_DY = 0.4;
 const REFUSAL_ROOM = "f4-corridor";
 const STEP_OFF_M = 2.5;
 const STAND_MS = 1000;
+/** The balloon screenshot looks at the floor-4 pack from this far west along the corridor (m). */
+const SHOT_BACK_M = 3.2;
+/** How far below the eye the screenshot camera looks at the pack (fraction of the eye height). */
+const SHOT_LOOK_DOWN = 0.35;
+const SHOT_SETTLE_MS = 300;
 
 const levelPickups = level.pickups.filter((p) => !pickupsData.external.includes(p.item));
 
@@ -122,6 +128,46 @@ test.describe.serial("pickups are collected by walking over them (FEEDBACK 2026-
       expect(Math.hypot(p.nav!.x - p.position.x, p.nav!.z - p.position.z), `${p.id} on the navmesh`).toBeLessThan(ON_NAVMESH_M);
       expect(Math.abs(p.nav!.y - p.position.y), `${p.id} on its floor`).toBeLessThan(ON_NAVMESH_DY);
     }
+  });
+
+  test("screenshot: the balloon pack on the floor-4 corridor past Zeměpis (FEEDBACK 2026-10-04)", async () => {
+    const pack = level.pickups.find((p) => p.item === "balloons" && p.floor === level.spawns.player.floor && p.room === "f4-corridor")!;
+    const floorY = level.floors.find((f) => f.id === pack.floor)!.elevation;
+    await page.evaluate(
+      ({ from, at, eye }) => {
+        const g = window.__game!;
+        g.player!.teleport(from.x, from.y + 0.05, from.z);
+        g.step(300);
+        g.player!.lookAt(at.x, at.y + eye, at.z);
+        g.step(1000 / 60);
+      },
+      { from: { x: pack.x - SHOT_BACK_M, y: floorY, z: -pack.z }, at: { x: pack.x, y: floorY, z: -pack.z }, eye: player.body.eyeHeight * SHOT_LOOK_DOWN },
+    );
+    await page.waitForTimeout(SHOT_SETTLE_MS);
+    await page.screenshot({ path: ShotPath.of("pickup-balloons-f4.png") });
+    expect(await page.evaluate((id) => window.__game!.pickups!.list().find((p) => p.id === id)!.collected, pack.id)).toBe(false);
+  });
+
+  test("a wall extinguisher does nothing for a player without the extinguisher — it only refills (FEEDBACK 2026-10-04)", async () => {
+    const result = await page.evaluate(({ settle, sameFloor }) => {
+      const g = window.__game!;
+      const p = g.player!;
+      const before = g.weaponStations!.refills();
+      const visited = before.map((station) => {
+        const stand = g.navmesh!.closest(station.position);
+        if (stand === null || Math.abs(stand.y - station.position.y) > sameFloor) return { id: station.id, stood: false, reach: Infinity };
+        p.teleport(stand.x, stand.y + 0.05, stand.z);
+        g.step(settle);
+        return { id: station.id, stood: true, reach: Math.hypot(p.position.x - station.position.x, p.position.z - station.position.z) };
+      });
+      return { visited, before, after: g.weaponStations!.refills(), owned: g.inventory!.weapons, active: g.weapons!.active };
+    }, { settle: SETTLE_MS, sameFloor: SAME_FLOOR_DY });
+    expect(result.before.length).toBeGreaterThan(0);
+    const reach = weaponsData.weapons.find((w) => w.id === "extinguisher")!.params.refillRadius!;
+    expect(result.visited.every((v) => v.stood && v.reach < reach), JSON.stringify(result.visited)).toBe(true);
+    expect(result.owned).not.toContain("extinguisher");
+    expect(result.after.map((r) => r.charges)).toEqual(result.before.map((r) => r.charges));
+    expect(result.after.every((r) => r.grants === 0 && r.refills === 0)).toBe(true);
   });
 
   for (const pickup of levelPickups) {

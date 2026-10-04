@@ -7,7 +7,6 @@ import type { ItemData, PickupsData } from "./PickupConfig";
 // Pickup models register themselves in ModelRegistry when their modules load.
 import "../weapons/models/ExtinguisherModel";
 import "./models/BalloonPackModel";
-import "./models/CanisterModel";
 import "./models/CapacitorModel";
 import "./models/EnergyDrinkModel";
 import "./models/KeyModel";

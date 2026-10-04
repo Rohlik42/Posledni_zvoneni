@@ -91,7 +91,8 @@ test("the corridor extinguisher, then the BFG 9000 in the gym: ready, spin-up, b
   const { page, guard, close } = await boot(browser, null);
   await page.evaluate(() => window.__game!.setPaused(true));
 
-  // The extinguisher lies on the floor-4 corridor (FEEDBACK 2026-10-04); walking over it hands over weapon 2.
+  // The extinguisher lies on the floor-3 corridor right past the middle stairs (FEEDBACK 2026-10-04 „ať je hasičák až
+  // v dalším patře“); walking over it hands over weapon 2.
   const pk = level.pickups.find((p) => p.item === "extinguisher")!;
   const floorY = level.floors.find((f) => f.id === pk.floor)!.elevation;
   await page.evaluate(
@@ -105,7 +106,7 @@ test("the corridor extinguisher, then the BFG 9000 in the gym: ready, spin-up, b
     { from: world({ x: pk.x - 3.2, z: pk.z - 0.2 }, floorY), at: world(pk, floorY), eye: player.body.eyeHeight },
   );
   await page.waitForTimeout(300);
-  await page.screenshot({ path: ShotPath.of("pickup-extinguisher.png") });
+  await page.screenshot({ path: ShotPath.of("pickup-extinguisher-f3.png") });
   const taken = await page.evaluate(
     ({ at, id }) => {
       const g = window.__game!;
