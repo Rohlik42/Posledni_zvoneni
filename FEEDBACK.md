@@ -77,3 +77,4 @@ Zapracováno 2026-10-04 (příčinou na Vysoké byla výměna stínových map la
 
 ## 2026-10-04 — railgun
 - „Nabíjení z railgunu dáme pryč. Je to zajímavé, ale nedá se s tím hrát. Pojďme udělat normálně okamžitý výstřel a pak velkou cooldown jako v Quake 3… chvilku cooldown, rozumně.“ Zapracováno 2026-10-04 (okamžitý výstřel, prodleva 1,2 s, cívky ukazují připravenost).
+- „Necháme ten railgun 1,5 a ty cívky hrozně svítí. Dej je tmavší i když jsou na max, a ať po výstřelu zhasne pořádně všechno. Nech svítit jenom tu cívku vepředu, další bloky u ruky ať nesvítí.“ Zapracováno 2026-10-04.
