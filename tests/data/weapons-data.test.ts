@@ -75,7 +75,7 @@ test("weapons.json: phase 13 weapons carry the numbers and looks their classes r
   need("taser", ["arcAngleDeg", "maxTargets", "stunSeconds", "stunStrength"]);
   need("railgun", ["pierce", "aimAssistDeg"]);
   const stages = [1, 2, 3, 4].flatMap((n) => [`empRadius${n}`, `stunRadius${n}`, `ballSize${n}`, `ballBrightness${n}`]);
-  need("bfg9000", ["stageTime", "maxStages", ...stages, "ballSpeed", "ballRadius", "ballHitRadius", "maxFlightTime", "empVertical", "stunSeconds", "shellTime", "ribGlow", "coreGlow", "idleGlow", "glowFade"]);
+  need("bfg9000", ["stageTime", "maxStages", ...stages, "ballSpeed", "ballRadius", "ballHitRadius", "maxFlightTime", "empVertical", "stunSeconds", "shellTime", "ribGlow", "coreGlow", "tubeGlow", "idleGlow", "glowFade"]);
   for (const id of ["extinguisher", "taser", "railgun", "bfg9000"]) assert.ok(WeaponConfig.weapon(id).effect !== undefined, `${id} needs an effect block`);
   for (const id of ["waterBalloons", "extinguisher"]) assert.ok(WeaponConfig.weapon(id).stream !== undefined, `${id} needs a stream block`);
 

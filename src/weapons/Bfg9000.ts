@@ -58,7 +58,8 @@ interface BlastInfo {
  * fire charges it in stages of `params.stageTime` s, one capacitor of the reserve shared with the railgun (`ammoType`)
  * per stage, up to `params.maxStages` — or fewer when the reserve holds fewer (the charge stops there, a deny click
  * plays, the extra ribs stay dark). The four ribs of the front block light up one per stage, back to front (the rib
- * charging ramps up, completed ones stay lit); the core in the muzzle glows with the charge, a rising whine plays per stage
+ * charging ramps up, completed ones stay lit); the core in the muzzle glows with the charge, the glass tube on top
+ * turns greener with every lit rib, a rising whine plays per stage
  * and the gun trembles more with every stage. Release fires a plasma ball (`PlasmaBalls`) of the completed stages n,
  * spending n capacitors; released before the first stage nothing fires and nothing is spent. Fully charged it waits,
  * pulsing softly (no overcharge). Switching weapons cancels the charge. The ball flies straight until it strikes
@@ -66,16 +67,17 @@ interface BlastInfo {
  * it and within `params.empVertical` m of its height (the same floor; walls do not stop it) takes `damage` electric —
  * enough for any robot on any difficulty — and robots farther out up to `params.stunRadiusN` freeze for
  * `params.stunSeconds`. The player and the teachers are never hurt. After a shot a short cooldown (1 / `fireRate`)
- * with the ribs and the core dark; then a chime (`sounds.ready`).
+ * with the ribs, the core and the tube dark; then a chime (`sounds.ready`).
  */
 export class Bfg9000 extends Weapon {
   private readonly balls: PlasmaBalls;
   private readonly blast: EmpBlast;
   private readonly effect: EffectData;
-  /** Glow colour of the ribs and the core (`effect.partColor`, else the ball's colour). */
+  /** Glow colour of the ribs, the core and the tube (`effect.partColor`, else the ball's colour). */
   private readonly partColor: string;
   private readonly core: Glowing;
   private readonly ribs: Glowing[];
+  private readonly tube: Glowing;
   private readonly shakeRandom: Random;
   private readonly stageTime: number;
   private readonly maxStages: number;
@@ -88,6 +90,7 @@ export class Bfg9000 extends Weapon {
   private readonly stunStrength: number;
   private readonly ribGlow: number;
   private readonly coreGlow: number;
+  private readonly tubeGlow: number;
   private readonly idleGlow: number;
   private readonly fullPulse: number;
   private readonly glowFade: number;
@@ -131,6 +134,7 @@ export class Bfg9000 extends Weapon {
     this.stunStrength = param("stunStrength");
     this.ribGlow = param("ribGlow");
     this.coreGlow = param("coreGlow");
+    this.tubeGlow = param("tubeGlow");
     this.idleGlow = param("idleGlow");
     this.fullPulse = param("fullPulse");
     this.glowFade = param("glowFade");
@@ -163,6 +167,7 @@ export class Bfg9000 extends Weapon {
     let index = 0;
     this.core = this.ownMaterial(model.core, index++);
     this.ribs = model.ribs.map((mesh) => this.ownMaterial(mesh, index++));
+    this.tube = this.ownMaterial(model.tube, index++);
     this.ribLevels = this.ribs.map(() => 0);
     this.updateGlow();
   }
@@ -278,7 +283,7 @@ export class Bfg9000 extends Weapon {
   override dispose(): void {
     this.balls.dispose();
     this.blast.dispose();
-    for (const { material } of [this.core, ...this.ribs]) material.dispose();
+    for (const { material } of [this.core, ...this.ribs, this.tube]) material.dispose();
     super.dispose();
   }
 
@@ -463,15 +468,20 @@ export class Bfg9000 extends Weapon {
     }
   }
 
-  /** Applies the shown glow; a held full charge (or the reserve's cap) pulses softly. */
+  /**
+   * Applies the shown glow: it replaces the part's own grey-green glow as it rises (a lit rib is clean green, not
+   * green on grey); a held full charge (or the reserve's cap) pulses softly.
+   */
   private updateGlow(): void {
     const t = this.context.game.simulatedTimeMs / MS_PER_SECOND;
     const waiting = this.charging && this.completed >= this.cap;
     const pulse = waiting ? 1 + this.fullPulse * Math.sin(t * FULL_PULSE_RATE) : 1;
     const apply = ({ material, base }: Glowing, level: number, full: number): void => {
-      material.emissiveColor = level > 0 ? base.add(PaletteColor.emissive(this.partColor, full * level * pulse)) : base;
+      material.emissiveColor = level > 0 ? base.scale(1 - Math.min(level, 1)).add(PaletteColor.emissive(this.partColor, full * level * pulse)) : base;
     };
     apply(this.core, this.coreLevel, this.coreGlow);
     this.ribs.forEach((rib, i) => apply(rib, this.ribLevels[i]!, this.ribGlow));
+    // The tube follows the lit ribs: a quarter green per rib, the greenest at a full charge.
+    apply(this.tube, this.ribLevels.reduce((sum, level) => sum + level, 0) / this.ribLevels.length, this.tubeGlow);
   }
 }
