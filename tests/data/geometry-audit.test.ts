@@ -75,7 +75,12 @@ test("OverlapResolver keeps every collider exactly and stays within the room tri
   assert.ok(resolved.boxes.filter((b) => b.collide).every((b) => !b.visible), "colliders are invisible copies");
   const triangles = new Map<string, number>();
   for (const b of resolved.boxes) if (b.visible) triangles.set(b.owner, (triangles.get(b.owner) ?? 0) + TRIANGLES_PER_BOX);
-  for (const [owner, count] of triangles) assert.ok(count <= ROOM_TRIANGLE_BUDGET, `${owner}: ${count} triangles`);
+  // The façade (FEEDBACK 2026-10-04) is the outside of the whole building, not a room: it has its own budget.
+  const facade = greybox.walls.facade;
+  for (const [owner, count] of triangles) {
+    const budget = owner === facade.owner ? facade.triangleBudget : ROOM_TRIANGLE_BUDGET;
+    assert.ok(count <= budget, `${owner}: ${count} triangles (budget ${budget})`);
+  }
 });
 
 test("touching rooms build their half wall inward, so each room sees and lights its own wall", () => {

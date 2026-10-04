@@ -56,6 +56,78 @@
       "notes": "Both leaves of a solid panelled classroom door (no frame), rectified; one texture = whole double door."
     },
     {
+      "id": "facade-plaster",
+      "group": "mp",
+      "file": "textures/mp/facade-plaster.png",
+      "px": [
+        512,
+        512
+      ],
+      "sizeM": [
+        2.257,
+        3.388
+      ],
+      "tiling": "repeat",
+      "kind": "outdoor",
+      "source": "reference/matterport/panoramas/dvur_boulder/c.jpg",
+      "license": "derived from the school's Matterport tour (reference/matterport, see ASSETS.md); non-commercial school project",
+      "notes": "Smooth cream façade plaster of the courtyard (plain yellow wall above the boulder roof left of the drainpipe, ~41 px/m), lighting flattened, coloured like the school's own courtyard façade (plain band under the cornice of dvur_boulder/b). Upper floors of the façade skin (FEEDBACK 2026-10-04: grey building). Measured: recoloured to rgb(209,200,190) from reference/matterport/panoramas/dvur_boulder/b.jpg."
+    },
+    {
+      "id": "facade-plinth",
+      "group": "mp",
+      "file": "textures/mp/facade-plinth.png",
+      "px": [
+        512,
+        256
+      ],
+      "sizeM": [
+        2.114,
+        0.75
+      ],
+      "tiling": "repeat",
+      "kind": "outdoor",
+      "source": "reference/matterport/views/fasada_vchod.jpg",
+      "license": "derived from the school's Matterport tour (reference/matterport, see ASSETS.md); non-commercial school project",
+      "notes": "One rough-stippled plinth block (bosáž) right of the main entrance, Josefská street, rectified with its smooth margin and the chamfered joint, so the tiling repeats block, joint, block. Plinth of the façade skin."
+    },
+    {
+      "id": "facade-rustication",
+      "group": "mp",
+      "file": "textures/mp/facade-rustication.png",
+      "px": [
+        512,
+        512
+      ],
+      "sizeM": [
+        1.186,
+        2.82
+      ],
+      "tiling": "repeat",
+      "kind": "outdoor",
+      "source": "reference/matterport/panoramas/dvur_boulder/b.jpg",
+      "license": "derived from the school's Matterport tour (reference/matterport, see ASSETS.md); non-commercial school project",
+      "notes": "Banded rustication (bosáž) of the school's courtyard ground floor between two barred windows, ~48.5 px/m (window 68 px ≈ 1.4 m); the sample is 8 groove periods (17.1 px ≈ 0.35 m) plus the seam blend, so the grooves tile vertically. Ground floor of the façade skin."
+    },
+    {
+      "id": "facade-window",
+      "group": "mp",
+      "file": "textures/mp/facade-window.png",
+      "px": [
+        256,
+        512
+      ],
+      "sizeM": [
+        1.4,
+        2.4
+      ],
+      "tiling": "clamp",
+      "kind": "outdoor",
+      "source": "reference/matterport/panoramas/dvur_boulder/b.jpg",
+      "license": "derived from the school's Matterport tour (reference/matterport, see ASSETS.md); non-commercial school project",
+      "notes": "A 2nd-floor courtyard window of the school (casement with transom, white frame) inside its reveal, rectified; the daylit panes are darkened to night glass (nightGlass), the frames stay light. Painted windows on blank stretches of the façade skin."
+    },
+    {
       "id": "floor-checker",
       "group": "mp",
       "file": "textures/mp/floor-checker.png",

@@ -27,7 +27,12 @@
     "chalkboard": "#1d3f3a",
     "chalk": "#e6e8c6",
     "glass": "#b7e8f4",
-    "paper": "#fff6dc"
+    "paper": "#fff6dc",
+    "facade": "#e6cf9e",
+    "facadeDark": "#c4a372",
+    "facadeTrim": "#efe4c8",
+    "facadePlinth": "#a89478",
+    "roof": "#6a6660"
   },
   "accent": {
     "red": "#ed5564",
@@ -93,7 +98,7 @@
     "ambientGround": "#0e0c0b",
     "moonFill": "#3a4864",
     "moonGround": "#2a2c36",
-    "facadeGround": "#1c2436"
+    "facadeGround": "#5a4530"
   },
   "fog": {
     "night": "#10141c",

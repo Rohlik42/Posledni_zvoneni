@@ -110,7 +110,10 @@ export class Level {
 
   /**
    * The room a world point lies in: its plan rectangle contains the point and its floor is the highest one at most
-   * `floorTolerance` m above the point (stairwells overlap on all floors). Null outside every room.
+   * `floorTolerance` m above the point (stairwells overlap on all floors). A room whose storey (up to the floor above,
+   * less the same tolerance) lies wholly below the point does not count: a door leaf hinged in a wall gap on the 2nd
+   * floor fell into the 1st-floor corridor under it, two floors down, and room culling never drew it (FEEDBACK
+   * 2026-10-04, invisible red door at the top of the middle stair). Null outside every room.
    */
   roomAt(position: Vec3Like, floorTolerance: number): string | null {
     const x = position.x;
@@ -121,6 +124,7 @@ export class Level {
       if (x < r.x0 || x > r.x1 || z < r.z0 || z > r.z1) continue;
       const floorY = this.layout.floorY(room);
       if (floorY > position.y + floorTolerance) continue;
+      if (position.y >= this.layout.storeyTop(room) - floorTolerance) continue;
       if (best === null || floorY > best.floorY) best = { id: room.id, floorY };
     }
     return best?.id ?? null;

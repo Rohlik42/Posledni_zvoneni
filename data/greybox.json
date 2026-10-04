@@ -7,8 +7,21 @@
     "maxNeighbourGap": 1.5,
     "touchEpsilon": 0.03,
     "exteriorRoomWallHeight": 9,
-    "//facade": "Vnější slupka obvodových zdí (FEEDBACK „světelnost“): tenký kvádr vně každého kusu obvodové zdi, sloučený pod vlastním vlastníkem a osvětlený jen měsícem (lights.moon), takže fasáda druhého křídla je z okna vidět jako tmavě modrá omítka, ne černý blok.",
-    "facade": { "material": "wall-plaster", "thickness": 0.02, "owner": "facade" }
+    "//facade": "Vnější slupka obvodových zdí (FEEDBACK „světelnost“ + 2026-10-04 „budova je zvenku šedivá“, src/level/FacadeBuilder.ts): tenké kvádry vně každé obvodové zdi pod vlastníkem owner, osvětlené jen měsícem (lights.moon). Pásy podle výšky (bands: pod top m světa materiál — sokl z bosáže, bosáž přízemí, nad tím omítka material), kordonová římsa (stringCourse) nad každou podlahou kromě nejnižší (výšky from/to vůči podlaze patra, protrude ze zdi), hlavní římsa (mainCornice, vůči horní hraně zdi) a plochá střecha (roof) tam, kde nad místností nic nestojí, šambrány kolem venkovních oken (surround: ostění a nadpraží width, parapetní římsa sill, nadokenní římsa cap), malovaná okna (blindWindows: textura okna + šambrána) v řadách po patrech na prázdných úsecích, a slupka protažená až k zemi (groundY) pod místnostmi, pod kterými v levelu nic není (nemodelovaná nižší patra; massingClearance = jak blízko smí být místnost nižšího patra). triangleBudget = rozpočet trojúhelníků celé fasády (jeden vlastník, pár sloučených meshů; místnost má 20k).",
+    "facade": {
+      "material": "facade-plaster",
+      "thickness": 0.02,
+      "owner": "facade",
+      "bands": [{ "top": 0.5, "material": "facade-plinth" }, { "top": 5.0, "material": "facade-rustication" }],
+      "groundY": -1.0,
+      "massingClearance": 1.2,
+      "stringCourse": { "material": "facade-trim", "steps": [{ "from": 0.45, "to": 0.6, "protrude": 0.06 }, { "from": 0.6, "to": 0.85, "protrude": 0.14 }] },
+      "mainCornice": { "material": "facade-trim", "steps": [{ "from": -0.6, "to": -0.3, "protrude": 0.1 }, { "from": -0.3, "to": 0.05, "protrude": 0.22 }, { "from": 0.05, "to": 0.4, "protrude": 0.38 }] },
+      "roof": { "material": "facade-roof", "lift": 0.3, "thickness": 0.1, "overhang": 0.62 },
+      "surround": { "material": "facade-trim", "width": 0.16, "protrude": 0.06, "sill": { "height": 0.08, "protrude": 0.12, "overhang": 0.1 }, "cap": { "height": 0.14, "protrude": 0.12, "overhang": 0.1 } },
+      "blindWindows": { "material": "facade-window", "width": 1.4, "height": 2.4, "sill": 0.9, "spacing": 3.2, "margin": 0.9, "offset": 0.01 },
+      "triangleBudget": 40000
+    }
   },
   "slabs": {
     "floorThickness": 0.3,
@@ -55,7 +68,7 @@
     "rangeScale": 1.5,
     "dynamicFloorTolerance": 0.6,
     "//moon": "Měsíc na fasádě (walls.facade): polokulové světlo jen na vnější slupce obvodových zdí; color shora ze směru direction, ground zespodu. Dovnitř místností nesvítí.",
-    "moon": { "color": "light.moon", "ground": "light.facadeGround", "intensity": 0.6, "direction": [0.35, 1, -0.25] },
+    "moon": { "color": "light.moon", "ground": "light.facadeGround", "intensity": 1.0, "direction": [0.35, 1, -0.25] },
     "fixtures": {
       "fluorescent": { "size": [1.2, 0.06, 0.2], "emissive": 2.2 },
       "emergency": { "size": [0.3, 0.12, 0.08], "emissive": 3.0 },

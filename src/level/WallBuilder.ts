@@ -1,3 +1,4 @@
+import type { FacadeBuilder } from "./FacadeBuilder";
 import type { GreyboxData } from "./GreyboxConfig";
 import type { PieceSink } from "./GreyboxTypes";
 import { LevelLayout, type RoomSide, type SideOpening, type SideSegment } from "./LevelLayout";
@@ -22,6 +23,7 @@ export class WallBuilder {
     private readonly sink: PieceSink,
     private readonly railings: RailingBuilder,
     private readonly openings: OpeningBuilder,
+    private readonly facade: FacadeBuilder,
   ) {}
 
   build(): void {
@@ -29,6 +31,7 @@ export class WallBuilder {
       this.slabs(room);
       for (const side of this.layout.sides(room)) this.side(room, side);
     }
+    this.facade.roofs();
   }
 
   private slabs(room: Room): void {
@@ -73,6 +76,8 @@ export class WallBuilder {
       const start = i === 0 ? segment.a0 - this.extension(room, side, segment, -1) : segment.a0;
       const end = i === segments.length - 1 ? segment.a1 + this.extension(room, side, segment, 1) : segment.a1;
       this.wall(room, side, start, end, segment, openings);
+      // The outside of a perimeter wall (FEEDBACK „světelnost“, 2026-10-04 „budova je zvenku šedivá“).
+      if (segment.neighbour === null && !segment.inward && !this.layout.isExterior(room)) this.facade.stretch(room, side, segment, start, end, openings);
     });
     for (const opening of openings) {
       if (opening.window === undefined) continue;
@@ -121,22 +126,6 @@ export class WallBuilder {
       visible: true,
       collide: true,
       role: "wall",
-    });
-    if (segment.neighbour === null && !segment.inward && !this.layout.isExterior(room)) this.facade(side, segment, along, a1 - a0, y, vertical);
-  }
-
-  /** The moonlit outer skin of a perimeter wall piece (`walls.facade`): outside the wall, drawn only, carved last. */
-  private facade(side: RoomSide, segment: SideSegment, along: number, length: number, y: number, vertical: number): void {
-    const { material, thickness, owner } = this.data.walls.facade;
-    const across = side.line + WallBuilder.direction(side, segment) * (segment.thickness + thickness / 2);
-    this.sink.box({
-      owner,
-      material,
-      center: side.axis === "x" ? LevelLayout.toWorld(across, y, along) : LevelLayout.toWorld(along, y, across),
-      size: side.axis === "x" ? { x: thickness, y: vertical, z: length } : { x: length, y: vertical, z: thickness },
-      visible: true,
-      collide: false,
-      role: "fill",
     });
   }
 

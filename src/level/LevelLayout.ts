@@ -100,6 +100,11 @@ export class LevelLayout {
     return this.floorY(room) + (room.ceilingHeight ?? this.floor(room.floor).ceilingHeight);
   }
 
+  /** Where the storey of a room ends: its ceiling plus the slab of the floor above (the next floor level). */
+  storeyTop(room: Room): number {
+    return this.ceilingY(room) + this.floor(room.floor).slabThickness;
+  }
+
   isExterior(room: Room): boolean {
     return room.type === "exterier";
   }

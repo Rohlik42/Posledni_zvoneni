@@ -24,6 +24,12 @@
     "burnt": { "texture": "ph-burnt", "tint": "base.soot", "tintStrength": 0.35, "uvScale": 0.5, "fallback": { "pattern": "noise", "colors": ["base.soot", "accent.rust"], "sizeM": 0.5 } },
     "cable": { "texture": "ph-rust", "tint": "base.soot", "tintStrength": 0.8, "uvScale": 0.2, "fallback": { "pattern": "noise", "colors": ["base.soot", "base.ash"], "sizeM": 0.3 } },
     "furniture-wood": { "texture": "beam-wood", "tint": "world.wood", "tintStrength": 0.35, "uvScale": 0.6, "fallback": { "pattern": "grid", "colors": ["world.wood", "world.woodDark"], "sizeM": 0.5 } },
+    "facade-plaster": { "texture": "facade-plaster", "tint": "world.facade", "tintStrength": 0.45, "fallback": { "pattern": "noise", "colors": ["world.facade", "world.facadeDark"], "sizeM": 1.5 } },
+    "facade-rustication": { "texture": "facade-rustication", "tint": "world.facadeDark", "tintStrength": 0.5, "fallback": { "pattern": "grid", "colors": ["world.facadeDark", "world.facadePlinth"], "sizeM": 0.35 } },
+    "facade-plinth": { "texture": "facade-plinth", "tint": "world.facadePlinth", "tintStrength": 0.55, "fallback": { "pattern": "grid", "colors": ["world.facadePlinth", "world.facadeDark"], "sizeM": 0.75 } },
+    "facade-trim": { "texture": "facade-plaster", "tint": "world.facadeTrim", "tintStrength": 0.5, "uvScale": 0.4, "fallback": { "pattern": "noise", "colors": ["world.facadeTrim", "world.facade"], "sizeM": 0.5 } },
+    "facade-window": { "texture": "facade-window", "tint": "base.white", "tintStrength": 0, "fallback": { "pattern": "grid", "colors": ["base.soot", "world.facadeTrim"], "sizeM": 0.7 } },
+    "facade-roof": { "texture": "ph-concrete", "tint": "world.roof", "tintStrength": 0.45, "fallback": { "pattern": "noise", "colors": ["world.roof", "base.soot"], "sizeM": 1.0 } },
     "furniture-metal": { "texture": "ph-metal", "tint": "world.metal", "tintStrength": 0.5, "fallback": { "pattern": "noise", "colors": ["world.metal", "world.steel"], "sizeM": 0.5 } }
   }
 }

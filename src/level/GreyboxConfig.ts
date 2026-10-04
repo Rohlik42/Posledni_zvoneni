@@ -18,6 +18,50 @@ export interface DecalData {
   lift: number;
 }
 
+/** A horizontal moulding stretch (`walls.facade`): from `from` to `to` m relative to its reference height, `protrude` m out of the wall. */
+export interface MouldingStep {
+  from: number;
+  to: number;
+  protrude: number;
+}
+
+/**
+ * The outside of the school (FEEDBACK 2026-10-04 „budova je zvenku šedivá“): the moonlit skin of the perimeter walls in
+ * bands by height, string courses at the floor lines, a main cornice and a roof where nothing stands above, stone
+ * surrounds around the exterior windows, painted windows on blank stretches, and the skin carried down to the ground
+ * under rooms that have no rooms below them (the unmodelled lower storeys).
+ */
+export interface FacadeData {
+  /** Plaster above the bands. */
+  material: string;
+  thickness: number;
+  owner: string;
+  /** From the bottom up: below `top` (absolute y) the skin uses `material` (plinth, rusticated ground floor). */
+  bands: { top: number; material: string }[];
+  /** Where the skin carried down under a room ends (absolute y). */
+  groundY: number;
+  /** Rooms on lower floors closer than this to a wall stop the skin from going down there (m). */
+  massingClearance: number;
+  /** One moulding at every floor line above the lowest floor, heights relative to the floor elevation. */
+  stringCourse: { material: string; steps: MouldingStep[] };
+  /** Moulding at the top of a wall nothing stands on, heights relative to the wall top. */
+  mainCornice: { material: string; steps: MouldingStep[] };
+  /** Flat roof over a room with no room above: `lift` above its wall top, `thickness`, reaching `overhang` past the rectangle. */
+  roof: { material: string; lift: number; thickness: number; overhang: number };
+  /** Window surround (šambrána): jambs and head `width` wide, sill ledge and cap moulding. */
+  surround: {
+    material: string;
+    width: number;
+    protrude: number;
+    sill: { height: number; protrude: number; overhang: number };
+    cap: { height: number; protrude: number; overhang: number };
+  };
+  /** Painted windows (texture quad + surround) on blank stretches, a row per storey: sill above the floor elevation. */
+  blindWindows: { material: string; width: number; height: number; sill: number; spacing: number; margin: number; offset: number };
+  /** Triangles of the whole outside of the building (one owner, a few merged meshes; a room has 20k). */
+  triangleBudget: number;
+}
+
 export type BlockerKind = "rubble" | "collapsed-ceiling";
 export type LightKind = "fluorescent" | "emergency" | "fire";
 
@@ -33,7 +77,7 @@ export interface GreyboxData {
      * exterior wall piece, merged under its own `owner` and lit only by `lights.moon`, so the façade is moonlit while
      * the room side of the wall keeps its lamps.
      */
-    facade: { material: string; thickness: number; owner: string };
+    facade: FacadeData;
   };
   slabs: { floorThickness: number; ceilingThickness: number; ceilingMaterial: string };
   stairs: { material: string; targetRise: number; soffit: number; landingThickness: number; colliderThickness: number; boundsEpsilon: number };
@@ -77,6 +121,30 @@ export interface GreyboxData {
 const LENGTH = Schema.number({ min: 0 });
 const POSITIVE = Schema.number({ min: 0.001 });
 const FIXTURE = Schema.object({ size: Schema.vec3(), emissive: LENGTH });
+const MOULDING = Schema.object({ material: Schema.string(), steps: Schema.array(Schema.object({ from: Schema.number(), to: Schema.number(), protrude: POSITIVE }), 1) });
+const LEDGE = Schema.object({ height: POSITIVE, protrude: POSITIVE, overhang: LENGTH });
+const FACADE = Schema.object({
+  material: Schema.string(),
+  thickness: POSITIVE,
+  owner: Schema.string(),
+  bands: Schema.array(Schema.object({ top: Schema.number(), material: Schema.string() })),
+  groundY: Schema.number(),
+  massingClearance: LENGTH,
+  stringCourse: MOULDING,
+  mainCornice: MOULDING,
+  roof: Schema.object({ material: Schema.string(), lift: LENGTH, thickness: POSITIVE, overhang: LENGTH }),
+  surround: Schema.object({ material: Schema.string(), width: POSITIVE, protrude: POSITIVE, sill: LEDGE, cap: LEDGE }),
+  blindWindows: Schema.object({
+    material: Schema.string(),
+    width: POSITIVE,
+    height: POSITIVE,
+    sill: LENGTH,
+    spacing: POSITIVE,
+    margin: LENGTH,
+    offset: POSITIVE,
+  }),
+  triangleBudget: Schema.integer({ min: 1 }),
+});
 
 /** Typed loader for `data/greybox.json` (parameters of the level geometry generator). */
 export class GreyboxConfig {
@@ -89,7 +157,7 @@ export class GreyboxConfig {
       maxNeighbourGap: POSITIVE,
       touchEpsilon: LENGTH,
       exteriorRoomWallHeight: POSITIVE,
-      facade: Schema.object({ material: Schema.string(), thickness: POSITIVE, owner: Schema.string() }),
+      facade: FACADE,
     }),
     slabs: Schema.object({ floorThickness: POSITIVE, ceilingThickness: POSITIVE, ceilingMaterial: Schema.string() }),
     stairs: Schema.object({

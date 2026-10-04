@@ -29,6 +29,7 @@ import {
 import { updateIndex, type TextureEntry, type Tiling } from "./lib/TextureIndex";
 
 const CONFIG_PATH = "tools/matterport-textures.json";
+const LUMA = [0.299, 0.587, 0.114] as const;
 
 interface Processing {
   outPx: [number, number];
@@ -46,6 +47,16 @@ interface Processing {
   rotate: number;
 }
 
+/**
+ * Night glass (FEEDBACK 2026-10-04, façade windows): pixels darker than `pivot` luma (the daylit panes) are scaled by
+ * `gain`, fading to no change over `width` below the pivot, so the white frames stay and the panes go dark.
+ */
+interface NightGlass {
+  pivot: number;
+  width: number;
+  gain: number;
+}
+
 interface SpecBase extends Partial<Processing> {
   id: string;
   kind: string;
@@ -58,6 +69,7 @@ interface SpecBase extends Partial<Processing> {
   sizeM?: [number, number];
   /** Keep the photo grain but take the colour from another reference area (median colour of `rect`). */
   recolourFrom?: { src: string; rect: Rect };
+  nightGlass?: NightGlass;
 }
 
 interface CropSpec extends SpecBase {
@@ -180,6 +192,19 @@ async function buildLines(spec: LinesSpec, cfg: Processing, outDir: string, lice
   ];
 }
 
+/** Darkens the pixels below `pivot` luma (see `NightGlass`). */
+function darkenBelow(img: Img, { pivot, width, gain }: NightGlass): Img {
+  const out = { ...img, d: Float32Array.from(img.d) };
+  for (let p = 0; p < img.w * img.h; p++) {
+    const i = p * img.c;
+    const l = LUMA[0] * (img.d[i] ?? 0) + LUMA[1] * (img.d[i + 1] ?? 0) + LUMA[2] * (img.d[i + 2] ?? 0);
+    const t = Math.min(1, Math.max(0, (l - (pivot - width)) / width));
+    const factor = gain + (1 - gain) * t * t * (3 - 2 * t);
+    for (let k = 0; k < 3; k++) out.d[i + k] = (img.d[i + k] ?? 0) * factor;
+  }
+  return out;
+}
+
 function round3(v: number): number {
   return Math.round(v * 1000) / 1000;
 }
@@ -202,6 +227,7 @@ async function build(spec: Spec, defaults: Processing, outDir: string, license: 
   }
   if (cfg.flattenSigma > 0) img = await flatten(img, cfg.flattenSigma, cfg.flattenStrength);
   img = adjust(img, cfg.brightness, cfg.contrast, cfg.saturation);
+  if (spec.nightGlass) img = darkenBelow(img, spec.nightGlass);
   const repeats = spec.tiling === "repeat" || spec.tiling === "repeat-x";
   if (repeats && cfg.seamBlend > 0 && spec.method !== "fold") {
     const before = [img.w, img.h];

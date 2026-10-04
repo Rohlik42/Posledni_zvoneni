@@ -78,3 +78,10 @@ Zapracováno 2026-10-04 (příčinou na Vysoké byla výměna stínových map la
 ## 2026-10-04 — railgun
 - „Nabíjení z railgunu dáme pryč. Je to zajímavé, ale nedá se s tím hrát. Pojďme udělat normálně okamžitý výstřel a pak velkou cooldown jako v Quake 3… chvilku cooldown, rozumně.“ Zapracováno 2026-10-04 (okamžitý výstřel, prodleva 1,2 s, cívky ukazují připravenost).
 - „Necháme ten railgun 1,5 a ty cívky hrozně svítí. Dej je tmavší i když jsou na max, a ať po výstřelu zhasne pořádně všechno. Nech svítit jenom tu cívku vepředu, další bloky u ruky ať nesvítí.“ Zapracováno 2026-10-04.
+
+## 2026-10-04 — neviditelné dveře a šedivá budova zvenku
+
+- „První schodiště nahoře má neviditelné dveře, které musím otevřít. Buď tam nemají být, nebo ať jsou vidět.“
+- „Budova školy je zvenku šedivá, což je vidět pohledem z okna. Musíme aplikovat nějaké textury.“
+
+Zapracováno 2026-10-04 (neviditelné byly červené dveře `d-f4-stair-mid` nahoře na prostředním schodišti a stejně tak žluté `d-f3-yellow`: dvoukřídlé dveře mají panty ve spáře mezi místnostmi a vyhledání místnosti je zařadilo do chodby vstupního podlaží o dvě patra níž, takže je ořezávání místností nikdy nevykreslilo, zatímco kolize zavřených dveří zůstala; `Level.roomAt` už nebere místnost, nad jejímž patrem bod leží; dveře zůstávají, protože jsou zámkem červeného klíče; test `tests/e2e/doors-visible.spec.ts` u všech dveří z obou stran, snímky `screenshots/door-stair-top-before.png` / `-after.png`. Fasáda: textury z fotek školy z Matterportu — omítka, pásová bosáž přízemí a sokl z kvádrů bosáže, kordonové římsy u každého patra, hlavní římsa a střecha, šambrány s parapetní a nadokenní římsou kolem venkovních oken, malovaná okna v řadách na prázdných stěnách a fasáda protažená k zemi pod místnostmi, pod kterými level nic nemá; dál svítí jen měsíc a záře města zespodu; `src/level/FacadeBuilder.ts`, test `tests/data/facade.test.ts`, snímky `screenshots/exterior-from-ucebna30-before.png` / `-after.png`, `exterior-from-fyzika-before.png` / `-after.png`, rozhodnutí v DECISIONS „FEEDBACK 2026-10-04 — Neviditelné dveře a fasáda školy“)

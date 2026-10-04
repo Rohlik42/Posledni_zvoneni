@@ -473,6 +473,180 @@
       ],
       "colours": 32,
       "notes": "View from the roof terrace over Malá Strana roofs to St Nicholas; billboard behind window glass (not tiling). Phase 19 darkens/tints it for the night setting."
+    },
+    {
+      "id": "facade-plaster",
+      "kind": "outdoor",
+      "tiling": "repeat",
+      "method": "quad",
+      "src": "reference/matterport/panoramas/dvur_boulder/c.jpg",
+      "quad": [
+        [
+          862,
+          12
+        ],
+        [
+          968,
+          12
+        ],
+        [
+          968,
+          172
+        ],
+        [
+          862,
+          172
+        ]
+      ],
+      "samplePx": [
+        212,
+        320
+      ],
+      "sizeM": [
+        2.6,
+        3.9
+      ],
+      "recolourFrom": {
+        "src": "reference/matterport/panoramas/dvur_boulder/b.jpg",
+        "rect": [
+          240,
+          75,
+          270,
+          55
+        ]
+      },
+      "flattenSigma": 30,
+      "flattenStrength": 1,
+      "contrast": 1.6,
+      "colours": 16,
+      "notes": "Smooth cream façade plaster of the courtyard (plain yellow wall above the boulder roof left of the drainpipe, ~41 px/m), lighting flattened, coloured like the school's own courtyard façade (plain band under the cornice of dvur_boulder/b). Upper floors of the façade skin (FEEDBACK 2026-10-04: grey building)."
+    },
+    {
+      "id": "facade-rustication",
+      "kind": "outdoor",
+      "tiling": "repeat",
+      "method": "quad",
+      "src": "reference/matterport/panoramas/dvur_boulder/b.jpg",
+      "quad": [
+        [
+          610,
+          392
+        ],
+        [
+          676,
+          392
+        ],
+        [
+          676,
+          549.3
+        ],
+        [
+          610,
+          549.3
+        ]
+      ],
+      "samplePx": [
+        132,
+        314
+      ],
+      "sizeM": [
+        1.361,
+        3.243
+      ],
+      "flattenSigma": 20,
+      "flattenStrength": 1,
+      "contrast": 1.8,
+      "colours": 12,
+      "notes": "Banded rustication (bosáž) of the school's courtyard ground floor between two barred windows, ~48.5 px/m (window 68 px ≈ 1.4 m); the sample is 8 groove periods (17.1 px ≈ 0.35 m) plus the seam blend, so the grooves tile vertically. Ground floor of the façade skin."
+    },
+    {
+      "id": "facade-plinth",
+      "kind": "outdoor",
+      "tiling": "repeat",
+      "method": "quad",
+      "src": "reference/matterport/views/fasada_vchod.jpg",
+      "quad": [
+        [
+          810,
+          592
+        ],
+        [
+          1358,
+          589
+        ],
+        [
+          1388,
+          792
+        ],
+        [
+          820,
+          768
+        ]
+      ],
+      "samplePx": [
+        512,
+        184
+      ],
+      "sizeM": [
+        2.2,
+        0.78
+      ],
+      "outPx": [
+        512,
+        256
+      ],
+      "seamBlend": 0.04,
+      "flattenSigma": 25,
+      "flattenStrength": 0.8,
+      "contrast": 1.25,
+      "colours": 16,
+      "notes": "One rough-stippled plinth block (bosáž) right of the main entrance, Josefská street, rectified with its smooth margin and the chamfered joint, so the tiling repeats block, joint, block. Plinth of the façade skin."
+    },
+    {
+      "id": "facade-window",
+      "kind": "outdoor",
+      "tiling": "clamp",
+      "method": "quad",
+      "src": "reference/matterport/panoramas/dvur_boulder/b.jpg",
+      "quad": [
+        [
+          524,
+          158
+        ],
+        [
+          592,
+          158
+        ],
+        [
+          592,
+          286
+        ],
+        [
+          524,
+          286
+        ]
+      ],
+      "samplePx": [
+        136,
+        256
+      ],
+      "sizeM": [
+        1.4,
+        2.4
+      ],
+      "outPx": [
+        256,
+        512
+      ],
+      "flattenSigma": 0,
+      "contrast": 1.15,
+      "colours": 24,
+      "nightGlass": {
+        "pivot": 250,
+        "width": 55,
+        "gain": 0.3
+      },
+      "notes": "A 2nd-floor courtyard window of the school (casement with transom, white frame) inside its reveal, rectified; the daylit panes are darkened to night glass (nightGlass), the frames stay light. Painted windows on blank stretches of the façade skin."
     }
   ]
 }

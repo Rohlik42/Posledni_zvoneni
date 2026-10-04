@@ -18,6 +18,7 @@ import type { NavMeshService } from "./NavMeshService";
 import type { RoomLighting } from "./RoomLighting";
 
 const DEG_TO_RAD = Math.PI / 180;
+const TRIANGLE_INDICES = 3;
 
 /** A body standing somewhere (feet, capsule radius and height) that a closing door must not trap. */
 export interface DoorOccupant {
@@ -62,6 +63,23 @@ export interface DoorsTestApi {
   readonly hint: string | null;
   /** Messages shown so far (newest last). */
   messages: () => string[];
+  /** Render state of a door's leaf meshes in the last rendered frame (FEEDBACK: no invisible doors). */
+  leafRender: (id: string) => DoorLeafRender[];
+}
+
+/** One leaf mesh of a door as the renderer saw it in the last frame. */
+export interface DoorLeafRender {
+  name: string;
+  enabled: boolean;
+  visible: boolean;
+  visibility: number;
+  /** Material alpha (1 = opaque), or -1 without a material. */
+  alpha: number;
+  materialReady: boolean;
+  /** In the active mesh list of the last rendered frame (passed room culling and frustum culling). */
+  active: boolean;
+  /** Number of triangles drawn for it (0 = an empty mesh). */
+  triangles: number;
 }
 
 declare module "../core/TestHooks" {
@@ -305,6 +323,20 @@ export class DoorSystem {
     };
   }
 
+  private leafRender(door: Door): DoorLeafRender[] {
+    const active = new Set(this.game.scene.getActiveMeshes().data);
+    return door.meshes.map((mesh) => ({
+      name: mesh.name,
+      enabled: mesh.isEnabled(),
+      visible: mesh.isVisible,
+      visibility: mesh.visibility,
+      alpha: mesh.material?.alpha ?? -1,
+      materialReady: mesh.material?.isReady(mesh) ?? false,
+      active: active.has(mesh),
+      triangles: mesh.getTotalIndices() / TRIANGLE_INDICES,
+    }));
+  }
+
   private registerTestHooks(): void {
     const system = this;
     const find = (id: string): Door => {
@@ -332,6 +364,7 @@ export class DoorSystem {
         return system.hint;
       },
       messages: () => [...system.log],
+      leafRender: (id) => system.leafRender(find(id)),
     });
   }
 }
