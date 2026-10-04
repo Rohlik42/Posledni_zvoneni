@@ -446,6 +446,8 @@ Quick gate: výchozí. Lokálně `npm run build && npx vite preview`, plus jedno
 **Do not**
 Push. Úpravy Settings repozitáře.
 
+**Done 2026-10-04** (handoff `handoff/phase-23.md`). `.github/workflows/pages.yml`: push do `main` nebo ruční spuštění → `npm ci`, `npm run build -- --base "<Pages base_path>/"`, webové soubory `legacy/` do `dist/legacy/`, `.nojekyll`, `upload-pages-artifact` + `deploy-pages`. Ověřeno lokálně stejnými kroky a `vite preview --base /Posledni_zvoneni/` na :5303: build bez varování, hra nastartuje (webgpu, Havok WASM a recast z `/Posledni_zvoneni/assets/`, navmesh 474 trojúhelníků, skybox, 46 textur), Zdroje vypisují 26 řádků ASSETS.md a odkaz vede na `/Posledni_zvoneni/legacy/index.html`, kde stará hra běží, výběr obtížnosti ukazuje 5 portrétů + rovnici, Ultrašprt načte stránku znovu pod podcestou (`?new=1&difficulty=ultra` → `/Posledni_zvoneni/`, 120 životů), `/dev/?scene=skybox` bez chyb; žádná chyba v konzoli ani 404. Odchylky od litery: CI staví s absolutní base místo `./` (`./` hru pod podcestou zvládne, ověřeno, ale dev scény pod `/dev/` by nenašly textury); `vite.config.ts` beze změny; dev scény se nasazují pod `/dev/`; do `dist/legacy/` jdou jen soubory pro prohlížeč. Nepushnuto.
+
 ## Phase 24 — DoD audit
 
 **Implement**
@@ -488,5 +490,5 @@ Opravovat z-fighting posunem kamery nebo vypnutím depth testu. Používat jiné
 - Zahrát celý level po fázi Visual pass a zapsat zpětnou vazbu do FEEDBACK.md
 - Ověřit výkon na Ryzen AI notebooku (60 fps Vysoké) a na slabém notebooku (30 fps Nízké); výsledek do FEEDBACK.md
 - Tauri build pro Windows a Mac (DESIGN §10 krok 8): potřebuje Rust toolchain, mimo noční smyčku
-- Po fázi Deploy: pushnout `main` a v GitHub Settings → Pages nastavit zdroj „GitHub Actions“
+- Po fázi Deploy (fáze 23 hotová): pushnout `main` a v GitHub Settings → Pages přepnout zdroj na „GitHub Actions“; pak v záložce Actions zkontrolovat běh „Deploy na GitHub Pages“ a otevřít https://rohlik42.github.io/Posledni_zvoneni/ (hra, Zdroje → stará verze na `/legacy/`, galerie na `/dev/?scene=gallery`)
 - Projít kvízové otázky (data/quiz.json) a případně upravit; zkontrolovat, že jména učitelů jsou v pořádku k veřejnému zveřejnění
