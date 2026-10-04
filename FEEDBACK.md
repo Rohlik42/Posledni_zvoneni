@@ -60,3 +60,6 @@ Zapracováno 2026-10-04 (učitelé jsou zase z kostiček jako dřív — `Proced
 
 ## 2026-10-04 — domalovat panorama pod střechami
 - „Připojil jsi spodní část fasády, ale k té horní vůbec nesedí… spíš horní část chytře doplnit pomocí image generation modelu.“ Zapracováno 2026-10-04 (Gemini Nano Banana 2 outpainting, `tools/outpaint-skyline.ts`).
+
+## 2026-10-04 — šedá vrstva pod panoramatem, generovat přes Codex
+- „Pod původním panoramatem je taková rozmazaná tenká šedá vrstva… je potřeba nejdřív oříznout nebo explicitně přegenerovat. Máme subscription do Codexu, ten umí generovat images.“ Zapracováno 2026-10-04 (Codex backend, maska 0,9° nad atikou, pás bez oparu od atiky + 0,6°).

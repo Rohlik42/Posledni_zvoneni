@@ -120,6 +120,8 @@ interface Config {
   };
   /** The city painted in below the parapet (FEEDBACK 2026-10-04) instead of plain haze: tools/outpaint-skyline.ts config. */
   skyline?: string;
+  /** The painted city replaces the photo from curve + topDeg (fully from curve + fullDeg) downwards: it repaints the parapet. */
+  skylineEdge?: { topDeg: number; fullDeg: number };
   /** Where to write the parapet curve (input of tools/outpaint-skyline.ts). */
   curveOut?: string;
 }
@@ -381,7 +383,8 @@ function injectSkyline(strip: Buffer, band: SkylineBand, curve: Float64Array): F
     for (let sx = 0; sx < SW; sx++) {
       const k = Math.floor((sx - PAD) / N);
       const { az, el } = sideAngles(k, sx - PAD - k * N, y);
-      const below = smoothstep(curveAt(curve, az) + parapet.aboveDeg, curveAt(curve, az) - parapet.bandDeg, el);
+      const edge = config.skylineEdge ?? { topDeg: parapet.aboveDeg, fullDeg: -parapet.bandDeg };
+      const below = smoothstep(curveAt(curve, az) + edge.topDeg, curveAt(curve, az) + edge.fullDeg, el);
       if (below <= 0) continue;
       const hit = band.sample(az, el);
       if (hit === null || hit.alpha <= 0) continue;

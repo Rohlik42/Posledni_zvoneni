@@ -5,8 +5,12 @@
 // painting continues across the overlap; the last view closes the circle. The views are projected back into one
 // equirectangular band (azimuth × elevation) with feathered weights; tools/prague-skybox.ts uses the band below the
 // curve and grades it to night with the rest.
-// Run: npm run tool tools/outpaint-skyline.ts [--regenerate]   (needs GEMINI_API_KEY only for views not in cacheDir)
+// Backends: "codex" (Codex CLI image generation, ChatGPT subscription; the CLI writes the raw image itself) or "gemini"
+// (GEMINI_API_KEY). Only views missing from cacheDir are generated.
+// Run: npm run tool tools/outpaint-skyline.ts [--regenerate]
+import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { basename, resolve } from "node:path";
 import sharp from "sharp";
 import { CubePanorama, type Vec3 } from "./lib/CubePanorama";
 import { writeIfChanged } from "./lib/ImageOps";
@@ -18,6 +22,7 @@ const RGB = 3;
 const BYTE = 255;
 const API = "https://generativelanguage.googleapis.com/v1beta/models";
 const RETRIES = 3;
+const CODEX_TIMEOUT_MS = 20 * 60 * 1000;
 const WEBP_ALPHA_QUALITY = 100;
 
 interface Config {
@@ -25,11 +30,14 @@ interface Config {
   curve: string;
   out: string;
   cacheDir: string;
+  backend: "codex" | "gemini";
   model: string;
+  codexPrompt: string;
   band: { pxPerDeg: number; elTopDeg: number; elBottomDeg: number };
   view: { width: number; height: number; aspect: string; hfovDeg: number; pitchDeg: number; jpegQuality: number };
   views: { startAzDeg: number; stepDeg: number; count: number };
-  feather: { edgePx: number; aboveCurveDeg: number; alphaWeight: number };
+  /** maskAboveCurveDeg: the mask starts this far above the parapet curve, so the parapet itself is painted over too. */
+  feather: { edgePx: number; aboveCurveDeg: number; alphaWeight: number; maskAboveCurveDeg: number };
   mask: string;
   prompt: string;
   webpQuality: number;
@@ -103,7 +111,7 @@ function renderView(pano: CubePanorama, cam: Camera): Buffer {
       const d: Vec3 = [cam.fwd[0] + u * cam.right[0] + v * cam.up[0], cam.fwd[1] + u * cam.right[1] + v * cam.up[1], cam.fwd[2] + u * cam.right[2] + v * cam.up[2]];
       const az = (Math.atan2(d[0], d[2]) / DEG + FULL_TURN) % FULL_TURN;
       const el = Math.atan2(d[1], Math.hypot(d[0], d[2])) / DEG;
-      const c = el >= curveAt(az) ? pano.sample(d) : (bandSample(az, el) ?? maskRgb);
+      const c = el >= curveAt(az) + config.feather.maskAboveCurveDeg ? pano.sample(d) : (bandSample(az, el) ?? maskRgb);
       const o = (y * W + x) * RGB;
       out[o] = Math.round(c[0]!);
       out[o + 1] = Math.round(c[1]!);
@@ -111,6 +119,23 @@ function renderView(pano: CubePanorama, cam: Camera): Buffer {
     }
   }
   return out;
+}
+
+/** Codex CLI: it edits the input with its image generation tool and saves the raw result to `outputPath` itself. */
+function callCodex(inputPath: string, outputPath: string): void {
+  const prompt = config.codexPrompt.replace("{input}", basename(inputPath)).replace("{output}", basename(outputPath)).replace("{prompt}", config.prompt);
+  for (let attempt = 1; attempt <= RETRIES; attempt++) {
+    const run = spawnSync("codex", ["exec", "--skip-git-repo-check", "-s", "workspace-write", `--image=${basename(inputPath)}`], {
+      cwd: resolve(config.cacheDir),
+      input: prompt,
+      encoding: "utf8",
+      timeout: CODEX_TIMEOUT_MS,
+      maxBuffer: 64 * 1024 * 1024,
+    });
+    if (existsSync(outputPath)) return;
+    console.warn(`outpaint-skyline: codex attempt ${attempt} saved no image (exit ${run.status}): ${(run.stdout + run.stderr).slice(-400)}`);
+  }
+  throw new Error("outpaint-skyline: codex returned no image");
 }
 
 async function callModel(jpeg: Buffer): Promise<Buffer> {
@@ -172,14 +197,17 @@ const { width: W, height: H } = config.view;
 for (let i = 0; i < config.views.count; i++) {
   const az = config.views.startAzDeg + i * config.views.stepDeg;
   const cam = camera(az);
-  const inputPath = `${config.cacheDir}/view-${String(i).padStart(2, "0")}-in.jpg`;
+  // PNG for codex: a JPEG smears the mask edge into half-magenta pixels that the model then keeps.
+  const inputPath = `${config.cacheDir}/view-${String(i).padStart(2, "0")}-in.${config.backend === "codex" ? "png" : "jpg"}`;
   const outputPath = `${config.cacheDir}/view-${String(i).padStart(2, "0")}-out.png`;
-  const input = await sharp(renderView(pano, cam), { raw: { width: W, height: H, channels: RGB } }).jpeg({ quality: config.view.jpegQuality }).toBuffer();
+  const raw = sharp(renderView(pano, cam), { raw: { width: W, height: H, channels: RGB } });
+  const input = await (config.backend === "codex" ? raw.png() : raw.jpeg({ quality: config.view.jpegQuality })).toBuffer();
   writeIfChanged(inputPath, input);
   if (regenerate || !existsSync(outputPath)) {
     const t = Date.now();
-    writeFileSync(outputPath, await callModel(input));
-    console.log(`outpaint-skyline: view ${i} (az ${az % FULL_TURN}°) painted by ${config.model} in ${((Date.now() - t) / 1000).toFixed(1)} s`);
+    if (config.backend === "codex") callCodex(inputPath, outputPath);
+    else writeFileSync(outputPath, await callModel(input));
+    console.log(`outpaint-skyline: view ${i} (az ${az % FULL_TURN}°) painted by ${config.backend === "codex" ? "codex" : config.model} in ${((Date.now() - t) / 1000).toFixed(1)} s`);
   } else console.log(`outpaint-skyline: view ${i} (az ${az % FULL_TURN}°) from cache`);
   const painted = await sharp(outputPath).removeAlpha().resize(W, H, { fit: "fill", kernel: "lanczos3" }).raw().toBuffer();
   accumulate(painted, cam);
