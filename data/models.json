@@ -309,7 +309,7 @@
       ]
     },
     "bfg9000": {
-      "//": "BFG 9000 (zbraň 6): klasický BFG z Dooma (FEEDBACK 2026-10-04, předloha jen jako reference tvaru: sketchfab.com BFG 9000 od ST0PxistingN0W) — hranaté šedé tělo s panely, pažba, pistolová rukojeť, červený indikátor a šedé lamely na boku, zelené průduchy dole ('ventL', 'ventR'), velký čtvercový přední blok se čtyřmi žebry ('rib1'–'rib4') a žlutým rámečkem ústí, v ústí jádro ('core'). Žebra, průduchy a jádro jsou tmavé (slot lens), záři přidává kód barvou neon.plasma z weapons.json → bfg9000.effect: po výstřelu tma, během nabíjení se rozsvěcují, připravené jemně pulzuje, při roztáčení se rozzáří (src/weapons/Bfg9000.ts). Osa = +z, počátek u spouště.",
+      "//": "BFG 9000 (zbraň 6): klasický BFG z Dooma (FEEDBACK 2026-10-04, předloha jen jako reference tvaru: sketchfab.com BFG 9000 od ST0PxistingN0W) — hranaté šedé tělo s panely, pažba, pistolová rukojeť, červený indikátor a šedé lamely na boku, zelené průduchy dole ('ventL', 'ventR'), velký čtvercový přední blok se čtyřmi žebry ('rib1'–'rib4') a žlutým rámečkem ústí, v ústí jádro ('core'). Žebra, průduchy a jádro jsou tmavé (slot lens), záři přidává kód barvou neon.plasma z weapons.json → bfg9000.effect (FEEDBACK 2026-10-04 nabíjení jako v Doomu 3): žebra rib1–rib4 se při držení spouště rozsvěcují po jednom za stupeň odzadu dopředu, jádro a průduchy svítí s nabitím, po výstřelu tma (src/weapons/Bfg9000.ts). Žebra přesahují blok o 7 mm na každé straně, aby byla rozsvícená žebra zezadu vidět. Osa = +z, počátek u spouště.",
       "category": "weapon",
       "defaultVariant": "default",
       "variants": {
@@ -336,10 +336,10 @@
         { "name": "ventR", "shape": "box", "size": [0.006, 0.025, 0.07], "position": [0.0731, -0.05, -0.02], "color": "lens" },
         { "name": "front", "shape": "box", "size": [0.2, 0.19, 0.2], "position": [0, 0.01, 0.25], "color": "body" },
         { "name": "frontUnder", "shape": "box", "size": [0.16, 0.04, 0.12], "position": [0, -0.1, 0.2], "color": "dark" },
-        { "name": "rib1", "shape": "box", "size": [0.206, 0.196, 0.016], "position": [0, 0.01, 0.185], "color": "lens" },
-        { "name": "rib2", "shape": "box", "size": [0.206, 0.196, 0.016], "position": [0, 0.01, 0.215], "color": "lens" },
-        { "name": "rib3", "shape": "box", "size": [0.206, 0.196, 0.016], "position": [0, 0.01, 0.245], "color": "lens" },
-        { "name": "rib4", "shape": "box", "size": [0.206, 0.196, 0.016], "position": [0, 0.01, 0.275], "color": "lens" },
+        { "name": "rib1", "shape": "box", "size": [0.214, 0.204, 0.016], "position": [0, 0.01, 0.185], "color": "lens" },
+        { "name": "rib2", "shape": "box", "size": [0.214, 0.204, 0.016], "position": [0, 0.01, 0.215], "color": "lens" },
+        { "name": "rib3", "shape": "box", "size": [0.214, 0.204, 0.016], "position": [0, 0.01, 0.245], "color": "lens" },
+        { "name": "rib4", "shape": "box", "size": [0.214, 0.204, 0.016], "position": [0, 0.01, 0.275], "color": "lens" },
         { "name": "frame", "shape": "box", "size": [0.21, 0.2, 0.03], "position": [0, 0.01, 0.355], "color": "trim" },
         { "name": "muzzleFace", "shape": "box", "size": [0.16, 0.15, 0.02], "position": [0, 0.01, 0.367], "color": "dark" },
         { "name": "core", "shape": "box", "size": [0.1, 0.09, 0.012], "position": [0, 0.01, 0.377], "color": "lens" }

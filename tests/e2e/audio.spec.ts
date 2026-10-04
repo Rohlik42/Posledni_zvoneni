@@ -55,7 +55,12 @@ const KEY_SOUNDS = [
     "trapBlast",
     "extinguisherHiss",
     "splash",
-    // BFG 9000 (FEEDBACK 2026-10-04): spin-up whine (its fire sound), launch, EMP boom, recharge hum and ready chime.
+    // BFG 9000 (FEEDBACK 2026-10-04): stage whines (stage 1 is its fire sound), deny click, launch, EMP boom,
+    // cooldown hum and ready chime.
+    "bfgCharge2",
+    "bfgCharge3",
+    "bfgCharge4",
+    "bfgDeny",
     "bfgLaunch",
     "bfgBoom",
     "bfgRecharge",

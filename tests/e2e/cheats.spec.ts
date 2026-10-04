@@ -17,7 +17,7 @@ const texts = json<{ cheats: { god: { on: string; off: string }; arsenal: string
   "data/texts.json",
 );
 const weaponsData = json<{
-  weapons: { id: string; enabled: boolean; ammoType?: string; ammo: { capacity: number; reserveMax: number; infiniteReserve?: boolean } }[];
+  weapons: { id: string; enabled: boolean; ammoType?: string; ammo: { capacity: number; reserveMax: number; infiniteReserve?: boolean }; params: Record<string, number> }[];
   ammoTypes: Record<string, { reserveMax: number }>;
 }>("data/weapons.json");
 const levelKeys = json<{ keys: { color: string }[] }>("data/level.json").keys.map((k) => k.color);
@@ -153,6 +153,11 @@ test("IDKFA: every weapon with full ammo and every key; its F does not fire, IDD
     if (w.ammo.infiniteReserve !== true) expect(ammo.reserve, w.id).toBe(max);
   }
   expect(state.list.find((w) => w.slot === 6)).toMatchObject({ id: "bfg9000", owned: true });
+  // Full capacitors: the BFG 9000 can charge all its stages (FEEDBACK 2026-10-04 charging like Doom 3).
+  const bfgData = weaponsData.weapons.find((w) => w.id === "bfg9000")!;
+  const bfgState = state.ammo.find((a) => a?.id === "bfg9000")!;
+  expect(bfgState.extra.chargeCap).toBe(bfgData.params.maxStages);
+  expect(bfgState.reserve).toBeGreaterThanOrEqual(bfgData.params.maxStages!);
   expect([...state.keys].sort()).toEqual([...levelKeys].sort());
   expect(state.shots).toBe(shots0);
   expect(state.toasts).toContain(texts.cheats.arsenal);

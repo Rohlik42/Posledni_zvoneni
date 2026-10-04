@@ -156,7 +156,7 @@ test("main page: menu, difficulty, story, look, pause and settings with the keyb
   expect(guard.problems).toEqual([]);
 });
 
-test("weapons scene: F fires at a robot, the railgun and the BFG 9000 fire on a press of F, [ ] and Tab switch weapons", async ({ page }) => {
+test("weapons scene: F fires at a robot, the railgun fires on a press of F, holding F charges the BFG 9000 and releasing fires it, [ ] and Tab switch weapons", async ({ page }) => {
   const guard = await open(page, "/dev/?scene=weapons");
   const [target] = range.encounter.enemies.map((e) => e.id) as [string];
   await page.evaluate(
@@ -210,17 +210,30 @@ test("weapons scene: F fires at a robot, the railgun and the BFG 9000 fire on a 
   const full = railgun.damage * (enemies.humanoid.resistances[railgun.damageType] ?? 1);
   expect(await robotHealth()).toBeCloseTo(Math.max(0, afterPistol - full), 3);
 
-  // 6 = BFG 9000 (FEEDBACK 2026-10-04): a tap of F spins it up and the plasma ball leaves by itself.
+  // 6 = BFG 9000 (FEEDBACK 2026-10-04, charged like in Doom 3): holding F charges a stage per second, releasing F
+  // fires the completed stages; a short tap fires nothing.
   const bfg = weapon("bfg9000");
   await tap(page, `Digit${bfg.slot}`, SWITCH_MS);
   expect(await active()).toBe(bfg.id);
-  const launched = await page.evaluate((id) => window.__game!.weapons!.state(id)!.extra.launched!, bfg.id);
+  const bfgState = () => page.evaluate((id) => window.__game!.weapons!.state(id)!, bfg.id);
+  const before = await bfgState();
   await page.keyboard.down(FIRE);
   await page.evaluate((ms) => window.__game!.step(ms), STEP_MS * 2);
   await page.keyboard.up(FIRE);
-  expect(await page.evaluate((id) => window.__game!.weapons!.state(id)!.extra.spinning, bfg.id)).toBe(1);
-  await page.evaluate((ms) => window.__game!.step(ms), bfg.params.spinUpTime! * 1000 + 100);
-  expect(await page.evaluate((id) => window.__game!.weapons!.state(id)!.extra.launched, bfg.id)).toBe(launched + 1);
+  await page.evaluate((ms) => window.__game!.step(ms), STEP_MS * 2);
+  const tapped = await bfgState();
+  expect(tapped.extra.launched, "a tap of F fires nothing").toBe(before.extra.launched);
+  expect(tapped.reserve).toBe(before.reserve);
+  await page.keyboard.down(FIRE);
+  await page.evaluate((ms) => window.__game!.step(ms), 2 * bfg.params.stageTime! * 1000 + 300);
+  const held = await bfgState();
+  expect(held.extra.charging).toBe(1);
+  expect(held.extra.stages).toBe(2);
+  await page.keyboard.up(FIRE);
+  await page.evaluate((ms) => window.__game!.step(ms), STEP_MS * 2);
+  const released = await bfgState();
+  expect(released.extra.launched).toBe(before.extra.launched! + 1);
+  expect(released.reserve, "two stages, two capacitors").toBe(before.reserve! - 2);
 
   await noMouseButtons(page);
   expect(guard.problems).toEqual([]);

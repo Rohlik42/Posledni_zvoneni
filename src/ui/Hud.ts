@@ -134,7 +134,7 @@ export class Hud {
     line.append(this.ammoValue, this.ammoRest);
     ammo.append(line);
     this.extra = HudConfig.load();
-    // Recharge line (FEEDBACK 2026-10-04 BFG): percent and a bar while a long recharge or the spin-up runs.
+    // Recharge line (FEEDBACK 2026-10-04 BFG): a bar while a long recharge runs, the BFG charges or cools down.
     const { recharge } = this.extra;
     this.rechargeLine = document.createElement("div");
     Object.assign(this.rechargeLine.style, { display: "none", marginTop: "4px" });
@@ -249,28 +249,33 @@ export class Hud {
     const shared = weapon.data.ammoType === undefined ? "" : ` ${WeaponConfig.ammoType(weapon.data.ammoType).hudLabel}`;
     this.ammoName.textContent = `${this.data.labels.ammo} · ${weapon.data.name}`;
     this.ammoValue.textContent = amount(weapon.magazine);
-    this.ammoRest.textContent = capacity > 0 ? `/ ${capacity} · ${reserve}${shared}` : "";
+    // Without a magazine the big number is the reserve; a shared one is still labelled (BFG 9000: „12 kond.“).
+    this.ammoRest.textContent = capacity > 0 ? `/ ${capacity} · ${reserve}${shared}` : shared.trim();
     const low = capacity > 0 && magazine <= capacity * this.data.ammoLowFraction;
     this.ammoValue.style.color = low ? Palette.hex(this.data.colors.ammoLow) : "";
     this.showRecharge(this.rechargeState(weapon));
   }
 
-  /** The recharge line for `weapon`: spin-up (BFG) or a long recharge, else null. */
-  private rechargeState(weapon: Weapon): { text: string; bar: number; spin: boolean } | null {
+  /** The recharge line for `weapon`: the BFG's charge or cooldown, or a long recharge, else null. */
+  private rechargeState(weapon: Weapon): { text: string; bar: number; charge: boolean } | null {
     const texts = Texts.load().hud;
-    const spin = weapon.extraState.spinProgress;
-    if (spin !== undefined && spin > 0) return { text: texts.spinUp, bar: spin, spin: true };
+    const status = weapon.chargeStatus;
+    if (status?.charging === true) {
+      const text = Texts.format(status.cap < status.max ? texts.chargeCapped : texts.charge, { stages: status.stages, max: status.max, cap: status.cap });
+      return { text, bar: Math.min(1, status.level / status.max), charge: true };
+    }
+    if (status != null && status.cooldown !== null) return { text: texts.cooldown, bar: status.cooldown, charge: false };
     if (!weapon.reloading || weapon.data.ammo.reloadTime < this.extra.recharge.minTime) return null;
     const progress = weapon.reloadProgress;
-    return { text: Texts.format(texts.recharge, { percent: Math.floor(progress * PERCENT) }), bar: progress, spin: false };
+    return { text: Texts.format(texts.recharge, { percent: Math.floor(progress * PERCENT) }), bar: progress, charge: false };
   }
 
-  private showRecharge(state: { text: string; bar: number; spin: boolean } | null): void {
+  private showRecharge(state: { text: string; bar: number; charge: boolean } | null): void {
     this.rechargeLine.style.display = state === null ? "none" : "block";
     if (state === null) return;
     this.rechargeText.textContent = state.text;
     this.rechargeFill.style.width = `${(state.bar * PERCENT).toFixed(1)}%`;
-    this.rechargeFill.style.background = Palette.hex(state.spin ? this.extra.recharge.spinColor : this.extra.recharge.color);
+    this.rechargeFill.style.background = Palette.hex(state.charge ? this.extra.recharge.chargeColor : this.extra.recharge.color);
   }
 
   /** The door hint under the crosshair (hidden while empty). */

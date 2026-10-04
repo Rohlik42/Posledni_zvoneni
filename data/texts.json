@@ -44,7 +44,9 @@
     "keys": "KLÍČE",
     "seconds": "{seconds} s",
     "recharge": "NABÍJENÍ {percent} %",
-    "spinUp": "ROZTÁČENÍ…",
+    "charge": "NABÍJENÍ {stages}/{max}",
+    "chargeCapped": "NABÍJENÍ {stages}/{max} · MAX {cap}",
+    "cooldown": "CHLAZENÍ…",
     "powerUps": { "energyDrink": "ENERGEŤÁK", "rubberBoots": "GUMÁKY" }
   },
   "teachers": {

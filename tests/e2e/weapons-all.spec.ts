@@ -23,17 +23,17 @@ interface WeaponJson {
   range: number;
   ammoType?: string;
   ammo: { capacity: number; perShot: number; reserveStart: number; reserveMax: number; reloadTime: number; rechargePerSecond: number; rechargeDelay: number };
-  sounds: { fire: string; empty: string; impact: string; reload: string; launch?: string; ready?: string };
+  sounds: { fire: string; empty: string; impact: string; reload: string; launch?: string; ready?: string; deny?: string };
   params: Record<string, number>;
 }
 
 const weaponsData = JSON.parse(readFileSync("data/weapons.json", "utf8")) as {
   switchTime: number;
   ammoPickup: { sound: string };
-  ammoTypes: Record<string, { reserveMax: number }>;
+  ammoTypes: Record<string, { reserveMax: number; hudLabel: string }>;
   weapons: WeaponJson[];
 };
-const textsData = JSON.parse(readFileSync("data/texts.json", "utf8")) as { hud: { spinUp: string } };
+const textsData = JSON.parse(readFileSync("data/texts.json", "utf8")) as { hud: { charge: string; cooldown: string } };
 const enemiesData = JSON.parse(readFileSync("data/enemies.json", "utf8")) as {
   humanoid: { health: number; resistances: Record<string, number>; statusResistance: { slow: number; stun: number } };
 };
@@ -397,7 +397,7 @@ test("railgun: a press fires at once, pierces up to `pierce` robots in a line, t
   expect(reloaded.extra.beamVisible).toBe(0);
 });
 
-/** The BFG in hand, robots placed, the player at `stand` looking at `look`, the BFG loaded and the capacitors full. */
+/** The BFG in hand, robots placed, the player at `stand` looking at `look`, no ball or cooldown left, the capacitors full. */
 async function setupBfg(active: Record<string, Vec>, stand: Vec, look: Vec): Promise<void> {
   // A ball or a blast left from the previous check is over first, so it cannot hit the robots placed for this one.
   await page.evaluate((ms) => window.__game!.step(ms), (bfg.params.maxFlightTime! + bfg.params.shellTime! + 1 / bfg.fireRate) * 1000);
@@ -405,12 +405,11 @@ async function setupBfg(active: Record<string, Vec>, stand: Vec, look: Vec): Pro
   await page.evaluate(
     ([s, l, id, settleMs]) => {
       const g = window.__game!;
-      // God mode: a pulse that clears every robot brings the next wave of the range (waveDelay) while the BFG recharges.
+      // God mode: a pulse that clears every robot brings the next wave of the range (waveDelay) while the BFG cools down.
       if (!g.cheats!.god) g.cheats!.activate("god");
       g.step(settleMs);
       g.player!.teleport(s.x, s.y, s.z);
       g.player!.heal(10_000);
-      g.weapons!.refill(id);
       g.weapons!.addAmmo(id, 1000);
       g.player!.lookAt(l.x, l.y, l.z);
       g.step(1000 / 60);
@@ -419,34 +418,54 @@ async function setupBfg(active: Record<string, Vec>, stand: Vec, look: Vec): Pro
   );
 }
 
-test("BFG 9000: a press spins it up (no ball before spinUpTime), the ball leaves by itself and flies straight and slow", async () => {
+/** Holds fire for `stages` charge stages, releases, and steps `afterMs` more. */
+async function chargeAndFire(stages: number, afterMs: number): Promise<void> {
+  await page.evaluate(
+    ([hold, after]) => {
+      window.__game!.input!.simulate("fire", hold);
+      window.__game!.step(after);
+    },
+    [stages * bfg.params.stageTime! * 1000, afterMs] as const,
+  );
+}
+
+test("BFG 9000: holding charges a stage per second (HUD n/4), a tap fires nothing, release fires the stages; the ball flies straight and slow", async () => {
   await setupBfg({}, STAND, { x: 0, y: 2.5, z: 10 });
   const before = await state(bfg.id);
-  expect(before.magazine).toBe(bfg.ammo.capacity);
   expect(before.extra.readiness).toBe(1);
   const whines = await plays(bfg.sounds.fire);
-  // One short press (released at once): not hold-to-charge.
-  await page.evaluate(() => window.__game!.input!.simulate("fire", 1000 / 60));
-  const spinning = await state(bfg.id);
-  expect(spinning.extra.spinning).toBe(1);
-  expect(spinning.magazine).toBe(bfg.ammo.capacity - bfg.ammo.perShot);
+  // A short tap: the first stage never completes, nothing fires, nothing is spent.
+  await page.evaluate(() => {
+    window.__game!.input!.simulate("fire", 1000 / 60);
+    window.__game!.step(200);
+  });
+  const tapped = await state(bfg.id);
+  expect(tapped.extra.launched).toBe(before.extra.launched);
+  expect(tapped.reserve).toBe(before.reserve);
   expect(await plays(bfg.sounds.fire)).toBe(whines + 1);
-  expect(await page.evaluate(() => window.__game!.hud!.recharge()?.text)).toBe(textsData.hud.spinUp);
-  // Just before the spin-up ends: still no ball.
-  await page.evaluate((ms) => window.__game!.step(ms), bfg.params.spinUpTime! * 1000 - 100);
-  const late = await state(bfg.id);
-  expect(late.extra.launched).toBe(before.extra.launched);
-  expect(late.extra.inFlight).toBe(0);
-  expect(late.extra.spinProgress).toBeGreaterThan(0.8);
-  // The ball leaves after the spin-up even though the trigger was let go long ago.
+  // Held for 2.5 s: two stages done, the third charging; the HUD counts them.
+  await page.evaluate(() => window.__game!.input!.setDown("fire", true));
+  await page.evaluate((ms) => window.__game!.step(ms), 2.5 * bfg.params.stageTime! * 1000);
+  const charging = await state(bfg.id);
+  expect(charging.extra.charging).toBe(1);
+  expect(charging.extra.stages).toBe(2);
+  expect(charging.extra.ribGlow3).toBeCloseTo(0.5, 1);
+  expect(await page.evaluate(() => window.__game!.hud!.recharge()?.text)).toBe(textsData.hud.charge.replace("{stages}", "2").replace("{max}", String(bfg.params.maxStages)));
+  expect(charging.extra.launched).toBe(before.extra.launched);
+  // Release: the 2-stage ball leaves on the next step.
   const launches = await plays(bfg.sounds.launch!);
-  await page.evaluate(() => window.__game!.step(150));
+  await page.evaluate(() => {
+    window.__game!.input!.setDown("fire", false);
+    window.__game!.step(1000 / 60);
+  });
   const flying = await state(bfg.id);
   expect(flying.extra.launched).toBe(before.extra.launched! + 1);
   expect(flying.extra.inFlight).toBe(1);
-  expect(flying.extra.spinning).toBe(0);
+  expect(flying.extra.charging).toBe(0);
+  expect(flying.extra.ballSize).toBe(bfg.params.ballSize2);
+  expect(flying.reserve).toBe(before.reserve! - 2);
   expect(await plays(bfg.sounds.launch!)).toBe(launches + 1);
-  // It flies straight at ballSpeed (no gravity) and the recharge has started from the shared capacitors.
+  // It flies straight at ballSpeed (no gravity).
   const z0 = flying.extra.ballZ!;
   const y0 = flying.extra.ballY!;
   await page.evaluate(() => window.__game!.step(200));
@@ -454,33 +473,33 @@ test("BFG 9000: a press spins it up (no ball before spinUpTime), the ball leaves
   expect(later.extra.inFlight).toBe(1);
   expect(later.extra.ballZ! - z0).toBeCloseTo(bfg.params.ballSpeed! * 0.2 * Math.cos(Math.atan2(2.5 - 1.6, 14)), 0);
   expect(later.extra.ballY!).toBeGreaterThan(y0);
-  expect(later.reloading).toBe(true);
   expect(later.extra.bursts).toBe(before.extra.bursts);
   // Screenshot material for the report: the ball in flight.
   await page.screenshot({ path: ShotPath.of("bfg-ball-flying-range.png") });
 });
 
-test("BFG 9000: the ball bursts on the wall; the EMP destroys robots around the impact (walls do not stop it), stuns those a bit farther, spares the player", async () => {
-  // Impact on the north wall (z = 10) at x = 0. A and B near the impact (one behind the pillar line), C near the
-  // player but far from the impact, D just outside the EMP radius (inside the stun radius).
+test("BFG 9000: a 2-stage ball bursts on the wall; the EMP destroys robots around the impact (walls do not stop it), stuns those a bit farther, spares the player", async () => {
+  // Impact on the north wall (z = 10) at x = 0. A and B near the impact, C near the player but far from the impact,
+  // D outside the 2-stage EMP radius but inside its stun radius.
   const impact = { x: 0, z: 10 };
-  const empR = bfg.params.empRadius!;
-  const stunR = bfg.params.stunRadius!;
-  const dAt = Math.sqrt(((empR + stunR) / 2) ** 2 - 1);
+  const empR = bfg.params.empRadius2!;
+  const stunR = bfg.params.stunRadius2!;
+  const dAt = (empR + stunR) / 2;
   const placed = {
     [A]: { x: 3, y: 0, z: 8 },
     [B]: { x: -5, y: 0, z: 7.5 },
     [C]: { x: 0, y: 0, z: -8.5 },
-    [D]: { x: 8.5, y: 0, z: impact.z - Math.min(dAt, 17) },
+    [D]: { x: 8.5, y: 0, z: impact.z - Math.sqrt(dAt ** 2 - 8.5 ** 2) },
   };
   await setupBfg(placed, STAND, { x: 0, y: 2.5, z: 10 });
   const healthBefore = await page.evaluate(() => window.__game!.player!.health);
   const before = await state(bfg.id);
   const booms = await plays(bfg.sounds.impact);
-  await page.evaluate(() => window.__game!.input!.simulate("fire", 1000 / 60));
-  await page.evaluate((ms) => window.__game!.step(ms), (bfg.params.spinUpTime! + 16 / bfg.params.ballSpeed! + 0.2) * 1000);
+  await chargeAndFire(2, (16 / bfg.params.ballSpeed! + 0.2) * 1000);
   const after = await state(bfg.id);
   expect(after.extra.bursts).toBe(before.extra.bursts! + 1);
+  expect(after.extra.lastStages).toBe(2);
+  expect(after.extra.lastRadius).toBe(empR);
   expect(after.extra.inFlight).toBe(0);
   expect(after.extra.lastBurstZ!).toBeGreaterThan(9.5);
   expect(Math.abs(after.extra.lastBurstX!)).toBeLessThan(0.5);
@@ -488,11 +507,12 @@ test("BFG 9000: the ball bursts on the wall; the EMP destroys robots around the 
   expect(after.extra.blastVisible).toBe(1);
   for (const id of [A, B]) expect((await robot(id)).alive, `${id} near the impact`).toBe(false);
   // C stands 4.5 m from the player but far from the impact: the pulse is around the impact, not the player.
-  expect((await robot(C)).health).toBe(humanoid.health);
+  const c = await robot(C);
+  expect(c.health).toBe(humanoid.health);
   const d = await robot(D);
   expect(d.health, "outside the EMP radius").toBe(humanoid.health);
   expect(d.stunned, "inside the stun radius").toBe(true);
-  // A and B, plus the robot parked in the north-east corner (also within the radius of the impact).
+  // A and B, plus the robot parked in the north-west corner (also within the radius of the impact).
   expect(after.extra.lastKills).toBeGreaterThanOrEqual(2);
   expect(after.extra.lastStunned).toBeGreaterThanOrEqual(1);
   expect(await page.evaluate(() => window.__game!.player!.health)).toBe(healthBefore);
@@ -504,10 +524,7 @@ test("BFG 9000: fired point blank into a wall it bursts at once and the player i
   await setupBfg({ [A]: { x: 2.5, y: 0, z: 7 } }, stand, { x: 0, y: 1.6, z: 11 });
   const healthBefore = await page.evaluate(() => window.__game!.player!.health);
   const before = await state(bfg.id);
-  await page.evaluate((ms) => {
-    window.__game!.input!.simulate("fire", 1000 / 60);
-    window.__game!.step(ms);
-  }, bfg.params.spinUpTime! * 1000 + 100);
+  await chargeAndFire(bfg.params.maxStages!, 100);
   const after = await state(bfg.id);
   expect(after.extra.bursts).toBe(before.extra.bursts! + 1);
   expect(after.extra.lastDistance!).toBeLessThan(1.5);
@@ -515,42 +532,34 @@ test("BFG 9000: fired point blank into a wall it bursts at once and the player i
   expect(await page.evaluate(() => window.__game!.player!.health)).toBe(healthBefore);
 });
 
-test("BFG 9000: 4 capacitors a shot from the reserve shared with the railgun, a long recharge with a HUD bar, a chime when ready", async () => {
+test("BFG 9000: one capacitor per stage from the reserve shared with the railgun, a short cooldown with a HUD bar, a chime when ready; empty it clicks", async () => {
   await setupBfg({}, STAND, { x: 0, y: 2.5, z: 10 });
   const pool = weaponsData.ammoTypes[bfg.ammoType!]!.reserveMax;
   const full = await state(bfg.id);
   expect(full.reserve).toBe(pool);
   expect((await state(railgun.id)).reserve, "one reserve for both").toBe(pool);
+  expect(await page.evaluate(() => window.__game!.hud!.ammoText)).toContain(weaponsData.ammoTypes[bfg.ammoType!]!.hudLabel);
   const chimes = await plays(bfg.sounds.ready!);
-  await page.evaluate((ms) => {
-    window.__game!.input!.simulate("fire", 1000 / 60);
-    window.__game!.step(ms);
-  }, bfg.params.spinUpTime! * 1000 + 100);
-  const half = await page.evaluate((ms) => {
-    window.__game!.step(ms);
-    return window.__game!.hud!.recharge();
-  }, bfg.ammo.reloadTime * 500);
+  const stages = bfg.params.maxStages!;
+  await chargeAndFire(stages, (1 / bfg.fireRate) * 500);
+  const half = await page.evaluate(() => window.__game!.hud!.recharge());
+  expect(half?.text).toBe(textsData.hud.cooldown);
   expect(half?.bar).toBeGreaterThan(0.4);
   expect(half?.bar).toBeLessThan(0.6);
-  expect(half?.text).toMatch(/\d+ %/);
-  const charging = await state(bfg.id);
-  expect(charging.reloading).toBe(true);
-  expect(charging.extra.readiness).toBeGreaterThan(0.4);
-  // A second press while recharging does nothing.
+  const cooling = await state(bfg.id);
+  expect(cooling.extra.cooling).toBe(1);
+  expect(cooling.reserve).toBe(pool - stages);
+  expect((await state(railgun.id)).reserve).toBe(pool - stages);
+  // A press while cooling down does not start a charge.
   await page.evaluate(() => window.__game!.input!.simulate("fire", 1000 / 60));
-  expect((await state(bfg.id)).shots).toBe(charging.shots);
-  await page.evaluate((ms) => window.__game!.step(ms), bfg.ammo.reloadTime * 500 + 200);
+  expect((await state(bfg.id)).extra.charging).toBe(0);
+  await page.evaluate((ms) => window.__game!.step(ms), (1 / bfg.fireRate) * 500 + 100);
   const ready = await state(bfg.id);
-  expect(ready.magazine).toBe(bfg.ammo.capacity);
-  expect(ready.reserve).toBe(pool - bfg.ammo.perShot);
-  expect((await state(railgun.id)).reserve).toBe(pool - bfg.ammo.perShot);
   expect(ready.extra.readiness).toBe(1);
   expect(await plays(bfg.sounds.ready!)).toBe(chimes + 1);
   expect(await page.evaluate(() => window.__game!.hud!.recharge())).toBeNull();
-  expect(await page.evaluate(() => window.__game!.hud!.ammoText)).toContain(`· ${pool - bfg.ammo.perShot}`);
 
-  // The railgun drains the shared reserve shot by shot; the BFG then fires what it holds loaded, but with fewer
-  // capacitors than one shot needs it does not start a pointless recharge, and the next press clicks empty.
+  // The railgun drains the shared reserve shot by shot; the BFG with no capacitor left clicks empty.
   const drained = await page.evaluate(
     ([rail, slot, switchMs, reloadMs, cap]) => {
       const g = window.__game!;
@@ -563,29 +572,24 @@ test("BFG 9000: 4 capacitors a shot from the reserve shared with the railgun, a 
         const r = g.weapons!.state(rail)!;
         log.push(`shots=${r.shots} mag=${r.magazine} reloading=${r.reloading} pool=${g.weapons!.pools()[cap]}`);
       }
-      return { pool: g.weapons!.pools()[cap]!, rail: g.weapons!.state(rail)!.magazine, log };
+      return { pool: g.weapons!.pools()[cap]!, log };
     },
     [railgun.id, railgun.slot, SWITCH_MS, railgun.ammo.reloadTime * 1000 + 100, bfg.ammoType!] as const,
   );
   expect(drained.pool, drained.log.join("\n")).toBe(0);
   const empty = await page.evaluate(
-    ([id, slot, switchMs, spinMs, cooldownMs, click]) => {
+    ([id, slot, switchMs, click]) => {
       const g = window.__game!;
       g.weapons!.select(slot);
       g.step(switchMs);
-      g.input!.simulate("fire", 1000 / 60);
-      g.step(spinMs);
-      const fired = g.weapons!.state(id)!;
-      g.step(cooldownMs);
       const clicks = g.audio!.plays(click);
       g.input!.simulate("fire", 1000 / 60);
-      return { fired, clicked: g.audio!.plays(click) - clicks };
+      return { state: g.weapons!.state(id)!, clicked: g.audio!.plays(click) - clicks };
     },
-    [bfg.id, bfg.slot, SWITCH_MS, bfg.params.spinUpTime! * 1000 + 100, (1 / bfg.fireRate) * 1000, bfg.sounds.empty] as const,
+    [bfg.id, bfg.slot, SWITCH_MS, bfg.sounds.empty] as const,
   );
-  expect(empty.fired.extra.launched).toBeGreaterThan(ready.extra.launched!);
-  expect(empty.fired.magazine).toBe(0);
-  expect(empty.fired.reloading, "no recharge without 4 capacitors").toBe(false);
+  expect(empty.state.extra.charging).toBe(0);
+  expect(empty.state.extra.chargeCap).toBe(0);
   expect(empty.clicked).toBe(1);
 });
 
@@ -668,8 +672,9 @@ test.describe("long hall: ranges, kill times and hit tolerance", () => {
   });
 
   test("every weapon picked up kills a humanoid faster than the water pistol (3 m)", async () => {
+    // The BFG with a 1-stage charge (1 s, 6 m EMP): its full charge trades speed for a 15 m blast (weapons-balance).
     const ttk = async (w: BenchWeapon): Promise<number> => {
-      const result = await bench.timeToKill(WeaponBench.plan(w, hallHumanoid, 3));
+      const result = await bench.timeToKill(WeaponBench.plan(w, hallHumanoid, 3, 0, 0, w.kind === "plasma" ? 1 : undefined));
       expect(result.seconds, `${w.id} kills`).not.toBeNull();
       return result.seconds!;
     };

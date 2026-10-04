@@ -77,6 +77,8 @@ export interface WeaponsTestApi {
   pools: () => Record<string, number>;
   /** Adds to a shared reserve (`ammoType`); returns how much it took. */
   addReserve: (type: string, amount: number) => number;
+  /** Sets a shared reserve (clamped to its limit), e.g. 2 capacitors to test the BFG's charge cap; returns the new amount. */
+  setReserve: (type: string, amount: number) => number;
 }
 
 /** Owned weapons and their ammo in a checkpoint (phase 16); `reserve` null = endless. */
@@ -475,6 +477,11 @@ export class WeaponInventory {
       refill: (id) => inventory.owned.get(id)?.refill() ?? 0,
       pools: () => Object.fromEntries([...inventory.pools].map(([type, reserve]) => [type, reserve.amount])),
       addReserve: (type, amount) => inventory.addReserve(type, amount),
+      setReserve: (type, amount) => {
+        const reserve = inventory.pools.get(type);
+        reserve?.set(amount);
+        return reserve?.amount ?? 0;
+      },
       state: (id) => {
         const weapon = inventory.owned.get(id);
         if (weapon === undefined) return null;

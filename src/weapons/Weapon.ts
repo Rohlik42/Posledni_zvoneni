@@ -73,6 +73,20 @@ export interface ShotEvent {
   hits?: readonly TargetHit[];
 }
 
+/**
+ * Hold-to-charge state of the weapon in hand for the HUD (BFG 9000, FEEDBACK 2026-10-04 „nabíjí se jako v Doomu 3“):
+ * completed stages, the most there are, how many the reserve allows now, the charge level in stages (with the
+ * stage in progress) and the progress 0–1 of the cooldown after a shot (null when not cooling down).
+ */
+export interface ChargeStatus {
+  charging: boolean;
+  stages: number;
+  max: number;
+  cap: number;
+  level: number;
+  cooldown: number | null;
+}
+
 /** The parts of a viewmodel the base class animates. */
 export interface WeaponViewModel {
   readonly root: TransformNode;
@@ -268,6 +282,11 @@ export abstract class Weapon {
     return added;
   }
 
+  /** Hold-to-charge state for the HUD; null for weapons that do not charge (all but the BFG 9000). */
+  get chargeStatus(): ChargeStatus | null {
+    return null;
+  }
+
   /** Weapon-specific numbers for tests (`__game.weapons.state(id)`): railgun charge, balloons in flight… */
   get extraState(): Record<string, number> {
     return {};
@@ -424,6 +443,17 @@ export abstract class Weapon {
    */
   protected wantsToFire(trigger: TriggerState, _dt: number): boolean {
     return this.data.automatic ? trigger.held : trigger.pressed;
+  }
+
+  /** Seconds left of the fire-rate timer (0 when it allows a shot). */
+  protected get cooldownLeft(): number {
+    return Math.max(0, this.cooldown);
+  }
+
+  /** Counts a shot fired outside `update`'s press logic (the BFG's release) and starts the fire-rate timer (1 / `fireRate`). */
+  protected registerShot(): void {
+    this.cooldown = 1 / this.data.fireRate;
+    this.shotCount++;
   }
 
   /** The fire-rate timer allows the next shot. */

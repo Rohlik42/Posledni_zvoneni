@@ -31,8 +31,10 @@ export interface BenchPlan {
   offsetDeg: number;
   /** Sideways offset of the robot itself (m, +x), e.g. robots spread in an arc. */
   lateral: number;
-  /** How long a shot needs to land (s of simulated time): a balloon's arc, the BFG's spin-up and ball flight. */
+  /** How long a shot needs to land (ms of simulated time): a balloon's arc, the BFG's ball flight. */
   settleMs: number;
+  /** How long the trigger is held for one shot (ms): one step, or the BFG's charge (`stages` × `stageTime`). */
+  holdMs: number;
 }
 
 const weaponsData = JSON.parse(readFileSync("data/weapons.json", "utf8")) as { switchTime: number; weapons: BenchWeapon[] };
@@ -71,21 +73,31 @@ export class WeaponBench {
     return weapon;
   }
 
+  /** Trigger hold (ms) that completes `stages` charge stages of the BFG (the release is seen on the next step). */
+  static chargeMs(weapon: BenchWeapon, stages: number): number {
+    return stages * weapon.params.stageTime! * 1000;
+  }
+
   /** Encounter ids of the hall's robots of a type (data/weapon-longrange.json). */
   static robots(type: string): string[] {
     return hall.encounter.enemies.filter((e) => e.type === type).map((e) => e.id);
   }
 
-  static plan(weapon: BenchWeapon, subject: string, distance: number, offsetDeg = 0, lateral = 0): BenchPlan {
+  /**
+   * The BFG 9000 is held for a full charge (`maxStages`) unless `stages` says otherwise (FEEDBACK 2026-10-04 charging
+   * like Doom 3); every other weapon fires on a one-step press.
+   */
+  static plan(weapon: BenchWeapon, subject: string, distance: number, offsetDeg = 0, lateral = 0, stages = weapon.params.maxStages ?? 0): BenchPlan {
     const plasma = weapon.kind === "plasma";
     const settleMs = plasma
       ? // A missed ball flies on until it strikes something or bursts in mid-air: wait for its whole flight.
-        (weapon.params.spinUpTime! + weapon.params.maxFlightTime! + PLASMA_MARGIN_S) * 1000
+        (weapon.params.maxFlightTime! + PLASMA_MARGIN_S) * 1000
       : weapon.kind === "thrown"
         ? BALLOON_SETTLE_MS
         : INSTANT_SETTLE_MS;
     return {
       settleMs,
+      holdMs: plasma ? WeaponBench.chargeMs(weapon, stages) : STEP_MS,
       weapon: weapon.id,
       slot: weapon.slot,
       fireRate: weapon.fireRate,
@@ -157,14 +169,14 @@ export class WeaponBench {
     await this.setup(plans);
     const p = plans[0]!;
     return this.page.evaluate(
-      ([ids, step, settle]) => {
+      ([ids, hold, settle]) => {
         const g = window.__game!;
         const before = ids.map((id) => g.enemies!.get(id)!.health);
-        g.input!.simulate("fire", step);
+        g.input!.simulate("fire", hold);
         g.step(settle);
         return ids.map((id, i) => before[i]! - g.enemies!.get(id)!.health);
       },
-      [plans.map((q) => q.subject), STEP_MS, p.settleMs] as const,
+      [plans.map((q) => q.subject), p.holdMs, p.settleMs] as const,
     );
   }
 
@@ -186,6 +198,15 @@ export class WeaponBench {
           if (p.automatic) {
             g.input!.simulate("fire", step);
             t += step;
+          } else if (p.holdMs > step) {
+            // The BFG: hold for the charge, release (seen on the next step), then watch the ball fly until the kill or
+            // until the cooldown allows the next charge.
+            g.input!.simulate("fire", p.holdMs);
+            t += p.holdMs;
+            for (let w = 0; w < 1000 / p.fireRate && g.enemies!.get(p.subject)!.alive; w += step) {
+              g.step(step);
+              t += step;
+            }
           } else {
             // Single shots: click as fast as possible (press one step, release one step).
             g.input!.simulate("fire", step);

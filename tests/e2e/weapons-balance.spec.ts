@@ -65,10 +65,14 @@ test.afterAll(async () => {
   await page.close();
 });
 
-/** Seconds between two shots while firing without a break (railgun and BFG: the recharge; BFG: plus the spin-up). */
+/**
+ * Seconds between two shots while firing without a break (railgun: the recharge; BFG: a full charge of `maxStages`
+ * stages plus the cooldown 1 / `fireRate`, FEEDBACK 2026-10-04 charging like Doom 3).
+ */
 function cycle(weapon: BenchWeapon): number {
+  if (weapon.kind === "plasma") return weapon.params.maxStages! * weapon.params.stageTime! + 1 / weapon.fireRate;
   const oneShot = weapon.ammo.capacity > 0 && weapon.ammo.reloadTime > 0 && weapon.kind !== "hitscan";
-  const reload = oneShot ? weapon.ammo.reloadTime + (weapon.params.spinUpTime ?? 0) : 0;
+  const reload = oneShot ? weapon.ammo.reloadTime : 0;
   return Math.max(1 / weapon.fireRate, reload);
 }
 

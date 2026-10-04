@@ -8,7 +8,7 @@
       "gltfLook": { "person": "woman-suit", "scale": 0.95, "colors": { "Hair_Blond": "#8c8781" } },
       "greeting": "Pan kolega Jungwirth ti dal railgun? Roztomilé. Odpověz a ukážu ti, co svede abstraktní matematika.",
       "wrongLine": "Chyba ve výpočtu! Tohle by ti neodpustila ani kalkulačka od Neuralithu.",
-      "freedLine": "Q.E.D.! Fyzika je jen aplikovaná matematika. Tady máš BFG 9000 a kondenzátory — čtyři na ránu, tak počítej. Jedna rána a v okruhu dvanácti metrů platí: robot rovná se nula."
+      "freedLine": "Q.E.D.! Fyzika je jen aplikovaná matematika. Tady máš BFG 9000 a kondenzátory. Drž spoušť: co sekunda, to kondenzátor, nejvýš čtyři. Pusť a v okruhu až patnácti metrů platí: robot rovná se nula."
     },
     {
       "id": "komon", "slot": 5, "surname": "Komoň", "subject": "Čeština", "room": "f3-kabinet-cestina",

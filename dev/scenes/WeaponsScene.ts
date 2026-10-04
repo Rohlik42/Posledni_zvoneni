@@ -11,7 +11,7 @@ import { BoxRoom } from "../BoxRoom";
 
 export const id = "weapons";
 export const title =
-  "Všech šest zbraní v krabicové místnosti s roboty: 1–6 / kolečko zbraně, 5 = railgun, 6 = BFG 9000 (stisk roztočí a vystřelí plazmovou kouli, EMP při dopadu), u zdi hasičák doplní hasicí přístroj, kbelík = balónky";
+  "Všech šest zbraní v krabicové místnosti s roboty: 1–6 / kolečko zbraně, 5 = railgun, 6 = BFG 9000 (držení nabíjí 1–4 stupně, puštění vystřelí plazmovou kouli, EMP při dopadu), u zdi hasičák doplní hasicí přístroj, kbelík = balónky";
 
 /**
  * Phase 13 test range: the box room with every weapon (the BFG 9000 replaced the hose, FEEDBACK 2026-10-04), a wall

@@ -10,8 +10,11 @@ export type WeaponKind = (typeof WEAPON_KINDS)[number];
 export const WEAPON_SLOTS = [1, 2, 3, 4, 5, 6] as const;
 export const WEAPON_SOUNDS = ["fire", "empty", "impact", "reload"] as const;
 export type WeaponSound = (typeof WEAPON_SOUNDS)[number];
-/** Optional sounds: a projectile leaving (BFG plasma ball) and a long recharge done. */
-export const WEAPON_EXTRA_SOUNDS = ["launch", "ready"] as const;
+/**
+ * Optional sounds: a projectile leaving (BFG plasma ball), ready again after a shot, the whine of charge stages 2–4
+ * (stage 1 is `fire`, the press) and the deny click at the reserve's cap (BFG 9000 charging, FEEDBACK 2026-10-04).
+ */
+export const WEAPON_EXTRA_SOUNDS = ["launch", "ready", "stage2", "stage3", "stage4", "deny"] as const;
 export type WeaponExtraSound = (typeof WEAPON_EXTRA_SOUNDS)[number];
 
 export type Range2 = [number, number];

@@ -23,6 +23,12 @@ const WEAPON_EVERY_MS = 2_400;
 /** Trigger pattern: held, then released (the railgun fires on release, balloons per press). */
 const TRIGGER_DOWN_MS = 700;
 const TRIGGER_UP_MS = 150;
+/**
+ * The BFG 9000 charges while held (FEEDBACK 2026-10-04, 1 s per stage) and fires on release: held this long it fires
+ * a 1-stage ball once per turn (the 2 s cooldown blocks a second).
+ */
+const BFG_TRIGGER_DOWN_MS = 1_200;
+const BFG_ID = "bfg9000";
 const KILL_DAMAGE = 1e6;
 const HEAL = 1e6;
 
@@ -127,7 +133,8 @@ export async function startCombat(page: Page, ids: string[], idle = false): Prom
           requestAnimationFrame(tick);
           return;
         }
-        if (now - triggerAt >= (down ? t.down : t.up)) {
+        const hold = weapons[weaponIndex]?.id === t.bfgId ? t.bfgDown : t.down;
+        if (now - triggerAt >= (down ? hold : t.up)) {
           down = !down;
           triggerAt = now;
           g.input!.setDown("fire", down);
@@ -167,7 +174,7 @@ export async function startCombat(page: Page, ids: string[], idle = false): Prom
         },
       };
     },
-    { ids, arena, t: { down: TRIGGER_DOWN_MS, up: TRIGGER_UP_MS, weapon: WEAPON_EVERY_MS, kill: KILL_EVERY_MS, trap: TRAP_EVERY_MS, killDamage: KILL_DAMAGE }, idle },
+    { ids, arena, t: { down: TRIGGER_DOWN_MS, bfgDown: BFG_TRIGGER_DOWN_MS, bfgId: BFG_ID, up: TRIGGER_UP_MS, weapon: WEAPON_EVERY_MS, kill: KILL_EVERY_MS, trap: TRAP_EVERY_MS, killDamage: KILL_DAMAGE }, idle },
   );
 }
 

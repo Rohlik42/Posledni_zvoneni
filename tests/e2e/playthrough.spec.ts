@@ -71,7 +71,7 @@ const pickupsData = JSON.parse(readFileSync("data/pickups.json", "utf8")) as {
   external: string[];
 };
 const weaponsData = JSON.parse(readFileSync("data/weapons.json", "utf8")) as {
-  weapons: { id: string; slot: number; ammoType?: string; ammo: { reserveStart: number; reserveMax: number; capacity: number; perShot: number; reloadTime: number }; params: Record<string, number> }[];
+  weapons: { id: string; slot: number; fireRate: number; ammoType?: string; ammo: { reserveStart: number; reserveMax: number; capacity: number; perShot: number; reloadTime: number }; params: Record<string, number> }[];
   ammoTypes: Record<string, { reserveMax: number; hudLabel: string }>;
   switchTime: number;
 };
@@ -750,7 +750,9 @@ test.describe.serial("playthrough of the level on the main page", () => {
       return { owned: g.weapons!.list().filter((w) => w.owned).map((w) => w.id), bfg: g.weapons!.state("bfg9000"), railgun: g.weapons!.state("railgun"), pools: g.weapons!.pools() };
     });
     expect(armed.owned).toContain("bfg9000");
-    expect(armed.bfg?.magazine).toBe(bfgData.ammo.capacity);
+    // No magazine of its own (FEEDBACK 2026-10-04 charging): the BFG charges straight from the shared capacitors.
+    expect(armed.bfg?.capacity).toBe(0);
+    expect(armed.bfg?.extra.chargeCap).toBe(Math.min(bfgData.params.maxStages!, armed.bfg!.reserve!));
     expect(armed.bfg?.reserve).toBe(armed.railgun?.reserve);
     expect(armed.pools[bfgData.ammoType!]).toBe(armed.bfg?.reserve);
     await walk(routeIndex("učitel 8") + 1, routeIndex("šatna"));
@@ -758,10 +760,11 @@ test.describe.serial("playthrough of the level on the main page", () => {
     const gymDoor = route.findIndex((p, i) => i > routeIndex("šatna") && p.door === "d-f2-gym");
     await walk(routeIndex("šatna") + 1, gymDoor - 1);
 
-    // The finale: the door opens, the BFG 9000 spins up and its plasma ball bursts among the gym's robots.
+    // The finale: the door opens, the BFG 9000 is charged as far as the capacitors allow (up to 4 s, one rib per
+    // second), released, and its plasma ball bursts among the gym's robots.
     const pickupCapacitors = pickupsData.items["capacitors"]!.amount!;
     const gym = await page.evaluate(
-      ({ switchMs, settleMs }) => {
+      ({ switchMs, settleMs, stageMs, maxStages }) => {
         const g = window.__game!;
         if (!window.__pt!.openDoor("d-f2-gym")) return null;
         const floor = g.player!.position.y;
@@ -773,24 +776,40 @@ test.describe.serial("playthrough of the level on the main page", () => {
         const target = gymRobots().sort((a, b) => b.position.x - a.position.x)[0];
         if (target !== undefined) g.player!.aimAt(target);
         const state0 = g.weapons!.state("bfg9000")!;
-        g.input!.simulate("fire", 1000 / 60);
+        const stages = Math.min(maxStages, state0.reserve ?? 0);
+        g.player!.heal(1000);
+        g.input!.setDown("fire", true);
+        // Keep aiming at the target while the charge builds (the robots move).
+        for (let s = 0; s < stages; s++) {
+          g.step(stageMs);
+          const aim = gymRobots().find((e) => e.id === target?.id);
+          if (aim !== undefined) g.player!.aimAt(aim);
+          g.player!.heal(1000);
+        }
+        const charged = g.weapons!.state("bfg9000")!.extra.stages!;
+        g.input!.setDown("fire", false);
         g.step(settleMs);
         g.player!.heal(1000);
         const state1 = g.weapons!.state("bfg9000")!;
         const dropped = g.pickups!.list().filter((p) => p.fromDrop && p.collected && p.item === "capacitors").length;
-        return { before, after: gymRobots().map((e) => e.id), bursts: state1.extra.bursts! - state0.extra.bursts!, kills: state1.extra.lastKills!, reserve: state1.reserve, reserve0: state0.reserve, dropped, magazine: state1.magazine, reloading: state1.reloading };
+        return { before, after: gymRobots().map((e) => e.id), bursts: state1.extra.bursts! - state0.extra.bursts!, kills: state1.extra.lastKills!, stages: state1.extra.lastStages!, charged, radius: state1.extra.lastRadius!, reserve: state1.reserve, reserve0: state0.reserve, dropped };
       },
-      { switchMs: weaponsData.switchTime * 1000 + 50, settleMs: (bfgData.params.spinUpTime! + 2) * 1000 },
+      { switchMs: weaponsData.switchTime * 1000 + 50, settleMs: 2000, stageMs: bfgData.params.stageTime! * 1000, maxStages: bfgData.params.maxStages! },
     );
     expect(gym).not.toBeNull();
-    console.log(`gym BFG: robots ${gym!.before.join(",")} → left ${gym!.after.join(",") || "none"}, kills ${gym!.kills}; capacitors ${gym!.reserve0} in reserve before the shot (${gym!.dropped} robot drops taken)`);
+    console.log(`gym BFG: ${gym!.stages}-stage charge (${gym!.radius} m), robots ${gym!.before.join(",")} → left ${gym!.after.join(",") || "none"}, kills ${gym!.kills}; capacitors ${gym!.reserve0} in reserve before the shot, ${gym!.reserve} after (${gym!.dropped} robot drops taken)`);
     expect(gym!.before.length).toBeGreaterThanOrEqual(2);
+    // The route brings enough capacitors for a full charge in the finale.
+    expect(gym!.reserve0!).toBeGreaterThanOrEqual(bfgData.params.maxStages!);
+    expect(gym!.charged).toBe(bfgData.params.maxStages);
+    expect(gym!.stages).toBe(bfgData.params.maxStages);
+    expect(gym!.radius).toBe(bfgData.params[`empRadius${bfgData.params.maxStages}`]);
     expect(gym!.bursts).toBe(1);
     expect(gym!.kills).toBeGreaterThanOrEqual(2);
     expect(gym!.after.length).toBeLessThan(gym!.before.length);
-    expect(gym!.reloading).toBe(true);
-    // Enough capacitors for more BFG shots in the finale (the gym's own pack lies on the way in).
-    expect(gym!.reserve! + pickupCapacitors).toBeGreaterThanOrEqual(2 * bfgData.ammo.perShot);
+    expect(gym!.reserve).toBe(gym!.reserve0! - bfgData.params.maxStages!);
+    // Enough capacitors for another full charge in the finale (the gym's own pack lies on the way in).
+    expect(gym!.reserve! + pickupCapacitors).toBeGreaterThanOrEqual(bfgData.params.maxStages!);
 
     await walk(gymDoor, routeIndex("učitel 9") - 1);
     // Clear what is left of the gym before the teacher.
@@ -800,11 +819,11 @@ test.describe.serial("playthrough of the level on the main page", () => {
       const left = g.enemies!.list().filter((e) => e.alive && Math.abs(e.position.y - (e.altitude ?? 0) - gymFloor) < 1).map((e) => e.id);
       return window.__pt!.killAll(left);
     });
-    // The BFG is ready again after its long recharge; the HUD labels the shared capacitors.
+    // The BFG is ready again after its short cooldown; the HUD labels the shared capacitors.
     const recharged = await page.evaluate(
-      ({ reloadMs, switchMs }) => {
+      ({ cooldownMs, switchMs }) => {
         const g = window.__game!;
-        g.step(reloadMs);
+        g.step(cooldownMs);
         g.weapons!.select(6);
         g.step(switchMs);
         const state = g.weapons!.state("bfg9000")!;
@@ -813,10 +832,10 @@ test.describe.serial("playthrough of the level on the main page", () => {
         g.step(switchMs);
         return { state, hud };
       },
-      { reloadMs: bfgData.ammo.reloadTime * 1000, switchMs: weaponsData.switchTime * 1000 + 50 },
+      { cooldownMs: 1000 / bfgData.fireRate, switchMs: weaponsData.switchTime * 1000 + 50 },
     );
-    expect(recharged.state.magazine).toBe(bfgData.ammo.capacity);
-    expect(recharged.state.extra.readiness).toBe(1);
+    expect(recharged.state.extra.cooling).toBe(0);
+    expect(recharged.state.extra.readiness).toBe(recharged.state.reserve! >= 1 ? 1 : 0);
     expect(recharged.hud).toContain(weaponsData.ammoTypes[bfgData.ammoType!]!.hudLabel);
 
     await walk(routeIndex("učitel 9") - 1, routeIndex("učitel 9"));

@@ -119,7 +119,7 @@
         { "keys": "Myš / šipky", "action": "Rozhlížení a míření" },
         { "keys": "Shift", "action": "Sprint" },
         { "keys": "Mezerník", "action": "Skok" },
-        { "keys": "Levé tlačítko / F", "action": "Střelba (podrž: hasičák stříká; BFG 9000 se roztočí a vystřelí sám)" },
+        { "keys": "Levé tlačítko / F", "action": "Střelba (podrž: hasičák stříká; BFG 9000 se nabíjí po stupních a vystřelí při puštění)" },
         { "keys": "R", "action": "Nabít" },
         { "keys": "1–6", "action": "Výběr zbraně" },
         { "keys": "Kolečko / [ ] / Tab", "action": "Předchozí a další zbraň" },

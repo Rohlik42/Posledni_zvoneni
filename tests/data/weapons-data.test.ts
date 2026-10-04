@@ -74,7 +74,8 @@ test("weapons.json: phase 13 weapons carry the numbers and looks their classes r
   need("waterBalloons", ["aoeRadius", "aoeEdgeDamage", "throwSpeed", "throwUpDeg", "projectileRadius", "projectileMass", "maxFlightTime", "projectileScale", "regrowTime"]);
   need("taser", ["arcAngleDeg", "maxTargets", "stunSeconds", "stunStrength"]);
   need("railgun", ["pierce", "aimAssistDeg"]);
-  need("bfg9000", ["spinUpTime", "ballSpeed", "ballRadius", "ballHitRadius", "maxFlightTime", "empRadius", "empVertical", "stunRadius", "stunSeconds", "shellTime", "glowFull"]);
+  const stages = [1, 2, 3, 4].flatMap((n) => [`empRadius${n}`, `stunRadius${n}`, `ballSize${n}`, `ballBrightness${n}`]);
+  need("bfg9000", ["stageTime", "maxStages", ...stages, "ballSpeed", "ballRadius", "ballHitRadius", "maxFlightTime", "empVertical", "stunSeconds", "shellTime", "ribGlow", "coreGlow", "ventGlow", "idleGlow", "glowFade"]);
   for (const id of ["extinguisher", "taser", "railgun", "bfg9000"]) assert.ok(WeaponConfig.weapon(id).effect !== undefined, `${id} needs an effect block`);
   for (const id of ["waterBalloons", "extinguisher"]) assert.ok(WeaponConfig.weapon(id).stream !== undefined, `${id} needs a stream block`);
 
@@ -101,7 +102,7 @@ test("weapons.json: phase 13 weapons carry the numbers and looks their classes r
   assert.ok(WeaponConfig.reserveMax(railgun) <= 12, "rare ammo");
 });
 
-test("weapons.json: the BFG 9000 (FEEDBACK 2026-10-04) — Doom-like plasma ball, EMP around the impact, long recharge, shared capacitors", () => {
+test("weapons.json: the BFG 9000 (FEEDBACK 2026-10-04) — Doom-like plasma ball, EMP around the impact, charged in stages like Doom 3, shared capacitors", () => {
   const data = WeaponConfig.load();
   const railgun = WeaponConfig.weapon("railgun");
   const bfg = WeaponConfig.weapon("bfg9000");
@@ -109,25 +110,34 @@ test("weapons.json: the BFG 9000 (FEEDBACK 2026-10-04) — Doom-like plasma ball
   assert.equal(bfg.name, "BFG 9000");
   assert.equal(bfg.kind, "plasma");
   assert.equal(bfg.damageType, "electric");
-  assert.equal(bfg.automatic, false, "a press, not hold-to-charge");
+  assert.equal(bfg.automatic, false, "hold to charge, release to fire (not automatic fire)");
   assert.ok(bfg.preload === true, "built at load so its effects are compiled before the first shot");
-  // One capacitor reserve for both: the railgun takes 1 a shot, the BFG 4.
+  // One capacitor reserve for both: the railgun takes 1 a shot, the BFG 1 per charge stage (no magazine of its own).
   assert.equal(railgun.ammoType, "capacitor");
   assert.equal(bfg.ammoType, "capacitor");
   const capacitor = WeaponConfig.ammoType("capacitor");
   assert.equal(capacitor.name, "Kondenzátory");
   assert.ok(capacitor.reserveMax >= 12);
   assert.equal(railgun.ammo.perShot, 1);
-  assert.equal(bfg.ammo.perShot, 4);
-  assert.equal(bfg.ammo.capacity, bfg.ammo.perShot, "one loaded shot");
-  assert.ok(bfg.ammo.reloadTime >= 8, "recharges really long");
-  assert.ok(bfg.ammo.reloadTime > railgun.ammo.reloadTime * 4);
+  assert.equal(bfg.ammo.perShot, 1, "one capacitor per stage");
+  assert.equal(bfg.ammo.capacity, 0, "fires straight from the shared reserve");
+  assert.equal(bfg.ammo.reloadTime, 0, "no recharge, only the short cooldown");
+  assert.ok(bfg.ammo.reserveStart >= 4, "handed over with one full charge of capacitors");
   const p = bfg.params;
-  assert.ok(p.spinUpTime! >= 0.8 && p.spinUpTime! <= 1.2, "Doom-like ~1 s spin-up");
+  assert.equal(p.stageTime, 1, "each stage takes 1 s");
+  assert.equal(p.maxStages, 4, "four stages, one rib each");
+  assert.equal(1 / bfg.fireRate, 2, "a short 2 s cooldown after a shot");
+  assert.deepEqual([1, 2, 3, 4].map((n) => p[`empRadius${n}`]), [6, 9, 12, 15], "EMP radius per stage");
+  for (let n = 1; n <= 4; n++) {
+    assert.ok(p[`stunRadius${n}`]! > p[`empRadius${n}`]!, `stage ${n} stuns a little farther out`);
+    if (n > 1) {
+      for (const key of ["stunRadius", "ballSize", "ballBrightness"]) assert.ok(p[`${key}${n}`]! > p[`${key}${n - 1}`]!, `${key} grows with the stage`);
+    }
+  }
+  assert.ok(p.ballSize4 === 1 && p.ballBrightness4 === 1, "the full charge is the full ball");
   assert.ok(p.ballSpeed! >= 15 && p.ballSpeed! <= 20, "a big slow ball");
-  assert.ok(p.empRadius! >= 10 && p.empRadius! <= 14, "clears the surroundings (~12 m)");
   assert.ok(p.empVertical! >= 2 && p.empVertical! <= 4, "the same floor only");
-  assert.ok(p.stunRadius! > p.empRadius!, "stuns a little farther out");
+  assert.ok(p.ribGlow! <= 1 && p.coreGlow! <= 1, "lit, not blown out (FEEDBACK: tlumeně)");
   // Enough to destroy any robot on the hardest level in one pulse.
   const enemies = JSON.parse(readFileSync("data/enemies.json", "utf8")) as Record<string, { health?: number; resistances?: Record<string, number> }>;
   const difficulty = JSON.parse(readFileSync("data/difficulty.json", "utf8")) as { levels: { enemyHealth: number }[] };
@@ -136,7 +146,7 @@ test("weapons.json: the BFG 9000 (FEEDBACK 2026-10-04) — Doom-like plasma ball
     if (robot.health === undefined) continue;
     assert.ok(bfg.damage * (robot.resistances?.electric ?? 1) >= robot.health * hardest, `${type}: one pulse kills at ×${hardest}`);
   }
-  for (const sound of ["launch", "ready"] as const) assert.ok(bfg.sounds[sound] !== undefined, `bfg9000.sounds.${sound}`);
+  for (const sound of ["launch", "ready", "stage2", "stage3", "stage4", "deny"] as const) assert.ok(bfg.sounds[sound] !== undefined, `bfg9000.sounds.${sound}`);
   assert.ok(data.weapons.every((w) => w.class !== "Hose"), "the hose is gone");
 });
 

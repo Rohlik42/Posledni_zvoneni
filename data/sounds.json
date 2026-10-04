@@ -163,13 +163,46 @@
         { "kind": "tone", "wave": "square", "start": 0.01, "duration": 0.2, "volume": 0.08, "attack": 0.003, "from": 1600, "to": 200 }
       ]
     },
-    "bfgSpinUp": {
-      "//": "BFG 9000 se roztáčí (params.spinUpTime 1 s): stoupající kvílení kondenzátorů (pila 90 → 1400 Hz, sinus 180 → 2600 Hz) s narůstajícím bzučením (čtverec 55 → 110 Hz) a syčením plazmy; vrcholí těsně před výstřelem.",
+    "bfgCharge1": {
+      "//": "BFG 9000, 1. stupeň nabíjení (zvuk stisku, weapons.json → bfg9000.sounds.fire; params.stageTime 1 s): nízké kvílení kondenzátorů (pila 90 → 260 Hz, sinus 180 → 520 Hz) s bzučením (čtverec 55 → 70 Hz), vrcholí na konci stupně. Stupně 2–4 navazují vždy o kus výš (FEEDBACK 2026-10-04 nabíjení jako v Doomu 3).",
       "layers": [
-        { "kind": "tone", "wave": "sawtooth", "start": 0, "duration": 1.05, "volume": 0.08, "attack": 0.95, "from": 90, "to": 1400 },
-        { "kind": "tone", "wave": "sine", "start": 0, "duration": 1.05, "volume": 0.1, "attack": 0.95, "from": 180, "to": 2600 },
-        { "kind": "tone", "wave": "square", "start": 0, "duration": 1.05, "volume": 0.05, "attack": 0.9, "from": 55, "to": 110 },
-        { "kind": "noise", "start": 0.3, "duration": 0.75, "volume": 0.08, "attack": 0.65, "from": 2500, "to": 7000, "q": 1.2 }
+        { "kind": "tone", "wave": "sawtooth", "start": 0, "duration": 1.0, "volume": 0.06, "attack": 0.85, "from": 90, "to": 260 },
+        { "kind": "tone", "wave": "sine", "start": 0, "duration": 1.0, "volume": 0.08, "attack": 0.85, "from": 180, "to": 520 },
+        { "kind": "tone", "wave": "square", "start": 0, "duration": 1.0, "volume": 0.04, "attack": 0.8, "from": 55, "to": 70 }
+      ]
+    },
+    "bfgCharge2": {
+      "//": "BFG 9000, 2. stupeň: kvílení o oktávu výš (pila 260 → 520 Hz, sinus 520 → 1040 Hz), bzučení 70 → 85 Hz.",
+      "layers": [
+        { "kind": "tone", "wave": "sawtooth", "start": 0, "duration": 1.0, "volume": 0.065, "attack": 0.85, "from": 260, "to": 520 },
+        { "kind": "tone", "wave": "sine", "start": 0, "duration": 1.0, "volume": 0.085, "attack": 0.85, "from": 520, "to": 1040 },
+        { "kind": "tone", "wave": "square", "start": 0, "duration": 1.0, "volume": 0.045, "attack": 0.8, "from": 70, "to": 85 }
+      ]
+    },
+    "bfgCharge3": {
+      "//": "BFG 9000, 3. stupeň: kvílení 520 → 900 Hz (sinus 1040 → 1800 Hz), bzučení 85 → 100 Hz a začíná syčet plazma.",
+      "layers": [
+        { "kind": "tone", "wave": "sawtooth", "start": 0, "duration": 1.0, "volume": 0.07, "attack": 0.85, "from": 520, "to": 900 },
+        { "kind": "tone", "wave": "sine", "start": 0, "duration": 1.0, "volume": 0.09, "attack": 0.85, "from": 1040, "to": 1800 },
+        { "kind": "tone", "wave": "square", "start": 0, "duration": 1.0, "volume": 0.05, "attack": 0.8, "from": 85, "to": 100 },
+        { "kind": "noise", "start": 0.2, "duration": 0.8, "volume": 0.05, "attack": 0.6, "from": 2500, "to": 4500, "q": 1.2 }
+      ]
+    },
+    "bfgCharge4": {
+      "//": "BFG 9000, 4. stupeň (plné nabití): nejvyšší kvílení 900 → 1400 Hz (sinus 1800 → 2600 Hz), bzučení 100 → 110 Hz a sílící syčení plazmy.",
+      "layers": [
+        { "kind": "tone", "wave": "sawtooth", "start": 0, "duration": 1.0, "volume": 0.075, "attack": 0.85, "from": 900, "to": 1400 },
+        { "kind": "tone", "wave": "sine", "start": 0, "duration": 1.0, "volume": 0.095, "attack": 0.85, "from": 1800, "to": 2600 },
+        { "kind": "tone", "wave": "square", "start": 0, "duration": 1.0, "volume": 0.05, "attack": 0.8, "from": 100, "to": 110 },
+        { "kind": "noise", "start": 0.1, "duration": 0.9, "volume": 0.08, "attack": 0.65, "from": 3500, "to": 7000, "q": 1.2 }
+      ]
+    },
+    "bfgDeny": {
+      "//": "BFG 9000 nemůže nabít další stupeň (v zásobě je méně kondenzátorů): krátké tupé dvojí cvaknutí (čtverec 240 → 160 Hz) s ťuknutím relé.",
+      "layers": [
+        { "kind": "tone", "wave": "square", "start": 0, "duration": 0.06, "volume": 0.1, "attack": 0.002, "from": 240, "to": 160 },
+        { "kind": "tone", "wave": "square", "start": 0.09, "duration": 0.07, "volume": 0.1, "attack": 0.002, "from": 220, "to": 140 },
+        { "kind": "noise", "start": 0, "duration": 0.03, "volume": 0.12, "attack": 0.001, "from": 3000, "to": 2000, "q": 1.5 }
       ]
     },
     "bfgLaunch": {
@@ -191,14 +224,14 @@
       ]
     },
     "bfgRecharge": {
-      "//": "Začátek dlouhého nabíjení BFG (ammo.reloadTime 10 s): jen nenápadné stoupající zabzučení kondenzátorů, aby nerušilo boj.",
+      "//": "Začátek prodlevy BFG po výstřelu (2 s): jen nenápadné stoupající zabzučení kondenzátorů, aby nerušilo boj.",
       "layers": [
         { "kind": "tone", "wave": "sine", "start": 0, "duration": 1.6, "volume": 0.05, "attack": 0.9, "from": 70, "to": 240 },
         { "kind": "tone", "wave": "triangle", "start": 0, "duration": 1.6, "volume": 0.03, "attack": 1.0, "from": 140, "to": 480 }
       ]
     },
     "bfgReady": {
-      "//": "BFG nabito: krátká dvojitá zvonkohra (sinus 880 a 1320 Hz) s jemným třpytem.",
+      "//": "BFG zase připravené po prodlevě: krátká dvojitá zvonkohra (sinus 880 a 1320 Hz) s jemným třpytem.",
       "layers": [
         { "kind": "tone", "wave": "sine", "start": 0, "duration": 0.35, "volume": 0.14, "attack": 0.004, "from": 880, "to": 880 },
         { "kind": "tone", "wave": "sine", "start": 0.12, "duration": 0.5, "volume": 0.14, "attack": 0.004, "from": 1320, "to": 1320 },

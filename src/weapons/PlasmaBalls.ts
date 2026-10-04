@@ -55,11 +55,22 @@ export interface PlasmaBallOptions {
   seed: number;
 }
 
-/** Where a ball burst: a point in the open just off what it struck, what it struck (null in mid-air), its heading. */
+/**
+ * How strong one ball is (FEEDBACK 2026-10-04 BFG charging): `size` scales its radius, `brightness` its glow (mesh
+ * visibility of the additive spheres, so no material changes), `stages` is handed back with its impact.
+ */
+export interface PlasmaPower {
+  size: number;
+  brightness: number;
+  stages: number;
+}
+
+/** Where a ball burst: a point in the open just off what it struck, what it struck (null in mid-air), its heading, its stages. */
 export interface PlasmaImpact {
   point: Vector3;
   hit: HitResult | null;
   direction: Vector3;
+  stages: number;
 }
 
 interface Shell {
@@ -76,6 +87,7 @@ interface Flying {
   last: Vector3;
   velocity: Vector3;
   age: number;
+  power: PlasmaPower;
 }
 
 /**
@@ -132,20 +144,27 @@ export class PlasmaBalls {
     return this.flying[0]?.position ?? null;
   }
 
+  /** Size scale of the first ball in flight (tests), or 0. */
+  get size(): number {
+    return this.flying[0]?.power.size ?? 0;
+  }
+
   /**
-   * Launches a ball at `start` with `velocity`; the first sweep runs from `from` (the eye), so a wall between the eye
-   * and the start is struck at once.
+   * Launches a ball of `power` at `start` with `velocity`; the first sweep runs from `from` (the eye), so a wall
+   * between the eye and the start is struck at once.
    */
-  launch(from: Vector3, start: Vector3, velocity: Vector3, onImpact: (impact: PlasmaImpact) => void): void {
+  launch(from: Vector3, start: Vector3, velocity: Vector3, power: PlasmaPower, onImpact: (impact: PlasmaImpact) => void): void {
     if (this.spare.length === 0 && this.flying.length > 0) {
       FrameTags.note(TAG_POOL);
       const oldest = this.flying[0]!;
       this.remove(oldest);
-      onImpact({ point: oldest.position.clone(), hit: null, direction: oldest.velocity.clone().normalize() });
+      onImpact({ point: oldest.position.clone(), hit: null, direction: oldest.velocity.clone().normalize(), stages: oldest.power.stages });
     }
     const shell = this.spare.pop()!;
-    const ball: Flying = { shell, start: start.clone(), position: start.clone(), last: from.clone(), velocity: velocity.clone(), age: 0 };
+    const ball: Flying = { shell, start: start.clone(), position: start.clone(), last: from.clone(), velocity: velocity.clone(), age: 0, power: { ...power } };
     this.place(ball);
+    shell.core.visibility = power.brightness;
+    shell.glow.visibility = power.brightness;
     shell.core.setEnabled(true);
     shell.glow.setEnabled(true);
     this.flying.push(ball);
@@ -158,7 +177,7 @@ export class PlasmaBalls {
     for (const ball of [...this.flying]) {
       ball.age += dt;
       const next = ball.position.add(ball.velocity.scale(dt));
-      const impact = this.sweep(ball.last, next);
+      const impact = this.sweep(ball.last, next, ball.power.stages);
       if (impact !== null) {
         this.remove(ball);
         onImpact(impact);
@@ -166,13 +185,13 @@ export class PlasmaBalls {
       }
       if (ball.age >= this.options.maxFlightTime) {
         this.remove(ball);
-        onImpact({ point: next, hit: null, direction: ball.velocity.clone().normalize() });
+        onImpact({ point: next, hit: null, direction: ball.velocity.clone().normalize(), stages: ball.power.stages });
         continue;
       }
       ball.last = next.clone();
       ball.position = next;
       this.place(ball);
-      if (Vector3.Distance(ball.start, ball.position) >= this.options.trailStart) this.emitTrail(ball.position);
+      if (Vector3.Distance(ball.start, ball.position) >= this.options.trailStart) this.emitTrail(ball.position, ball.power.size);
     }
   }
 
@@ -190,7 +209,7 @@ export class PlasmaBalls {
   }
 
   /** The nearest thing between `from` and `to`: what a ray meets first, or a robot within `hitRadius` of the path. */
-  private sweep(from: Vector3, to: Vector3): PlasmaImpact | null {
+  private sweep(from: Vector3, to: Vector3, stages: number): PlasmaImpact | null {
     const path = to.subtract(from);
     const length = path.length();
     if (length <= 0) return null;
@@ -199,11 +218,12 @@ export class PlasmaBalls {
     const near = this.area.nearRay(from, direction, length, 0, this.options.hitRadius, PlasmaBalls.robot);
     if (near !== null && (hit === null || near.hit.distance < hit.distance)) hit = near.hit;
     if (hit === null) return null;
-    return { point: hit.point.subtract(direction.scale(SURFACE_OFFSET)), hit, direction };
+    return { point: hit.point.subtract(direction.scale(SURFACE_OFFSET)), hit, direction, stages };
   }
 
   private place(ball: Flying): void {
-    const { radius, glowScale, pulse } = this.options;
+    const { glowScale, pulse } = this.options;
+    const radius = this.options.radius * ball.power.size;
     const { core, glow } = ball.shell;
     core.position.copyFrom(ball.position);
     glow.position.copyFrom(ball.position);
@@ -211,8 +231,9 @@ export class PlasmaBalls {
     glow.scaling.setAll(radius * 2 * glowScale * (1 + pulse * Math.sin(this.time * GLOW_PULSE_RATE)));
   }
 
-  private emitTrail(at: Vector3): void {
-    const { effect, radius, trailPerStep } = this.options;
+  private emitTrail(at: Vector3, size: number): void {
+    const { effect, trailPerStep } = this.options;
+    const radius = this.options.radius * size;
     const { random } = this;
     for (let i = 0; i < trailPerStep; i++) {
       const offset = new Vector3(random.range(-1, 1), random.range(-1, 1), random.range(-1, 1)).scaleInPlace(radius * TRAIL_SPREAD);

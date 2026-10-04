@@ -28,8 +28,12 @@ export interface TextsData {
   fullHealth: string;
   /** A pickup's ammo does not fit any more (`{weapon}` = the weapon's name); the pickup stays on the floor. */
   fullAmmo: string;
-  /** `recharge` = long recharge of the weapon in hand (`{percent}`), `spinUp` = the BFG spinning up (FEEDBACK 2026-10-04). */
-  hud: { keys: string; seconds: string; recharge: string; spinUp: string; powerUps: Record<string, string> };
+  /**
+   * `recharge` = long recharge of the weapon in hand (`{percent}`); the BFG's charge (FEEDBACK 2026-10-04 nabíjení
+   * jako v Doomu 3): `charge` = stages done of the most (`{stages}`, `{max}`), `chargeCapped` = the same when the
+   * reserve allows fewer (`{cap}`), `cooldown` = the short pause after a shot.
+   */
+  hud: { keys: string; seconds: string; recharge: string; charge: string; chargeCapped: string; cooldown: string; powerUps: Record<string, string> };
   /** Hints and names around captive teachers (phase 11). */
   teachers: { controls: string; hintFree: string; hintTalk: string; nameWithNickname: string; left: string };
   /** The quiz overlay (phase 11). */
@@ -100,7 +104,7 @@ export class Texts {
     itemsNew: Schema.record(Schema.string()),
     fullHealth: Schema.string(),
     fullAmmo: Schema.string(),
-    hud: Schema.object({ keys: Schema.string(), seconds: Schema.string(), recharge: Schema.string(), spinUp: Schema.string(), powerUps: Schema.record(Schema.string()) }),
+    hud: Schema.object({ keys: Schema.string(), seconds: Schema.string(), recharge: Schema.string(), charge: Schema.string(), chargeCapped: Schema.string(), cooldown: Schema.string(), powerUps: Schema.record(Schema.string()) }),
     teachers: Schema.object({
       controls: Schema.string(),
       hintFree: Schema.string(),
