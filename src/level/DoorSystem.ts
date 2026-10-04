@@ -40,6 +40,8 @@ export interface DoorInfo {
   progress: number;
   /** Middle of the opening (world). */
   center: Vec3Like;
+  /** World axis the wall runs along (phase 20: tests put sounds either side of the door). */
+  along: "x" | "z";
   rooms: (string | null)[];
   openings: number;
 }
@@ -297,6 +299,7 @@ export class DoorSystem {
       open: door.isOpen,
       progress: door.openProgress,
       center: { x: middle.x, y: middle.y, z: middle.z },
+      along: door.spec.along,
       rooms: door.spec.sides.map((s) => s.room),
       openings: door.openCount,
     };
