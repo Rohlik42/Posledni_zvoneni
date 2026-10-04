@@ -368,6 +368,8 @@ Quick gate: `tests/e2e/difficulty.spec.ts`. Na Mimino vs. Ultrašprt se liší z
 **Do not**
 Měnit jména, motta ani portréty.
 
+**Done 2026-10-04** (handoff `handoff/phase-17.md`). `/` → NOVÁ HRA → výběr obtížnosti (`DifficultyPicker`, stránka menu ve stylu staré hry, portréty a Schrödingerova rovnice doslova z `legacy/index.html:3` v `data/portraits/`) → JDEME DO ŠKOLY. Quick gate zelený: typecheck, `npm run test:data` 111/111 (+5 `tests/data/difficulty.test.ts`), Playwright 10/10 (6 smoke + 4 `tests/e2e/difficulty.spec.ts`). Mimino vs. Ultrašprt podle JSON: 180 vs. 120 životů, 19 vs. 26 robotů, humanoid skutečně zraní 2× po 5 vs. 2× po 17, past −10 vs. −33, lékárnička +70 vs. +20. Snímky `17-difficulty.png`, `17-main.png`. Odchylky od litery: násobiče `playerHealth` (1,2 … 0,8) a `pickups` (1,4 … 0,4, škáluje množství v léčivých a muničních věcech, ne jejich počet) jsou nové, ostatní z LEGACY §2 beze změny; nápověda výběru už neříká „vždy 150 životů“ a řádek ukazuje životy a počet robotů; level se staví pro jednu obtížnost, jiná volba (nebo „Pokračovat“ na checkpointu jiné obtížnosti) stránku načte znovu s `&difficulty=`, checkpoint obtížnost ukládá; `progression.json → countDelta` zmizel. `menu.spec.ts` a `playthrough.spec.ts` upravené o krok výběru, nespuštěné (shift gate).
+
 ## Phase 18 — Menu a herní tok
 
 **Implement**
