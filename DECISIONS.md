@@ -513,3 +513,4 @@ Měřeno ve hře, ne spočítáno: `tests/e2e/weapons-balance.spec.ts` v nové d
 - **Balónky jsou zbraň 2, hasičák zbraň 3** (člověk: „prohodíme“); HUD, klávesy 2/3 a texty podle `slot` v data/weapons.json.
 - **Poprvé získaná zbraň jde rovnou do ruky:** `Inventory.give` (sebrání ze země, odměna učitele) po předání nové zbraně zavolá `WeaponInventory.selectWeapon`; další munice téže zbraně nepřepíná. IDKFA, obnova checkpointu a dev scény dávají zbraně přímo přes `WeaponInventory` a nepřepínají. Test `tests/e2e/weapon-autoswitch.spec.ts`.
 - **Motto Raubíře „Nevyluzujte!“** (člověk: „jako nevyluzujte zvuky“) místo legacy „NEVYLUČUJ!“; ostatní motta zůstávají z legacy.
+- **Fyzikář se jmenuje Jungwirth** (člověk, 2026-10-04; dřív fiktivní „Voltr“, přezdívka Ampér zůstává, id `jungwirth`). Starší zmínky „Voltr“ v DECISIONS/PLAN jsou historické.

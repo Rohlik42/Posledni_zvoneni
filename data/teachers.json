@@ -6,7 +6,7 @@
       "rewards": [{ "item": "weapon-bfg" }, { "item": "capacitors" }],
       "look": { "variant": "violet", "colors": { "hair": "teacher.hairGrey", "tie": "accent.red" }, "features": ["bun", "glasses"] },
       "gltfLook": { "person": "woman-suit", "scale": 0.95, "colors": { "Hair_Blond": "#8c8781" } },
-      "greeting": "Pan kolega Voltr ti dal railgun? Roztomilé. Odpověz a ukážu ti, co svede abstraktní matematika.",
+      "greeting": "Pan kolega Jungwirth ti dal railgun? Roztomilé. Odpověz a ukážu ti, co svede abstraktní matematika.",
       "wrongLine": "Chyba ve výpočtu! Tohle by ti neodpustila ani kalkulačka od Neuralithu.",
       "freedLine": "Q.E.D.! Fyzika je jen aplikovaná matematika. Tady máš BFG 9000 a kondenzátory — čtyři na ránu, tak počítej. Jedna rána a v okruhu dvanácti metrů platí: robot rovná se nula."
     },
@@ -74,11 +74,11 @@
       "freedLine": "Krása! Vezmi si moje gumáky z ateliéru — v nich ti elektřina tolik neublíží."
     },
     {
-      "id": "voltr", "slot": 7, "surname": "Voltr", "nickname": "Ampér", "subject": "Fyzika", "room": "f3-kabinet-fyzika",
+      "id": "jungwirth", "slot": 7, "surname": "Jungwirth", "nickname": "Ampér", "subject": "Fyzika", "room": "f3-kabinet-fyzika",
       "rewards": [{ "item": "weapon-railgun" }, { "item": "capacitors" }],
       "look": { "variant": "sea", "colors": { "hair": "teacher.hairGrey", "tie": "neon.electric" }, "features": ["wild", "mustache", "glasses"] },
       "gltfLook": { "person": "man-casual", "scale": 0.96, "colors": { "LightBrown": "#e2e4df" } },
-      "greeting": "Voltr, pro studenty Ampér. Tahle past je pod napětím — doslova. Ukaž, co víš o fyzice.",
+      "greeting": "Jungwirth, pro studenty Ampér. Tahle past je pod napětím — doslova. Ukaž, co víš o fyzice.",
       "wrongLine": "Zkrat! Vidíš, co udělá chybná teorie v praxi?",
       "freedLine": "Ohm by měl radost! Tady je railgun z kondenzátorů, co jsme stavěli na kroužku, a pár kondenzátorů navíc. Miř, pal."
     }
