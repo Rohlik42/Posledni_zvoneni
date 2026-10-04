@@ -588,6 +588,27 @@ Fáze 24, 2026-10-04, main @ 5c8c4ca + větev fáze 24. DESIGN §15 bod po bodu 
 
 **Potřebuje člověka** (Backlog níže): skutečná doba hraní 15–25 min, fps na Ryzen AI a slabém notebooku, poslech zvuků, push + GitHub Pages (první `npm ci` a nasazení), kontrola kvízu a jmen.
 
+## Phase F2 — FEEDBACK: skybox jako skutečná fotka Prahy, bez svislých pruhů
+
+Zdroj: `FEEDBACK.md` (2026-10-04). Má přednost před všemi ostatními nedokončenými fázemi.
+
+Problém: `tools/prague-skybox.ts` (F1) převedl fotku z terasy na téměř černou siluetu (stěny 70 kB) a „rim“ záře se počítá po sloupcích od prvního nemodrého pixelu. Ve výhledu z oken jsou proto **svislé barevné pruhy** (`screenshots/24-game.png`, okno vlevo). Člověk chce **skutečnou fotku Prahy**, ne siluetu.
+
+**Implement**
+1. Přepiš `tools/prague-skybox.ts` (a `tools/prague-skybox.json`): zdroj zůstává `reference/matterport/panoramas_4k/terasa_vyhled/{a,b,c,d,up}.jpg` (jde o skutečnou 360° fotku ze střechy školy; jiné volně licencované panorama Malé Strany neexistuje, hledalo se). Fotka zůstane **fotkou** (střechy, Mikuláš, Hrad, sv. Vít, komíny a štíty mají být čitelné), jen s převodem den → noc:
+   - expozice dolů, modrý noční tón s křivkou, která zachová kontrast a detail střech; obloha tmavě modrá až černá s vlastním mrakem z fotky, saturace stažená;
+   - pár rozsvícených oken a lamp v budovách (malé teplé body z jasných ploch fasád, deterministicky) a slabá oranžová zář požárů nízko nad obzorem v 1–2 směrech jako **plynulý gradient v úhlových souřadnicích** (azimut, elevace), ne po sloupcích pixelů;
+   - **zákaz jakéhokoli per-sloupcového zpracování** (hledání hrany, rim po sloupcích). Všechny masky počítej spojitě z elevace a azimutu (směr pixelu krychle → úhly) a z hladkých funkcí obrazu (rozmazaný jas a barva), aby nevznikaly pruhy ani švy mezi stěnami.
+2. Popředí terasy (dlažba, židle, stoly, světlá atika) leží pod linií atiky: najdi ji jako **jednu hladkou křivku elevace podle azimutu** (např. robustní fit z masky „světlá dlažba/atika“ + medián s rozmazáním přes ±10° azimutu). Pod ní plynule přejdi (pás 1–2°) do tmavého nočního oparu / tmy. Nad ní zůstanou blízké červené střechy a komíny (jsou to skutečné střechy kolem školy, patří do výhledu).
+3. Výstup jako dosud `public/textures/sky/prague_{px,nx,py,ny,pz,nz}.jpg` (2048²) + `prague-1k_*` (Nízké), stejná orientace a mapování stěn (DECISIONS F1), `up` stejně otočené. JPEG kvalita ≥ 85 (fotka, ne silueta: čekej 300–700 kB na stěnu).
+4. `Skybox.ts`: zkontroluj, že skybox nekreslí mlha, SSAO ani tone mapping tak, aby fotku spálily do černa. Ve hře musí být fotka vidět i z tmavé učebny (případně vlastní `skyExposure` v `data/sky.json`).
+
+**Verification**
+Quick gate: `tests/e2e/level-walk.spec.ts`. Náhled `screenshots/F2-skybox-cross.png` (krychle rozložená do kříže) a snímky ze hry: `F2-window-mikulas.png` (západní okno chodby 2. patra), `F2-window-ucebna30.png` (stejný pohled jako `24-game.png`), `F2-window-hrad.png`. Prohlédni je ve zvětšení: žádné svislé pruhy, žádné švy na hranách krychle, žádné židle ani dlažba terasy, Mikuláš a Hrad poznatelné jako fotka. Přidej test, který vyrenderuje výhled z okna a zkontroluje, že sloupcové rozdíly jasu nemají periodický vzor (průměr |Δ| mezi sousedními sloupci v oblasti okna < práh) a že střední jas oblohy okna není < 8/255.
+
+**Do not**
+Silueta, posterizace oblohy, kreslení po sloupcích, jiný zdroj obrázku, ruční úprava obrázků mimo skript.
+
 ## Backlog — needs a human
 
 - Zahrát krabicovou místnost po fázi Weapon feel a zapsat zpětnou vazbu do FEEDBACK.md

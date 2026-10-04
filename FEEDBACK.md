@@ -16,3 +16,8 @@ Zapracováno 2026-10-03 (fáze 5: světlo u zdi)
 - **Problikávání (z-fighting):** na spoustě míst jsou dvě plochy na stejném místě a blikají. Je potřeba systematicky najít a opravit → Phase F1.
 
 Zapracováno 2026-10-03
+
+## 2026-10-04 ráno — po celém běhu
+
+- **Svislé pruhy ve výhledu z oken jsou problém** (`screenshots/24-game.png`).
+- **Skybox měl být skutečná fotka Prahy**, ne silueta; to se po cestě ztratilo → Phase F2 (fotka z terasy školy s převodem den→noc, bez per-sloupcového zpracování).
