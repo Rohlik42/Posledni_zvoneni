@@ -1,7 +1,7 @@
 # Phase 27 — GPU čas snímku a poctivá tvrzení o výkonu (handoff)
 
 Branch `worktree-wf_972b8070-ee3-1`, worktree `.claude/worktrees/wf_972b8070-ee3-1`, base main @ 12cf0d7.
-Status: **done**. Quick gate 2× green (plus a 3rd control run after the last code change), visual check done, docs done.
+Status: **fix pass after review in progress** (see „Fix pass“ at the end; it supersedes the GPU-limit parts above).
 
 ## What changed
 - `src/core/EngineFactory.ts`: `?gpuTiming=1` (constant `GPU_TIMING_PARAM`) → `WebGPUEngine` gets
@@ -17,11 +17,11 @@ Status: **done**. Quick gate 2× green (plus a 3rd control run after the last co
   GPU measurement that resolved since (counter `count` changed), ns → ms; an exact 0 is skipped (no `writeTimestamp`
   in plain Chrome → Babylon records 0, see visual check). `FrameWindow` + `gpuFrameMs: FrameRange | null`
   and `gpuSamples` (additive).
-- `tests/e2e/perf.spec.ts`: `HIGH_MAX_GPU_FRAME_MS = 5`; test 1 asserts `{ gpuTiming: false, gpuFrameMs: null }`
+- `tests/e2e/perf.spec.ts`: (`HIGH_MAX_GPU_FRAME_MS = 5` was added here and removed in the fix pass); test 1 asserts `{ gpuTiming: false, gpuFrameMs: null }`
   without the flag; test 5 (autodetect down) now does `set("medium")` then `set("auto")` in one evaluate, so the
   detection restarts whatever choice was left (also under `-g`); new test 6 navigates the shared page to
   `about:blank` (GPU measured alone), opens `/?new=1&gpuTiming=1` in its own context, Vysoké at the učebna 30 view,
-  asserts renderer webgpu, `gpuTiming` true, `gpuSamples > 0`, `0 < gpu avg ≤ 5 ms`, fps ≥ 57, no console problems;
+  asserts renderer webgpu, `gpuTiming` true, `gpuSamples > 0`, `gpu avg > 0` (the `≤ 5 ms` part removed in the fix pass), fps ≥ 57, no console problems;
   `perf.json → highGpu`.
 - `tests/smoke/boot.spec.ts`: asserts `{ gpuTiming: false, gpuFrameMs: null }` on `/` (no flag = engine as before).
 - Docs: PLAN.md Run směna 7 (41,2 → 42,1 s), DoD audit header + 6b; handoff/phase-25.md + phase-26.md „Vyřízeno“.
@@ -65,8 +65,8 @@ zeros, `gpuFrameMs` stays null there (re-checked after reload: null, `gpuTiming`
 Chrome background), so frames were throttled there; no numbers from it were used.
 
 ## Flags / next phases must know
-- GPU ms on Metal are encoder-level stamps outside render passes: read as a lower bound; per-pass stamps are garbage on
-  Metal. Limit 5 ms (~3× measured) — DECISIONS „Fáze 27“.
+- GPU counter on Metal does not track GPU work (fix-pass probe: unchanged by SSAO, ~0,015 ms when GPU-bound); per-pass
+  stamps are garbage on Metal. No GPU limit; GPU side guarded by `fps ≥ 57` only — DECISIONS „Fáze 27“.
 - Test 6 navigates the shared serial page to `about:blank` before opening its own context; it must stay the last test
   in the describe (tests after it would have no game page).
 - With `?gpuTiming=1` CPU frame time is ~1 ms higher and draw calls ~46 higher than without; cause not investigated
@@ -74,3 +74,36 @@ Chrome background), so frames were throttled there; no numbers from it were used
 - perf.spec now ~45 s (6 tests). Nothing outside the quick gate reads `stats()` fields that changed (only additions);
   `Game` ctor got a 5th param but only `Game.create` constructs it.
 - Not run: full suite, `npm run build` (shift gate). Nothing pushed.
+
+## Fix pass after review (2026-10-04, port 5301)
+Review found two unverified claims: (1) „CPU-bound / rozhoduje CPU“ from a GPU number that is only a lower bound,
+(2) „the 5 ms limit catches GPU regressions (SSAO, shadows, bloom)“ without a toggle measurement.
+
+**Probe (one-off, `tests/e2e/zz-gpu-probe.spec.ts`, not committed; kept in the session scratchpad):** one context with
+`/?new=1&gpuTiming=1`, Vysoké, start view, pipeline parts toggled via `__game.rendering.setEnabled`, 3 s settle + 5 s
+window each; deviceScaleFactor 1 (1080p) and 3 (5760×3240). Two runs, run 1 / run 2:
+
+| setting | dsf1 fps | dsf1 GPU counter avg | dsf3 fps | dsf3 GPU counter avg | dsf3 CPU avg |
+| --- | --- | --- | --- | --- | --- |
+| all on | 60,0 / 60,0 | 1,65 / 1,58 | 33,2 / 32,9 | 0,016 / 0,014 | 11,0 / 10,9 |
+| SSAO off | 60,0 / 60,0 | 1,65 / 1,64 | 48,2 / 48,4 | 0,020 / 0,023 | 10,7 / 10,4 |
+| SSAO + bloom off | 60,0 / 60,0 | 1,49 / 1,46 | 60,1 / 60,0 | 2,69 / 2,13 | 9,9 / 9,5 |
+| all pipeline parts off | 22,2 (?) / 60,0 | 1,61 / 1,55 | 60,0 / 60,0 | 2,09 / 2,15 | 9,3 / 9,1 |
+| all on again | 60,1 / 60,1 | 1,64 / 1,57 | 33,0 / 33,1 | 0,015 / 0,014 | 10,5 / 10,3 |
+
+Conclusion: Babylon's GPU frame counter on Metal does **not** track GPU work. SSAO on/off at 1080p does not move it,
+and when the game is truly GPU-bound (dsf3: 33 fps at 11 ms CPU, SSAO off → 48 fps) it reads ~0,015 ms. The plan's
+„nonsense → test only records“ branch applies. (The 22,2 fps in run 1, 1080p all off, did not repeat; not investigated.)
+
+**Changes:**
+- `tests/e2e/perf.spec.ts`: `HIGH_MAX_GPU_FRAME_MS` and its `≤` assert removed (also `gpuFrameLimitMs` in perf.json);
+  test 6 renamed „…the device gets timestamp-query, the GPU counter is recorded, 60 fps“; still asserts webgpu,
+  `gpuTiming` true, `gpuSamples > 0`, counter avg > 0 (writeTimestamp works), fps ≥ 57, no console problems. Header comment
+  says the counter does not follow GPU work and the GPU side is guarded by `fps ≥ 57` alone.
+- DECISIONS „Fáze 27“ bullets 2 and 3 rewritten (this phase's own unmerged section): no GPU limit + probe numbers;
+  CPU-bound is not proven by phase 27 either; only CPU 7,8–8,1 ms (~8,6 ms under the cap) and fps evidence (60 fps at
+  3840×2160; 33 / 48 fps at 5760×3240) are claimed.
+- PERF.md: fáze 25 parenthesis („Že CPU čas je větší než GPU čas, ukázalo…“) corrected; fáze 27 gets the probe table,
+  „Důsledek“ paragraph and rewritten „Jak číst čísla“ (GPU ms unknown, which side decides is unknown, GPU regressions
+  guarded only by `fps ≥ 57`).
+- PLAN.md DoD 1b (columns 3–5) and the DoD header note reworded; Done block gets a fix-pass note.
