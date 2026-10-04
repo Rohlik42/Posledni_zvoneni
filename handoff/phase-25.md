@@ -72,5 +72,6 @@ Probes (scratch `probe25*.tmp.mts`, deleted):
 - `DECISIONS.md` „Fáze 26“ section (from the previous merge) contains duplicated „Fáze 21“ lines (RoomCulling,
   skipPointerMovePicking, skybox, optimisations) and a duplicate „Fáze 24“ block — a `merge=union` artefact, left as is
   (not this phase's content); the groom may dedupe it.
+  Vyřízeno (groom 2026-10-04): duplikáty na main nejsou — `sort | uniq -d` přes DECISIONS.md @ `fd1a63e` nenašel nic a sekce „Fáze 26“ má jeden záznam, šlo o artefakt pohledu worktree před merge (PLAN.md `## Run — směna 7` → Otevřené body; zapsala fáze 27).
 - perf.spec now takes ~35 s (5 tests); test 5 runs ~9 s under 8× throttle.
 - Nothing pushed.

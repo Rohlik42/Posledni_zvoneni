@@ -13,6 +13,11 @@ import { ConsoleGuard } from "../support/ConsoleGuard";
 // begin → end: game steps, render, submit), which the cap does not hide; draw calls are recorded as min / avg / max over
 // the measured frames (the lamp's cube shadow map renders every `rendering.json → shadows.refreshRate` frames, so one
 // frame is not representative). The automatic choice is also checked going down: Střední under a heavy CPU throttle.
+// Phase 27: the GPU side. A page opened with `?gpuTiming=1` in its own context asks the WebGPU device for
+// `timestamp-query` (players never get it), and `stats().window.gpuFrameMs` holds Babylon's GPU frame counter. On the
+// M1 Pro (Metal) that counter does not follow GPU work: switching SSAO off leaves it unchanged, and at 3× the device
+// pixel ratio, where SSAO alone takes the game from 48 to 33 fps, it reads ~0.02 ms (PERF.md, fáze 27). So the test
+// only records it and checks that the measurement runs; the GPU side is guarded by `fps ≥ 57` alone.
 
 const json = <T>(file: string): T => JSON.parse(readFileSync(file, "utf8")) as T;
 const quality = json<QualityData>("data/quality.json");
@@ -42,6 +47,8 @@ const SETTLE_MS = 3_000;
 const MEASURE_MS = 5_000;
 /** The automatic choice: warm-up and sample of every round, plus slack. */
 const DETECT_TIMEOUT_MS = (quality.autodetect.warmupSeconds + quality.autodetect.sampleSeconds) * quality.autodetect.maxRounds * 1000 + 6_000;
+/** Phase 27: URL of the page that measures GPU time (EngineFactory requests `timestamp-query` only with it). */
+const GPU_TIMING_URL = "/?new=1&gpuTiming=1";
 /** Throttled frames are long, but the detection counts game time (frame deltas), so the rounds take about as long. */
 const DOWN_DETECT_TIMEOUT_MS = DETECT_TIMEOUT_MS * 2;
 const HEAL = 10_000;
@@ -104,7 +111,17 @@ async function fpsAt(page: Page, preset: string): Promise<{ fps: number; stats: 
 /** What perf.json keeps of one measurement: fps, CPU frame time and draw calls over the window, and the raw stats. */
 function summary(m: { fps: number; stats: QualityStats }): Record<string, unknown> {
   const w = m.stats.window;
-  return { fps: m.fps, frames: w.frames, cpuFrameMs: w.cpuFrameMs, renderCpuMs: w.renderCpuMs, drawCalls: w.drawCalls, drawCallModes: w.drawCallModes, stats: m.stats };
+  return {
+    fps: m.fps,
+    frames: w.frames,
+    cpuFrameMs: w.cpuFrameMs,
+    renderCpuMs: w.renderCpuMs,
+    gpuFrameMs: w.gpuFrameMs,
+    gpuSamples: w.gpuSamples,
+    drawCalls: w.drawCalls,
+    drawCallModes: w.drawCallModes,
+    stats: m.stats,
+  };
 }
 
 test.describe.configure({ mode: "serial" });
@@ -137,6 +154,9 @@ test.describe("quality presets and performance (1920×1080)", () => {
     const loadMs = Date.now() - started;
     results.loadMs = loadMs;
     expect(loadMs).toBeLessThanOrEqual(LOAD_LIMIT_MS);
+    // Phase 27: without `?gpuTiming=1` the engine is created as before: no GPU timing, no GPU numbers.
+    const timing = await page.evaluate(() => ({ gpuTiming: window.__game!.quality!.stats().gpuTiming, gpuFrameMs: window.__game!.quality!.stats().gpuFrameMs }));
+    expect(timing).toEqual({ gpuTiming: false, gpuFrameMs: null });
 
     const before = await page.evaluate(() => ({ choice: window.__game!.quality!.choice, detection: window.__game!.quality!.detection() }));
     expect(before.choice).toBe("auto");
@@ -223,8 +243,12 @@ test.describe("quality presets and performance (1920×1080)", () => {
     );
     await cdp.send("Emulation.setCPUThrottlingRate", { rate: DOWN_CPU_THROTTLE });
     try {
-      // The previous test left the choice on Nízké, so `auto` restarts the detection from its start preset.
-      await page.evaluate(() => window.__game!.quality!.set("auto"));
+      // A manual preset first, so `auto` is a change and restarts the detection from its start preset whatever choice
+      // an earlier test (or none, under `-g`) left behind; `set` to the current choice does nothing (QualityManager).
+      await page.evaluate(() => {
+        window.__game!.quality!.set("medium");
+        window.__game!.quality!.set("auto");
+      });
       const started = await page.evaluate(() => ({ choice: window.__game!.quality!.choice, detection: window.__game!.quality!.detection() }));
       expect(started.choice).toBe("auto");
       expect(started.detection.done).toBe(false);
@@ -248,5 +272,33 @@ test.describe("quality presets and performance (1920×1080)", () => {
     expect(down.autodetected).toBe("low");
     expect(await page.evaluate(() => window.__game!.player!.health)).toBeGreaterThan(0);
     expect(guard.problems).toEqual([]);
+  });
+
+  test("Vysoké with ?gpuTiming=1: the device gets timestamp-query, the GPU counter is recorded, 60 fps", async ({ browser }) => {
+    // The shared page stops rendering first, so the GPU (and the CPU) serve this page alone.
+    await page.goto("about:blank");
+    const context = await browser.newContext({ viewport: VIEWPORT });
+    try {
+      const gpuPage = await context.newPage();
+      const gpuGuard = new ConsoleGuard(gpuPage);
+      await gpuPage.goto(GPU_TIMING_URL);
+      await gpuPage.waitForFunction(() => window.__game?.ready === true || window.__game?.error != null, undefined, { timeout: READY_TIMEOUT_MS });
+      expect(await gpuPage.evaluate(() => window.__game?.error ?? null)).toBeNull();
+      await gpuPage.evaluate(() => window.__game!.progress!.intro.dismiss());
+      const device = await gpuPage.evaluate(() => ({ renderer: window.__game!.renderer, gpuTiming: window.__game!.quality!.stats().gpuTiming }));
+      const high = await fpsAt(gpuPage, "high");
+      const gpu = high.stats.window.gpuFrameMs;
+      results.highGpu = { ...summary(high), url: GPU_TIMING_URL, ...device };
+      expect(device.renderer).toBe("webgpu");
+      expect(device.gpuTiming, "the adapter offers timestamp-query and the device got it").toBe(true);
+      expect(high.stats.window.gpuSamples, "GPU measurements in the window").toBeGreaterThan(0);
+      expect(gpu, "GPU frame time recorded").not.toBeNull();
+      // Recorded, not limited: on Metal the counter does not track the cost of the passes (DECISIONS „Fáze 27“).
+      expect(gpu!.avg, "the GPU counter delivers non-zero stamps (writeTimestamp works)").toBeGreaterThan(0);
+      expect(high.fps).toBeGreaterThanOrEqual(HIGH_MIN_FPS);
+      expect(gpuGuard.problems).toEqual([]);
+    } finally {
+      await context.close();
+    }
   });
 });

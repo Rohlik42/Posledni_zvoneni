@@ -1,4 +1,6 @@
+import { EngineInstrumentation } from "@babylonjs/core/Instrumentation/engineInstrumentation";
 import { SceneInstrumentation } from "@babylonjs/core/Instrumentation/sceneInstrumentation";
+import type { PerfCounter } from "@babylonjs/core/Misc/perfCounter";
 import type { Scene } from "@babylonjs/core/scene";
 import type { Game } from "../core/Game";
 import { Settings } from "../core/Settings";
@@ -42,6 +44,13 @@ export interface QualityStats {
   renderCpuMs: number;
   /** Phase 25: min / avg / max of the CPU times and draw calls of every frame since `startWindow()`. */
   window: FrameWindow;
+  /**
+   * Phase 27: average GPU time of a frame over the last `frameTimeSamples` GPU measurements (WebGPU timestamp queries),
+   * ms. Only with `?gpuTiming=1` on a device with `timestamp-query`; null otherwise (every player).
+   */
+  gpuFrameMs: number | null;
+  /** Phase 27: the device measures GPU time (`?gpuTiming=1` and the adapter offers `timestamp-query`). */
+  gpuTiming: boolean;
 }
 
 /** `window.__game.quality` (phase 21). */
@@ -103,7 +112,7 @@ export class QualityManager {
     this.start = QualityDetector.initial(this.data.autodetect, this.gpu);
     this.baseScaling = game.engine.getHardwareScalingLevel();
     this.instrumentation = new SceneInstrumentation(game.scene);
-    this.frames = new FrameSampler(game.engine, this.instrumentation, game.config.frameTimeSamples);
+    this.frames = new FrameSampler(game.engine, this.instrumentation, game.config.frameTimeSamples, QualityManager.gpuCounter(game));
     const settings = Settings.shared();
     this.choiceValue = settings.values.quality;
     this.current = this.resolve(this.choiceValue);
@@ -220,7 +229,17 @@ export class QualityManager {
       cpuFrameMs: this.frames.cpuFrameMs(),
       renderCpuMs: this.frames.renderCpuMs(),
       window: this.frames.window(),
+      gpuFrameMs: this.frames.gpuFrameMs(),
+      gpuTiming: this.game.gpuTiming,
     };
+  }
+
+  /** Phase 27: turns on GPU frame timing when the engine was created with `?gpuTiming=1` and got `timestamp-query`. */
+  private static gpuCounter(game: Game): PerfCounter | null {
+    if (!game.gpuTiming) return null;
+    const engineInstrumentation = new EngineInstrumentation(game.engine);
+    engineInstrumentation.captureGPUFrameTime = true;
+    return engineInstrumentation.gpuFrameTimeCounter;
   }
 
   /** Active meshes counted by the first part of their name (`level`, `teacher`, `e04`…): what the frame draws. */

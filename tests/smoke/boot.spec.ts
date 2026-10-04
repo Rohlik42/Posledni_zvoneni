@@ -16,6 +16,11 @@ test("game boots without console errors or warnings", async ({ page }) => {
   }));
   expect(state.error).toBeNull();
   expect(["webgpu", "webgl2"]).toContain(state.renderer);
+  // Phase 27: without `?gpuTiming=1` the device is created as before, without timestamp-query: no GPU numbers.
+  expect(await page.evaluate(() => ({ gpuTiming: window.__game!.quality!.stats().gpuTiming, gpuFrameMs: window.__game!.quality!.stats().gpuFrameMs }))).toEqual({
+    gpuTiming: false,
+    gpuFrameMs: null,
+  });
   expect(state.scene).toBe("game");
   // Phase 18: the main menu waits in front of the level, the game is paused behind it.
   expect(state.menu).toBe("main");

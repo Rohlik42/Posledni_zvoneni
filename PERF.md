@@ -73,11 +73,14 @@ snímek. Dva běhy quick gate po sobě:
 | Načtení do hratelného stavu | 1,76 s | 1,75 s |
 
 Mez v testu: průměrný CPU čas snímku na Vysoké ≤ **12 ms** (`HIGH_MAX_CPU_FRAME_MS`, DECISIONS „Fáze 25“); naměřeno
-7,8 ms, tj. hra by dnes bez vsync stropu běžela kolem 125 fps a regrese o víc než ~55 % test zachytí, i když fps zůstanou
-na 60. Assert `fps ≥ 57` zůstal jako kontrola stropu. GPU čas (`EngineInstrumentation.gpuFrameTimeCounter`) se
+7,8 ms a regrese CPU strany o víc než ~55 % test zachytí, i když fps zůstanou na 60. (Opraveno ve fázi 27: dřív tu
+stálo „hra by dnes bez vsync stropu běžela kolem 125 fps“. To z CPU času nevyplývá, protože GPU strana se neměřila a
+snímek bez stropu omezuje i prezentace. Viz „fáze 27“.) Assert `fps ≥ 57` zůstal jako kontrola stropu. GPU čas (`EngineInstrumentation.gpuFrameTimeCounter`) se
 nepoužil: adapter `timestamp-query` umí, ale `EngineFactory` vytváří `WebGPUEngine` bez `enableAllFeatures`, takže
 zařízení funkci nemá a `engine.getCaps().timerQuery` není nastavené; zapnout ji by měnilo vytváření enginu pro všechny
-hráče kvůli testu. Hra je na tomto stroji omezená CPU (pozastavená = 60 fps už ve fázi 21), proto rozhoduje CPU čas. Odemčení rAF (`--disable-frame-rate-limit
+hráče kvůli testu. (Opraveno ve fázi 27: dřív tu stálo „Hra je na tomto stroji omezená CPU (pozastavená = 60 fps už
+ve fázi 21), proto rozhoduje CPU čas“. 60 fps pozastavené hry je vsync strop, ne důkaz omezení CPU. Ani fáze 27 to
+nedokládá: GPU čítač na Metalu práci GPU neměří, viz „fáze 27“.) Odemčení rAF (`--disable-frame-rate-limit
 --disable-gpu-vsync`) headless Chromium respektuje jen částečně: sonda naměřila 114–123 fps, tedy další strop
 (120 Hz), proto test měří CPU čas a ne odemčené fps.
 
@@ -90,3 +93,68 @@ všechny snímky mají 1037–1048. Střední (bez stínů) má jeden vrchol 921
 stíny, fáze 24 snímek bez nich; render ani počet aktivních meshů (848) se mezi nimi nezměnil. Zbylých ±6 draw callů
 (880/886, 1042/1048) je v obou polovinách, se stíny nesouvisí a dál se nezkoumaly (běžící hra: oheň, roboti). Od fáze 25
 perf.json zapisuje rozsah a nejčastější hodnoty místo jednoho snímku.
+
+## 2026-10-04 — fáze 27 (GPU čas snímku, `?gpuTiming=1`)
+
+Stejná scéna a metodika (`tests/e2e/perf.spec.ts`, `test-results/perf.json → highGpu`), main @ 12cf0d7 + fáze 27. Nový
+test 6 otevře `/?new=1&gpuTiming=1` ve vlastním kontextu (sdílená stránka předchozích testů mezitím přejde na
+`about:blank`, aby GPU kreslilo jen měřenou hru). S tímto parametrem `EngineFactory` vyžádá na zařízení WebGPU funkci
+`timestamp-query`, ale jen když ji adapter nabízí. `QualityManager` pak zapne `EngineInstrumentation.captureGPUFrameTime`.
+Babylonův GPU čítač snímku je rozdíl časových razítek od prvního příkazu snímku (upload encoder) po konec render
+encoderu. **Na Metalu (M1 Pro) nesleduje práci GPU** (sonda níže), proto se v testu jen zapisuje a mez na něj není. Babylon
+měří jeden snímek najednou, proto má okno 5 s ~150 vzorků na 301 snímků. Bez parametru se engine vytváří jako dřív a
+`stats().gpuFrameMs` je `null`. Hlídá to boot smoke i test 1. Dva běhy quick gate po sobě:
+
+| Měření | Běh 1 | Běh 2 |
+| --- | --- | --- |
+| Vysoké, 1080p, `?gpuTiming=1`: GPU čítač snímku min / průměr / max | 0,02 / **1,53** / 1,90 ms (150 vzorků) | 0,02 / **1,69** / 4,35 ms (149 vzorků) |
+| tamtéž: fps (rAF) | 60,1 | 60,0 |
+| tamtéž: CPU čas snímku min / průměr / max | 7,9 / 9,0 / 12,3 ms | 7,9 / 9,06 / 12,2 ms |
+| tamtéž: draw cally min / průměr / max | 925 / 1012 / 1097 | 925 / 1012 / 1097 |
+| Vysoké bez parametru (test 3): fps / CPU čas průměr | 60,0 / 7,81 ms | 60,0 / 8,06 ms |
+| Vysoké bez parametru: draw cally min / průměr / max | 879 / 965 / 1073 | 879 / 966 / 1075 |
+| Nízké + CPU 4× (test 4): fps / CPU čas průměr | 44,0 / 21,3 ms | 41,4 / 22,6 ms |
+| Autodetekce nahoru (test 1) | Střední 57,3 → Vysoké, 60,0 → zůstává | Střední 57,5 → Vysoké, 60,0 → zůstává |
+| Autodetekce dolů (test 5, CPU 8×, ruční Střední → `auto`) | Střední 10,1 → Nízké, 17,6 → zůstává | Střední 9,5 → Nízké, 16,9 → zůstává |
+| Načtení do hratelného stavu | 1,74 s | 1,76 s |
+
+Jednorázové sondy ze sezení fáze 27, nejsou v testu: Střední 1,51 ms, Nízké 1,11–1,24 ms (render 1152×648). Vysoké při
+4× počtu pixelů (deviceScaleFactor 2, render 3840×2160) má 1,97–2,10 ms a stále **60,0 fps** při CPU čase 8,9–9,1 ms.
+Razítka jednotlivých průchodů (`timestampWrites`) vrací na Metalu nesmysl (součet 43 ms průměr a 242 ms max za snímek
+při 60 fps), proto se nepoužila.
+
+**Reaguje čítač na cenu průchodů? Ne.** Oprava po review fáze 27. Jednorázová sonda (jeden kontext s `?gpuTiming=1`,
+Vysoké, stejný pohled; části pipeline přepíná `__game.rendering.setEnabled`; před každým oknem 5 s se 3 s ustaluje) proběhla
+2× po sobě. Hodnoty jsou ve tvaru běh 1 / běh 2:
+
+| Nastavení | 1080p (dsf 1): fps | 1080p: GPU čítač průměr | 5760×3240 (dsf 3): fps | 5760×3240: GPU čítač průměr | dsf 3: CPU čas průměr |
+| --- | --- | --- | --- | --- | --- |
+| vše zapnuto | 60,0 / 60,0 | 1,65 / 1,58 ms | **33,2 / 32,9** | **0,016 / 0,014 ms** | 11,0 / 10,9 ms |
+| bez SSAO | 60,0 / 60,0 | 1,65 / 1,64 ms | 48,2 / 48,4 | 0,020 / 0,023 ms | 10,7 / 10,4 ms |
+| bez SSAO a bloomu | 60,0 / 60,0 | 1,49 / 1,46 ms | 60,1 / 60,0 | 2,69 / 2,13 ms | 9,9 / 9,5 ms |
+| bez všech částí pipeline | 22,2 (?) / 60,0 | 1,61 / 1,55 ms | 60,0 / 60,0 | 2,09 / 2,15 ms | 9,3 / 9,1 ms |
+| vše zapnuto znovu | 60,1 / 60,1 | 1,64 / 1,57 ms | 33,0 / 33,1 | 0,015 / 0,014 ms | 10,5 / 10,3 ms |
+
+V 5760×3240 hru brzdí GPU: CPU čas je ~11 ms, ale fps jsou 33 a vypnutí SSAO je zvedne na 48. Právě tehdy čítač
+ukazuje ~0,015 ms. V 1080p vypnutí SSAO (16 vzorků na celou obrazovku) čítač nezmění vůbec (1,65 → 1,65 ms). Čítač tedy
+cenu průchodů nesleduje a jeho číslo není GPU čas snímku. Proč klesne skoro na nulu, když hru brzdí GPU, se nezkoumalo.
+Nejspíš Metal zapíše razítka na hranicích encoderů dřív, než doběhnou render passy. Hodnota 22,2 fps v běhu 1 (1080p
+bez pipeline) se ve druhém běhu neopakovala (60,0) a její příčina se nezkoumala.
+
+Důsledek: v testu 6 **není mez na GPU čas** (dřívější `HIGH_MAX_GPU_FRAME_MS` 5 ms je pryč, DECISIONS „Fáze 27“). Test
+assertuje jen to, že zařízení dostalo `timestamp-query`, čítač vrací nenulové vzorky a fps jsou ≥ 57, a čítač zapíše do
+`perf.json → highGpu`. Podle plánu (bod 1: „nesmysl → test jen zapíše“).
+
+**Jak číst čísla.**
+- Rezerva pod vsync stropem = větší z CPU a GPU času. CPU čas je 7,8–8,1 ms, tedy ~8,6 ms pod 16,7 ms (mez 12 ms).
+  GPU čas snímku v ms **neznáme**: čítač ho na Metalu neměří (viz sonda). Která strana rozhoduje, se tedy říct nedá.
+- Nezávislý důkaz o GPU straně jsou jen fps: Vysoké drží 60 fps i ve 3840×2160 (4× pixely). Ve 5760×3240 (9× pixely)
+  spadne na 33 fps, bez SSAO na 48 a bez SSAO a bloomu je zpět na 60. Vysoké v 1080p se tedy na GPU vejde do 16,7 ms i se 4× pixely.
+- GPU regresi (stíny, SSAO, bloom) hlídá pořád **jen `fps ≥ 57`**. Zachytí ji, až když snímek přeroste vsync strop.
+- Kolik fps by hra měla bez stropu, z toho nevyplývá. Snímek omezuje i prezentace a kompozitor a sonda s odemčeným rAF
+  (fáze 25) narazila na další strop ~120 Hz. Proto už tu není tvrzení „≈ 125 fps“.
+- S `?gpuTiming=1` je CPU čas o ~1,2 ms vyšší (9,0 vs 7,8–8,1 ms) a snímek má ~46 draw callů navíc (925–1097 vs
+  879–1075). Pravděpodobně jde o čtení razítek (`mapAsync`) a o jiný stav čerstvé hry v novém kontextu. Příčina se
+  nezkoumala. Mez CPU času (12 ms) hlídá test 3 bez parametru.
+- Čítač běží jen v Chromiu s `--enable-unsafe-webgpu` (perf test). Běžný Chrome 153 nemá `GPUCommandEncoder.writeTimestamp`,
+  Babylon pak hlásí 0 a `stats().gpuFrameMs` zůstane `null`. Ověřeno ve vizuální kontrole fáze 27.

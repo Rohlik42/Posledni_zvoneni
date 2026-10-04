@@ -44,6 +44,7 @@ Branch `worktree-wf_91db3f6c-98c-1`, worktree `.claude/worktrees/wf_91db3f6c-98c
   `(0,5) (6,8) (9,15) (16,17) (18,18) (19,21) (22,36) (37,39) (40,46) (47,55) (56,68) (69,89) (90,96) (97,104) (104,105)
   (106,118)` — all `clean` (no retried, no cleared, no stuck). Route: walked 424 m, teleported 4× (3 m), heals 0,
   kills 22/22, shots 202, simulated 148 s. Reviewer and merge agent: add your run's `walkRoute` lines here.
+  Vyřízeno (groom 2026-10-04): log review a merge běhu se neukládá, shift gate 7 (`fd1a63e`, Playwright 119/119) je zelený, takže `stuck` nenastalo; při dalším červeném playthrough je log součástí chybové hlášky (PLAN.md `## Run — směna 7` → Otevřené body; zapsala fáze 27).
 - `screenshots/16-level-end.png` viewed: "ZVONÍ! JSI VENKU.", Čas 2:28, Zničení roboti 22, Správné 9, Špatné 1,
   Osvobození učitelé 9 z 9, Návraty 1, Obtížnost Záškoláček, HRÁT ZNOVU button.
 

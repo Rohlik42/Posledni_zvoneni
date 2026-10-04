@@ -1,5 +1,6 @@
 import type { AbstractEngine } from "@babylonjs/core/Engines/abstractEngine";
 import type { SceneInstrumentation } from "@babylonjs/core/Instrumentation/sceneInstrumentation";
+import type { PerfCounter } from "@babylonjs/core/Misc/perfCounter";
 import { FrameRangeAccumulator, type FrameRange } from "./FrameRangeAccumulator";
 
 export type { FrameRange };
@@ -16,16 +17,27 @@ export interface FrameWindow {
   drawCalls: FrameRange;
   /** The most frequent draw-call counts of the window, `[drawCalls, frames]`, most frequent first. */
   drawCallModes: [number, number][];
+  /**
+   * Phase 27: GPU time of the frames measured in the window (WebGPU timestamp queries, first command of the frame →
+   * last), ms; null without `?gpuTiming=1`. Only one measurement is in flight at a time, so not every frame has one.
+   */
+  gpuFrameMs: FrameRange | null;
+  /** Phase 27: GPU measurements in the window (0 without `?gpuTiming=1`). */
+  gpuSamples: number;
 }
 
 /** Draw-call counts listed in `FrameWindow.drawCallModes`. */
 const DRAW_CALL_MODES = 4;
+/** WebGPU timestamps are in nanoseconds. */
+const NS_PER_MS = 1_000_000;
 
 /**
  * Frame cost that the 60 Hz vsync cap does not hide (phase 25): the CPU time of every engine frame, from
  * `onBeginFrameObservable` to `onEndFrameObservable` — the game's fixed steps, `scene.render` and the WebGPU submit —
  * plus `scene.render` alone and the frame's draw calls. Keeps a rolling average over the last `samples` frames and a
  * window (min / avg / max) that `startWindow()` restarts, so a test measures exactly its own frames.
+ * Phase 27: with a GPU frame-time counter (`EngineInstrumentation.gpuFrameTimeCounter`, only under `?gpuTiming=1`) it
+ * also collects every GPU measurement that resolved since the previous frame.
  */
 export class FrameSampler {
   private readonly cpuTimes: number[] = [];
@@ -38,11 +50,18 @@ export class FrameSampler {
   private render = new FrameRangeAccumulator();
   private draws = new FrameRangeAccumulator();
   private drawCounts = new Map<number, number>();
+  private readonly gpuTimes: number[] = [];
+  private gpuIndex = 0;
+  private gpuCount = 0;
+  private gpu = new FrameRangeAccumulator();
+  private gpuWindowSamples = 0;
 
   constructor(
     engine: AbstractEngine,
     private readonly instrumentation: SceneInstrumentation,
     private readonly samples: number,
+    /** Phase 27: GPU frame time in ns, or null when the device cannot measure it. */
+    private readonly gpuCounter: PerfCounter | null = null,
   ) {
     instrumentation.captureFrameTime = true;
     engine.onBeginFrameObservable.add(() => {
@@ -62,6 +81,12 @@ export class FrameSampler {
     return FrameSampler.average(this.renderTimes);
   }
 
+  /** Average GPU time of the last `samples` GPU measurements, ms; null without GPU timing (or before the first one). */
+  gpuFrameMs(): number | null {
+    if (this.gpuCounter === null || this.gpuTimes.length === 0) return null;
+    return FrameSampler.average(this.gpuTimes);
+  }
+
   /** Forgets the window and starts a new one with the next frame. */
   startWindow(): void {
     this.windowStart = performance.now();
@@ -70,6 +95,8 @@ export class FrameSampler {
     this.render = new FrameRangeAccumulator();
     this.draws = new FrameRangeAccumulator();
     this.drawCounts = new Map();
+    this.gpu = new FrameRangeAccumulator();
+    this.gpuWindowSamples = 0;
   }
 
   window(): FrameWindow {
@@ -81,6 +108,8 @@ export class FrameSampler {
       renderCpuMs: this.render.range(),
       drawCalls: this.draws.range(),
       drawCallModes: modes,
+      gpuFrameMs: this.gpuCounter === null ? null : this.gpu.range(),
+      gpuSamples: this.gpuWindowSamples,
     };
   }
 
@@ -100,6 +129,23 @@ export class FrameSampler {
     this.render.add(renderMs);
     this.draws.add(drawCalls);
     this.drawCounts.set(drawCalls, (this.drawCounts.get(drawCalls) ?? 0) + 1);
+    this.sampleGpu();
+  }
+
+  /** Takes the GPU measurement that resolved since the last frame, if any (the counter counts its measurements). */
+  private sampleGpu(): void {
+    const counter = this.gpuCounter;
+    if (counter === null || counter.count === this.gpuCount) return;
+    this.gpuCount = counter.count;
+    // Babylon records exactly 0 when the browser has no `GPUCommandEncoder.writeTimestamp` (plain Chrome without
+    // `--enable-unsafe-webgpu`): that is no measurement, not a free frame, so it is left out.
+    if (counter.current <= 0) return;
+    const gpuMs = counter.current / NS_PER_MS;
+    if (this.gpuTimes.length < this.samples) this.gpuTimes.push(gpuMs);
+    else this.gpuTimes[this.gpuIndex] = gpuMs;
+    this.gpuIndex = (this.gpuIndex + 1) % this.samples;
+    this.gpu.add(gpuMs);
+    this.gpuWindowSamples += 1;
   }
 
   private static average(values: readonly number[]): number {

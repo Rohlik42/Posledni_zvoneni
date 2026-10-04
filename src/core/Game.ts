@@ -50,6 +50,8 @@ export class Game {
     readonly engine: AbstractEngine,
     readonly renderer: RendererKind,
     readonly scene: Scene,
+    /** Phase 27: the device measures GPU frame time (`?gpuTiming=1` and an adapter with `timestamp-query`). */
+    readonly gpuTiming: boolean,
   ) {
     this.config = GameConfig.load();
     // Babylon cancels pointerdown on the canvas by default, which suppresses the compatibility mousedown event that
@@ -80,10 +82,10 @@ export class Game {
   }
 
   static async create(canvas: HTMLCanvasElement): Promise<Game> {
-    const { engine, renderer } = await EngineFactory.create(canvas);
+    const { engine, renderer, gpuTiming } = await EngineFactory.create(canvas);
     // Before the scene exists, so every material, depth renderer and pipeline is built for it (DECISIONS „Fáze F1“).
     engine.useReverseDepthBuffer = RenderingConfig.load().reverseDepth;
-    return new Game(canvas, engine, renderer, new Scene(engine));
+    return new Game(canvas, engine, renderer, new Scene(engine), gpuTiming);
   }
 
   /** Creates the engine and runs `setup`; records a boot failure in `window.__game.error` before rethrowing. */
