@@ -20,8 +20,11 @@ test("game boots without console errors or warnings", async ({ page }) => {
   // Phase 18: the main menu waits in front of the level, the game is paused behind it.
   expect(state.menu).toBe("main");
   expect(state.paused).toBe(true);
-  // „Nová hra“ starts the run: the story screen is up and the game runs (the intro does not pause, phase 16).
+  // „Nová hra“ opens the difficulty picker (phase 17); its start on the built (default) difficulty starts the run in
+  // place: the story screen is up and the game runs (the intro does not pause, phase 16).
   await page.evaluate(() => window.__game!.menu!.newGame());
+  expect(await page.evaluate(() => window.__game!.menu!.page)).toBe("difficulty");
+  await page.evaluate(() => window.__game!.menu!.click("start"));
   expect(await page.evaluate(() => ({ menu: window.__game!.menu!.visible, paused: window.__game!.paused }))).toEqual({ menu: false, paused: false });
   expect(guard.problems).toEqual([]);
 });
