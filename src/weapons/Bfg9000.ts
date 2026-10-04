@@ -67,7 +67,7 @@ interface BlastInfo {
  * it and within `params.empVertical` m of its height (the same floor; walls do not stop it) takes `damage` electric —
  * enough for any robot on any difficulty — and robots farther out up to `params.stunRadiusN` freeze for
  * `params.stunSeconds`. The player and the teachers are never hurt. After a shot a short cooldown (1 / `fireRate`)
- * with the ribs, the core and the tube dark; then a chime (`sounds.ready`).
+ * with the ribs, the core and the tube dark and the side LED panel bright red; then a chime (`sounds.ready`).
  */
 export class Bfg9000 extends Weapon {
   private readonly balls: PlasmaBalls;
@@ -75,9 +75,12 @@ export class Bfg9000 extends Weapon {
   private readonly effect: EffectData;
   /** Glow colour of the ribs, the core and the tube (`effect.partColor`, else the ball's colour). */
   private readonly partColor: string;
+  /** Glow colour of the side LED panel while cooling down (`effect.cooldownColor`, else the ball's colour). */
+  private readonly cooldownColor: string;
   private readonly core: Glowing;
   private readonly ribs: Glowing[];
   private readonly tube: Glowing;
+  private readonly led: Glowing;
   private readonly shakeRandom: Random;
   private readonly stageTime: number;
   private readonly maxStages: number;
@@ -91,6 +94,7 @@ export class Bfg9000 extends Weapon {
   private readonly ribGlow: number;
   private readonly coreGlow: number;
   private readonly tubeGlow: number;
+  private readonly cooldownGlow: number;
   private readonly idleGlow: number;
   private readonly fullPulse: number;
   private readonly glowFade: number;
@@ -107,6 +111,8 @@ export class Bfg9000 extends Weapon {
   /** Shown glow 0–1 of the core and of each rib: rises with the charge at once, fades back (`glowFade`). */
   private coreLevel = 0;
   private readonly ribLevels: number[];
+  /** Shown glow 0–1 of the side LED panel: 1 while cooling down, fades out once ready. */
+  private ledLevel = 0;
   private charges = 0;
   private cancels = 0;
   private denies = 0;
@@ -119,6 +125,7 @@ export class Bfg9000 extends Weapon {
     const param = (name: string): number => WeaponConfig.param(data, name);
     this.effect = WeaponConfig.effect(data);
     this.partColor = this.effect.partColor ?? this.effect.color;
+    this.cooldownColor = this.effect.cooldownColor ?? this.effect.color;
     this.stageTime = param("stageTime");
     this.maxStages = param("maxStages");
     this.stages = Array.from({ length: this.maxStages }, (_, i) => ({
@@ -135,6 +142,7 @@ export class Bfg9000 extends Weapon {
     this.ribGlow = param("ribGlow");
     this.coreGlow = param("coreGlow");
     this.tubeGlow = param("tubeGlow");
+    this.cooldownGlow = param("cooldownGlow");
     this.idleGlow = param("idleGlow");
     this.fullPulse = param("fullPulse");
     this.glowFade = param("glowFade");
@@ -168,6 +176,7 @@ export class Bfg9000 extends Weapon {
     this.core = this.ownMaterial(model.core, index++);
     this.ribs = model.ribs.map((mesh) => this.ownMaterial(mesh, index++));
     this.tube = this.ownMaterial(model.tube, index++);
+    this.led = this.ownMaterial(model.led, index++);
     this.ribLevels = this.ribs.map(() => 0);
     this.updateGlow();
   }
@@ -221,6 +230,7 @@ export class Bfg9000 extends Weapon {
       cooling: this.cooling ? 1 : 0,
       cooldownLeft: this.cooldownLeft,
       coreGlow: this.coreLevel,
+      ledGlow: this.ledLevel,
       ribGlow1: this.ribLevels[0] ?? 0,
       ribGlow2: this.ribLevels[1] ?? 0,
       ribGlow3: this.ribLevels[2] ?? 0,
@@ -283,7 +293,7 @@ export class Bfg9000 extends Weapon {
   override dispose(): void {
     this.balls.dispose();
     this.blast.dispose();
-    for (const { material } of [this.core, ...this.ribs, this.tube]) material.dispose();
+    for (const { material } of [this.core, ...this.ribs, this.tube, this.led]) material.dispose();
     super.dispose();
   }
 
@@ -444,13 +454,15 @@ export class Bfg9000 extends Weapon {
   private darken(): void {
     this.coreLevel = 0;
     this.ribLevels.fill(0);
+    this.ledLevel = this.cooling ? 1 : 0;
     this.updateGlow();
   }
 
   /**
    * Target glow per part this step — charging: completed ribs lit, the rib charging ramps up with its stage, ribs
    * beyond the cap dark, the core with the whole charge; ready: the core faintly (`idleGlow`);
-   * cooling down: dark, the core coming back towards the idle glow — and the shown glow follows: up at once, down
+   * cooling down: dark, the core coming back towards the idle glow, the side LED panel lit — and the shown glow
+   * follows: up at once, down
    * fading by `glowFade` per second (a released charge fades back).
    */
   private stepGlow(dt: number): void {
@@ -466,6 +478,7 @@ export class Bfg9000 extends Weapon {
       if (this.charging && i < cap) rib = i < this.completed ? 1 : i === this.completed ? this.chargeLevel - this.completed : 0;
       this.ribLevels[i] = follow(this.ribLevels[i]!, rib);
     }
+    this.ledLevel = follow(this.ledLevel, this.cooling ? 1 : 0);
   }
 
   /**
@@ -476,12 +489,13 @@ export class Bfg9000 extends Weapon {
     const t = this.context.game.simulatedTimeMs / MS_PER_SECOND;
     const waiting = this.charging && this.completed >= this.cap;
     const pulse = waiting ? 1 + this.fullPulse * Math.sin(t * FULL_PULSE_RATE) : 1;
-    const apply = ({ material, base }: Glowing, level: number, full: number): void => {
-      material.emissiveColor = level > 0 ? base.scale(1 - Math.min(level, 1)).add(PaletteColor.emissive(this.partColor, full * level * pulse)) : base;
+    const apply = ({ material, base }: Glowing, level: number, full: number, color = this.partColor, beat = pulse): void => {
+      material.emissiveColor = level > 0 ? base.scale(1 - Math.min(level, 1)).add(PaletteColor.emissive(color, full * level * beat)) : base;
     };
     apply(this.core, this.coreLevel, this.coreGlow);
     this.ribs.forEach((rib, i) => apply(rib, this.ribLevels[i]!, this.ribGlow));
     // The tube follows the lit ribs: a quarter green per rib, the greenest at a full charge.
     apply(this.tube, this.ribLevels.reduce((sum, level) => sum + level, 0) / this.ribLevels.length, this.tubeGlow);
+    apply(this.led, this.ledLevel, this.cooldownGlow, this.cooldownColor, 1);
   }
 }

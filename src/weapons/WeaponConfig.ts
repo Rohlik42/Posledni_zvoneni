@@ -92,6 +92,8 @@ export interface EffectData {
   colorEnd: string;
   /** Colour of the weapon's own glowing parts (the BFG's ribs, core and glass tube); `color` when omitted. */
   partColor?: string;
+  /** Colour of the BFG's side LED panel while it cools down; `color` when omitted. */
+  cooldownColor?: string;
   /** Colour multiplier of the particles (above 1 reaches the bloom threshold). */
   glow: number;
   /** Particles per shot (drops off the water jet, impact sparks, sparks along the beam). */
@@ -264,6 +266,7 @@ export class WeaponConfig {
               color: Schema.paletteRef(),
               colorEnd: Schema.paletteRef(),
               partColor: Schema.paletteRef(),
+              cooldownColor: Schema.paletteRef(),
               glow: positive(),
               particles: Schema.integer({ min: 0 }),
               size: range2(),
@@ -277,7 +280,7 @@ export class WeaponConfig {
               width: Schema.number({ min: 0.001 }),
               glowWidth: Schema.number({ min: 1 }),
             },
-            ["partColor", "time", "segment", "jitter", "forks", "width", "glowWidth"],
+            ["partColor", "cooldownColor", "time", "segment", "jitter", "forks", "width", "glowWidth"],
           ),
           params: Schema.record(Schema.number()),
         },

@@ -140,3 +140,8 @@ Zapracováno 2026-10-04 (nový model z primitiv 940 trojúhelníků podle bočn�
 - „Kadence základní pistolky je moc rychlá. Ať střílí pomaleji, pořád je moc silná.“
 
 Zapracováno 2026-10-04 (kadence 6 → 3 výstřely/s při stejném poškození 4 na zásah, tedy polovina DPS: 24 → 12; humanoid na Záškoláčkovi padne za ~2,7 s místo ~1,3 s, zásobník 30 vydrží 10 s; ostatní zbraně beze změny, takže jsou proti pistolce větší upgrade; testy `weapons-data.test.ts`, `weapon.spec.ts`, `weapons-all.spec.ts`, `weapons-balance.spec.ts`, `playthrough.spec.ts`, `keyboard-only.spec.ts`, `arena.spec.ts`)
+
+## 2026-10-04 — BFG ukazuje chlazení
+- „BFG potřebuje ukazovat fázi chlazení. Stačí, když boční červený pruh bude normálně tmavší a při chlazení bude jasně červeně svítit.“
+
+Zapracováno 2026-10-04 (boční LED panel je normálně tmavě červený a posunul se dopředu na šedý boční panel, aby byl z pohledu hráče vidět; po výstřelu celých 5 s chlazení jasně svítí červeně (`effect.cooldownColor` neon.robot, `params.cooldownGlow`), po vychladnutí plynule zhasne; snímky `screenshots/bfg-look-cooldown.png`, `bfg-look-0.png`; test `bfg.spec.ts` hlídá hák `ledGlow`: připravená zbraň tma, při chlazení 1 až do konce, po vychladnutí zhasíná)

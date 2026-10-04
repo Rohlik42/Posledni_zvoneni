@@ -9,6 +9,8 @@ const BLUEPRINT = "bfg9000";
 /** Parts that glow with the charge: the emitter in the muzzle, the four ribs of the charge block (back to front), the glass tube on top. */
 const CORE = "core";
 const TUBE = "glassTube";
+/** The red LED panel on both sides: dark, bright red while the gun cools down after a shot. */
+const LED = "led";
 const RIBS = ["rib1", "rib2", "rib3", "rib4"];
 
 /**
@@ -16,8 +18,8 @@ const RIBS = ["rib1", "rib2", "rib3", "rib4"];
  * round button, top tubes over the whole length with a glass tube between them, front grip, skeleton stock), a white charge block whose four ribs
  * stand proud only on its sides (green and white stripes from the side) and a big black ribbed muzzle block (blueprint
  * `bfg9000`). Parameters: variant, colour overrides, scale, light scale. Exposes the muzzle and the glowing parts — the
- * emitter core in the muzzle, the four ribs (one lights up per charge stage, back to front) and the glass tube (greener
- * with every lit rib) — which
+ * emitter core in the muzzle, the four ribs (one lights up per charge stage, back to front) the glass tube (greener
+ * with every lit rib) and the side LED panel (red during the cooldown) — which
  * src/weapons/Bfg9000.ts lights with the charge and darkens after a shot.
  */
 export class Bfg9000Model {
@@ -29,7 +31,9 @@ export class Bfg9000Model {
   readonly ribs: readonly Mesh[];
   /** The translucent glass tube on top: turns green with the charge. */
   readonly tube: Mesh;
-  /** Every glowing part: the core, the ribs and the glass tube. */
+  /** The side LED panel: glows red during the cooldown. */
+  readonly led: Mesh;
+  /** Every glowing part: the core, the ribs, the glass tube and the LED panel. */
   readonly glowing: readonly Mesh[];
   private readonly built: BuiltModel;
 
@@ -42,7 +46,8 @@ export class Bfg9000Model {
     this.core = parts.part(CORE);
     this.ribs = RIBS.map((name) => parts.part(name));
     this.tube = parts.part(TUBE);
-    this.glowing = [this.core, ...this.ribs, this.tube];
+    this.led = parts.part(LED);
+    this.glowing = [this.core, ...this.ribs, this.tube, this.led];
   }
 
   dispose(): void {

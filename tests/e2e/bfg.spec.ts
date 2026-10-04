@@ -9,7 +9,7 @@ import { WeaponBench } from "../support/WeaponBench";
 // per second), the full-charge ball in flight and its EMP burst; then the charge mechanics in the long hall
 // `weapons-long` (paused, deterministic `__game.step`): 1 s per stage, n capacitors spent, the EMP radius per stage
 // measured with robots 5 / 8 / 11 / 14 m from the impact, a release before the first stage spends nothing, the reserve
-// caps the stages, the 5 s cooldown, a weapon switch cancels; finally the first full-charge shot in real time with the
+// caps the stages, the 5 s cooldown (the side LED panel glows red through it), a weapon switch cancels; finally the first full-charge shot in real time with the
 // game's own settings (Střední, 1280×720 on a Retina ×2 display like hitches.spec.ts): no frame over 50 ms from the
 // press to the end of the blast, because the ball, the trail, the shell, the flash and the arcs are pooled and drawn in
 // the load-time warm-up (the BFG is `preload`) and the charge only changes uniforms.
@@ -175,6 +175,7 @@ test("the corridor extinguisher, then the BFG 9000 in the gym: ready, four charg
   expect(ready.extra.chargeCap).toBe(MAX_STAGES);
   expect(ready.reserve).toBe(POOL_MAX);
   expect(ribsLit(ready.extra)).toBe(0);
+  expect(ready.extra.ledGlow, "the side LED panel is dark when ready").toBe(0);
   await page.waitForTimeout(300);
   await page.screenshot({ path: ShotPath.of("bfg-ready.png") });
 
@@ -207,6 +208,7 @@ test("the corridor extinguisher, then the BFG 9000 in the gym: ready, four charg
   expect(ribsLit(flying.s.extra)).toBe(0);
   expect(flying.s.extra.ribGlow1).toBe(0);
   expect(flying.s.extra.cooling).toBe(1);
+  expect(flying.s.extra.ledGlow, "the side LED panel glows red while cooling down").toBe(1);
   expect(flying.hud?.text).toBe(texts.hud.cooldown);
   await page.screenshot({ path: ShotPath.of("bfg-ball-flying.png") });
 
@@ -457,9 +459,11 @@ test.describe("charge mechanics in the long hall", () => {
     expect(hud?.bar).toBeGreaterThan(0.9);
     await page.evaluate(() => window.__game!.input!.simulate("fire", 1000 / 60));
     expect((await state()).extra.charging, "still cooling down").toBe(0);
+    expect((await state()).extra.ledGlow, "the LED panel stays lit to the end of the cooldown").toBe(1);
     await steps(6);
     const cooled = await state();
     expect(cooled.extra.cooling).toBe(0);
+    expect(cooled.extra.ledGlow, "the LED panel fades once cooled down").toBeLessThan(1);
     expect(cooled.extra.readiness).toBe(1);
     expect(await plays(bfg.sounds.ready!)).toBe(chimes + 1);
     expect(await page.evaluate(() => window.__game!.hud!.recharge())).toBeNull();
