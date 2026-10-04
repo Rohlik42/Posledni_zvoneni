@@ -80,7 +80,7 @@
     },
     {
       "id": "extinguisher",
-      "slot": 2,
+      "slot": 3,
       "name": "Hasicí přístroj",
       "class": "Extinguisher",
       "enabled": true,
@@ -127,7 +127,7 @@
     },
     {
       "id": "waterBalloons",
-      "slot": 3,
+      "slot": 2,
       "name": "Vodní balónky",
       "class": "WaterBalloons",
       "enabled": true,

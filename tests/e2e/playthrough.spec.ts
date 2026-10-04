@@ -652,7 +652,7 @@ test.describe.serial("playthrough of the level on the main page", () => {
     await page.evaluate(
       ({ room, switchMs, maxThrows }) => {
         const g = window.__game!;
-        g.weapons!.select(3);
+        g.weapons!.select(2);
         g.step(switchMs);
         for (let i = 0; i < maxThrows && g.weapons!.state("waterBalloons")!.reserve! > room; i++) {
           g.player!.lookAt(g.player!.eye.x + 5, g.player!.eye.y, g.player!.eye.z);
@@ -671,7 +671,7 @@ test.describe.serial("playthrough of the level on the main page", () => {
       ({ switchMs }) => {
         const g = window.__game!;
         const reserve = g.weapons!.state("waterBalloons")!.reserve!;
-        g.weapons!.select(3);
+        g.weapons!.select(2);
         g.step(switchMs);
         const hud = g.hud!.ammoText;
         g.player!.lookAt(g.player!.eye.x + 5, g.player!.eye.y, g.player!.eye.z);

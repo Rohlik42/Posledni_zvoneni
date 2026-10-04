@@ -207,7 +207,7 @@
       ]
     },
     "extinguisher": {
-      "//": "Hasicí přístroj (zbraň 2, fáze 13): červená tlaková láhev, ventil s pákou a manometrem, hadička a černá hubice mířící dopředu (+z). Počátek = ventil (úchop), láhev visí dolů.",
+      "//": "Hasicí přístroj (zbraň 3, fáze 13): červená tlaková láhev, ventil s pákou a manometrem, hadička a černá hubice mířící dopředu (+z). Počátek = ventil (úchop), láhev visí dolů.",
       "category": "weapon",
       "defaultVariant": "default",
       "variants": {
@@ -232,7 +232,7 @@
       ]
     },
     "waterBalloon": {
-      "//": "Vodní balónek (zbraň 3, fáze 13): kapka z komolých válců s uzlíkem v rukavici. Skupina 'balloon' (pivot ve středu balónku) se po hodu znovu nafoukne, skupina 'hand' je rukavice viewmodelu (letící balónek ji skryje). Počátek = střed balónku.",
+      "//": "Vodní balónek (zbraň 2, fáze 13): kapka z komolých válců s uzlíkem v rukavici. Skupina 'balloon' (pivot ve středu balónku) se po hodu znovu nafoukne, skupina 'hand' je rukavice viewmodelu (letící balónek ji skryje). Počátek = střed balónku.",
       "category": "weapon",
       "defaultVariant": "blue",
       "variants": {

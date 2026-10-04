@@ -30,7 +30,7 @@ const SPREAD_TRIES = 3;
 
 const TYPES = ["humanoid", "quadruped", "drone"] as const;
 const SUBJECTS = Object.fromEntries(TYPES.map((type) => [type, WeaponBench.robots(type)[0]!])) as Record<(typeof TYPES)[number], string>;
-const WEAPONS = ["waterPistol", "extinguisher", "waterBalloons", "taser", "railgun", "bfg9000"].map((id) => WeaponBench.weapon(id));
+const WEAPONS = ["waterPistol", "waterBalloons", "extinguisher", "taser", "railgun", "bfg9000"].map((id) => WeaponBench.weapon(id));
 
 interface Row {
   weapon: string;

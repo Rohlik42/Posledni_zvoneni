@@ -301,6 +301,12 @@ export class WeaponInventory {
   }
 
   /** Switches to the weapon in `slot` if the player owns it. */
+  /** Switches to an owned weapon by id (false when not owned). */
+  selectWeapon(id: string): boolean {
+    const weapon = this.owned.get(id);
+    return weapon === undefined ? false : this.select(weapon.data.slot);
+  }
+
   select(slot: number): boolean {
     const data = this.data.weapons.find((w) => w.slot === slot);
     const weapon = data === undefined ? undefined : this.owned.get(data.id);

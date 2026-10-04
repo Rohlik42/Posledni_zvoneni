@@ -46,6 +46,6 @@ export class WaterBalloonModel {
 ModelRegistry.register({
   name: "WaterBalloonModel",
   category: "weapon",
-  title: "Vodní balónek v rukavici (zbraň 3)",
+  title: "Vodní balónek v rukavici (zbraň 2)",
   create: (scene) => new WaterBalloonModel(scene),
 });

@@ -166,7 +166,10 @@ export class Inventory {
       return { taken: false, message: item.kind === "health" ? this.texts.fullHealth : null };
     }
     const granted = this.grants(item);
+    const newWeapon = this.newWeapon(item);
     const values = this.apply(item, this.amountScale(item.kind, amount ?? item.amount ?? 0));
+    // FEEDBACK 2026-10-04: a weapon the player gets for the first time (pickup or teacher's reward) goes straight to hand.
+    if (newWeapon !== null && this.weapons?.has(newWeapon)) this.weapons.selectWeapon(newWeapon);
     this.counts.set(itemId, (this.counts.get(itemId) ?? 0) + 1);
     SynthSounds.for(this.game).play(item.kind === "key" ? this.data.sounds.key : item.kind === "powerUp" ? this.data.sounds.powerUp : this.data.sounds.item);
     const template = (granted ? this.texts.itemsNew[itemId] : undefined) ?? this.texts.items[itemId];
@@ -256,6 +259,12 @@ export class Inventory {
       weapon.addAmmo(stashed);
       this.ammoStash.delete(key);
     }
+  }
+
+  /** The weapon an item hands over for the first time (a weapon item, or an ammo item that grants it), else null. */
+  private newWeapon(item: ItemData): string | null {
+    if (this.weapons === null || item.weapon === undefined || this.weapons.has(item.weapon)) return null;
+    return item.kind === "weapon" || this.grants(item) ? item.weapon : null;
   }
 
   /** An ammo item that hands over its weapon now: `grantsWeapon` and the player has not got the weapon yet. */

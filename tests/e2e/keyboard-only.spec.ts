@@ -191,11 +191,11 @@ test("weapons scene: F fires at a robot, the railgun and the BFG 9000 fire on a 
 
   // ] = next owned weapon, [ = back, Tab = next as well (the order of slots in weapons.json).
   await tap(page, NEXT_A, SWITCH_MS);
-  expect(await active()).toBe("extinguisher");
+  expect(await active()).toBe("waterBalloons");
   await tap(page, PREV, SWITCH_MS);
   expect(await active()).toBe("waterPistol");
   await tap(page, NEXT_B, SWITCH_MS);
-  expect(await active()).toBe("extinguisher");
+  expect(await active()).toBe("waterBalloons");
 
   // 5 = railgun; a press of F fires at once, like a click (no charging since FEEDBACK 2026-10-04).
   const railgun = weapon("railgun");

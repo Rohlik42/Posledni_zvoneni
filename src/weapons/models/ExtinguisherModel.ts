@@ -33,6 +33,6 @@ export class ExtinguisherModel {
 ModelRegistry.register({
   name: "ExtinguisherModel",
   category: "weapon",
-  title: "Hasicí přístroj (zbraň 2)",
+  title: "Hasicí přístroj (zbraň 3)",
   create: (scene, options) => new ExtinguisherModel(scene, options),
 });

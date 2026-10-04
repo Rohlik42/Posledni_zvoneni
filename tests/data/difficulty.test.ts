@@ -23,11 +23,13 @@ const LEGACY = [
   ["baby", "Mimino", "I · VELMI LEHKÁ", "„Mami, já chci do školy!“", 0.5, 0.65, 0.65, 1.5, -1],
   ["schoolkid", "Školáček", "II · LEHKÁ", "„Mami, já nechci do školy!“", 0.75, 0.85, 0.8, 1.2, 0],
   ["truant", "Záškoláček", "III · NORMÁLNÍ", "„Učí se dobře? To nemohu říct…“", 1, 1, 1, 1, 0],
-  ["rascal", "Raubíř", "IV · TĚŽKÁ", "„NEVYLUČUJ!“", 1.3, 1.25, 1.2, 0.8, 2],
+  ["rascal", "Raubíř", "IV · TĚŽKÁ", "„Nevyluzujte!“", 1.3, 1.25, 1.2, 0.8, 2],
   ["ultra", "Ultrašprt", "V · NEMILOSRDNÁ", null, 1.65, 1.5, 1.4, 0.65, 4],
 ] as const;
 
-test("difficulty.json: five legacy levels with unchanged names, subtitles and mottos; Záškoláček is the default", () => {
+const MOTTO_CHANGED = new Set(["rascal"]);
+
+test("difficulty.json: five legacy levels with unchanged names and subtitles, mottos as in legacy except Raubíř; Záškoláček is the default", () => {
   assert.deepEqual(
     data.levels.map((l) => l.id),
     LEGACY.map((l) => l[0]),
@@ -39,7 +41,8 @@ test("difficulty.json: five legacy levels with unchanged names, subtitles and mo
     assert.equal(level.subtitle, subtitle, id);
     assert.equal(level.motto, motto ?? undefined, id);
     assert.ok(legacyHtml.includes(`<b>${name}</b>`) && legacyHtml.includes(`<small>${subtitle}</small>`), `${id}: as in legacy/index.html`);
-    if (motto !== null) assert.ok(legacyHtml.includes(`<em>${motto}</em>`), `${id}: motto as in legacy/index.html`);
+    // FEEDBACK 2026-10-04: the human changed Raubíř's motto to „Nevyluzujte!“ (as in "don't make noises"); the others are legacy.
+    if (motto !== null && !MOTTO_CHANGED.has(id)) assert.ok(legacyHtml.includes(`<em>${motto}</em>`), `${id}: motto as in legacy/index.html`);
   });
   assert.equal(data.levels.find((l) => l.id === "ultra")!.equation, "portraits/schrodinger.mathml");
 });

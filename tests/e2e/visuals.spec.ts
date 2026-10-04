@@ -60,13 +60,16 @@ test.describe.serial("loose debris (full game)", () => {
     const chair = details.loose.items.findIndex((i) => i.kind === "chair" && i.room === "f4-corridor");
     const ceiling = details.loose.items.findIndex((i) => i.hanging === true && i.room === "f4-corridor");
     const result = await page.evaluate(
-      ({ chair, ceiling, fireMs, fallMs, buffer, floorY }) => {
+      ({ chair, ceiling, fireMs, fallMs, buffer, floorY, switchMs }) => {
         const g = window.__game!;
         const v = g.visuals!;
         g.player!.heal(buffer);
         const shoot = (index: number, from: { x: number; z: number }): { target: boolean; pushes: number } => {
           g.player!.teleport(from.x, floorY, from.z);
           g.step(100);
+          // A pickup on the way may have handed over a new weapon (it goes straight to hand): shoot with the pistol.
+          g.weapons!.select(1);
+          g.step(switchMs);
           g.player!.aimAt(v.debris()[index]!.center);
           g.input!.simulate("fire", fireMs);
           return { target: g.weapons!.lastShot()?.target === true, pushes: v.debris()[index]!.pushes };
@@ -86,7 +89,7 @@ test.describe.serial("loose debris (full game)", () => {
         g.step(fallMs);
         return { shotChair, chairMoved, shotCeiling, ceilingDrop: ceilingStart.y - fallen.position.y, ceilingHanging: fallen.hanging, plankMoved: v.debris()[plank]!.moved - before.moved };
       },
-      { chair, ceiling, fireMs: FIRE_MS, fallMs: FALL_MS, buffer: PLAYER_HEALTH_BUFFER, floorY: F4_FLOOR_Y },
+      { chair, ceiling, fireMs: FIRE_MS, fallMs: FALL_MS, buffer: PLAYER_HEALTH_BUFFER, floorY: F4_FLOOR_Y, switchMs: weaponsData.switchTime * 1000 + 50 },
     );
     expect(result.shotChair.pushes, "the water pistol's shots reached the chair").toBeGreaterThan(0);
     expect(result.chairMoved).toBeGreaterThan(MIN_PUSH_M);
@@ -105,7 +108,7 @@ test.describe.serial("loose debris (full game)", () => {
         const g = window.__game!;
         const v = g.visuals!;
         g.give!("extinguisher");
-        g.weapons!.select(2);
+        g.weapons!.select(3);
         g.player!.heal(buffer);
         const start = v.debris()[chair]!;
         g.player!.teleport(start.center.x + stance, start.center.y, start.center.z);

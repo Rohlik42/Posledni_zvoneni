@@ -58,7 +58,7 @@ test("weapons.json: six weapons in slots 1–6 (the BFG 9000 replaced the hose, 
   const data = WeaponConfig.load();
   assert.deepEqual(
     [...data.weapons].sort((a, b) => a.slot - b.slot).map((w) => w.id),
-    ["waterPistol", "extinguisher", "waterBalloons", "taser", "railgun", "bfg9000"],
+    ["waterPistol", "waterBalloons", "extinguisher", "taser", "railgun", "bfg9000"],
   );
   assert.deepEqual(data.weapons.map((w) => w.slot).sort(), [...WEAPON_SLOTS]);
   assert.deepEqual(data.weapons.filter((w) => !w.enabled).map((w) => w.id), []);

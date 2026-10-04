@@ -140,7 +140,7 @@ test("the scene has every weapon, the stations and the robots; viewmodels stay w
   expect(list.every((w) => w.enabled)).toBe(true);
   // The BFG 9000 took the hose's slot 6 (FEEDBACK 2026-10-04).
   expect(list.find((w) => w.slot === 6)?.id).toBe(bfg.id);
-  expect(list.filter((w) => w.owned).map((w) => w.id)).toEqual(["waterPistol", "extinguisher", "waterBalloons", "taser", "railgun", "bfg9000"]);
+  expect(list.filter((w) => w.owned).map((w) => w.id)).toEqual(["waterPistol", "waterBalloons", "extinguisher", "taser", "railgun", "bfg9000"]);
   const stations = await page.evaluate(() => ({
     refills: window.__game!.weaponStations!.refills(),
     pickups: window.__game!.weaponStations!.pickups(),

@@ -35,8 +35,8 @@
   },
   "itemsNew": {
     "//": "FEEDBACK 2026-10-04 'hasičák a balónky jsou samy náboje': toast věci s grantsWeapon (data/pickups.json), když hráč zbraň teprve dostane.",
-    "balloons": "Vodní balónky! (zbraň 3) ×{amount}",
-    "extinguisher": "Hasicí přístroj! (zbraň 2)"
+    "balloons": "Vodní balónky! (zbraň 2) ×{amount}",
+    "extinguisher": "Hasicí přístroj! (zbraň 3)"
   },
   "fullHealth": "Máš plné zdraví. Lékárničku si nech na potom.",
   "fullAmmo": "{weapon}: plná zásoba, víc neuneseš. Nech to tu na potom.",
