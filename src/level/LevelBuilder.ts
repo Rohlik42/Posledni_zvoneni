@@ -4,11 +4,13 @@ import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import type { Game } from "../core/Game";
 import type { Physics } from "../core/Physics";
+import { DecalTextures } from "../rendering/DecalTextures";
 import { MaterialLibrary } from "../rendering/MaterialLibrary";
 import { PaletteColor } from "../rendering/PaletteColor";
 import { Skybox } from "../rendering/Skybox";
 import type { PaletteKey } from "../utils/Palette";
 import { GreyboxConfig, type GreyboxData } from "./GreyboxConfig";
+import { DetailGenerator } from "./DetailGenerator";
 import { PieceList, type PieceSink } from "./GreyboxTypes";
 import { Level } from "./Level";
 import { LevelConfig } from "./LevelConfig";
@@ -37,7 +39,8 @@ export class LevelBuilder {
     const greybox = layout.greybox;
     const pieces = new PieceList();
     const railings = new RailingBuilder(greybox.railings, pieces);
-    const openings = new OpeningBuilder(layout, greybox, pieces);
+    // Phase 19: some windows are smashed (no glass, shards), decided before the walls are built.
+    const openings = new OpeningBuilder(layout, greybox, pieces, DetailGenerator.brokenWindows(layout));
     new WallBuilder(layout, greybox, pieces, railings, openings).build();
     const stairs = new StairBuilder(greybox.stairs, pieces, railings);
     for (const stair of layout.level.stairs) stairs.build(stair);
@@ -45,6 +48,8 @@ export class LevelBuilder {
     LevelBuilder.blockers(layout, pieces);
     LevelBuilder.fixtures(layout, pieces);
     if (textureRect !== undefined) LevelBuilder.decals(layout, pieces, textureRect);
+    // Rubble, beams, cables, scorch marks, stains, plates, graffiti, shards (phase 19): drawn, not colliding, not pickable.
+    DetailGenerator.generate(layout, pieces, pieces, openings.brokenPanes);
     return pieces;
   }
 
@@ -55,10 +60,13 @@ export class LevelBuilder {
     const collected = LevelBuilder.collect(layout, (id) => materials.textureEntry(id)?.plan?.rectPx);
     // Visible boxes are carved so none overlap (no coplanar faces = no z-fighting); colliders stay as built.
     const pieces = OverlapResolver.resolve(collected, greybox.audit.minPiece);
+    const decals = new DecalTextures(scene, materials.data.maxLights);
+    await DecalTextures.fontsReady();
     const resolve = (id: string): Material => {
+      if (DecalTextures.isDecal(id)) return decals.material(id);
       if (!id.startsWith(GLOW_PREFIX)) return materials.get(id);
-      const [color, intensity] = id.slice(GLOW_PREFIX.length).split(":");
-      return materials.glow(color as PaletteKey, Number(intensity));
+      const [color, intensity, key] = id.slice(GLOW_PREFIX.length).split(":");
+      return materials.glow(color as PaletteKey, Number(intensity), key);
     };
     const geometry = StaticGeometry.build(scene, physics, pieces, resolve);
     game.addAmbientLight();
@@ -112,7 +120,8 @@ export class LevelBuilder {
       const top = layout.hasCeiling(room) ? layout.ceilingY(room) : layout.floorY(room) + light.height + sy;
       sink.box({
         owner: room.id,
-        material: `${GLOW_PREFIX}${light.color}:${fixture.emissive}`,
+        // A flickering light gets its own fixture material, so the tube dims with it (`LightAnimator`).
+        material: `${GLOW_PREFIX}${light.color}:${fixture.emissive}${light.flicker ? `:${light.id}` : ""}`,
         center: LevelLayout.toWorld(light.x, top - sy / 2, light.z),
         size: { x: sx, y: sy, z: sz },
         visible: true,

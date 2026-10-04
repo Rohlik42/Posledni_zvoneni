@@ -33,6 +33,8 @@ export interface BoxPiece {
   pitch?: number;
   /** Heading about +y (radians, 0 = local z along world +z). */
   yaw?: number;
+  /** Rotation about the local z axis (radians, Babylon's yaw-pitch-roll order); details only (phase 19). */
+  roll?: number;
   /** Rendered (false = invisible collider, e.g. the slab through the stair nosings). */
   visible: boolean;
   /** Static Havok collider. */
@@ -41,6 +43,11 @@ export interface BoxPiece {
   navigable?: boolean;
   /** Carving priority of the visible part (see `PieceRole`). */
   role?: PieceRole;
+  /**
+   * False = drawn but not hit by picks (generated details, phase 19): shots, robot sight and wall rays pass through
+   * rubble and cables. Merged into separate meshes per owner × material.
+   */
+  pickable?: boolean;
 }
 
 /**
@@ -53,6 +60,8 @@ export interface QuadPiece {
   corners: [Vec3, Vec3, Vec3, Vec3];
   /** Normal of the visible side (the mesh builder orders the triangles so they face this way). */
   facing: Vec3;
+  /** False = not hit by picks (decals of phase 19), like `BoxPiece.pickable`. */
+  pickable?: boolean;
 }
 
 /** Receives the pieces a builder emits. */

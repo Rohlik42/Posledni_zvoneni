@@ -54,6 +54,7 @@ export class OverlapResolver {
           owner: piece.owner,
           material: piece.material,
           role: piece.role,
+          ...(piece.pickable === false ? { pickable: false } : {}),
           center: { x: (fragment.min.x + fragment.max.x) / 2, y: (fragment.min.y + fragment.max.y) / 2, z: (fragment.min.z + fragment.max.z) / 2 },
           size: { x: fragment.max.x - fragment.min.x, y: fragment.max.y - fragment.min.y, z: fragment.max.z - fragment.min.z },
           visible: true,
@@ -67,7 +68,7 @@ export class OverlapResolver {
 
   /** World AABB of an unpitched box turned by a multiple of 90°, or null for a rotated one. */
   private static aabb(piece: BoxPiece): Aabb | null {
-    if ((piece.pitch ?? 0) !== 0) return null;
+    if ((piece.pitch ?? 0) !== 0 || (piece.roll ?? 0) !== 0) return null;
     const turns = (piece.yaw ?? 0) / QUARTER_TURN;
     if (Math.abs(turns - Math.round(turns)) > YAW_EPSILON) return null;
     const odd = Math.abs(Math.round(turns)) % 2 === 1;

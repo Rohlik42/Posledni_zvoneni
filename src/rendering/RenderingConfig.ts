@@ -29,6 +29,12 @@ export interface RenderingData {
   };
   /** `density` drives the exp/exp2 modes; `start`/`end` (m from the camera) the linear mode. */
   fog: { enabled: boolean; mode: (typeof FOG_MODES)[number]; density: number; start: number; end: number; color: string };
+  /**
+   * Shadows of the nearest point lights (phase 19, `PointShadows`): at most `maxLights` cube maps of `mapSize` px within
+   * `maxDistance` m of the player, re-chosen every `interval` s; `darkness` 0 = black shadow, 1 = none; the shadow map
+   * renders every `refreshRate` frames.
+   */
+  shadows: { enabled: boolean; maxLights: number; mapSize: number; maxDistance: number; interval: number; bias: number; darkness: number; refreshRate: number };
 }
 
 const enabled = Schema.boolean();
@@ -61,6 +67,16 @@ export class RenderingConfig {
       base: unit,
     }),
     fog: Schema.object({ enabled, mode: Schema.enumOf(FOG_MODES), density: positive, start: positive, end: positive, color: Schema.paletteRef() }),
+    shadows: Schema.object({
+      enabled,
+      maxLights: Schema.integer({ min: 0, max: 4 }),
+      mapSize: Schema.integer({ min: 64, max: 4096 }),
+      maxDistance: positive,
+      interval: positive,
+      bias: positive,
+      darkness: unit,
+      refreshRate: Schema.integer({ min: 0 }),
+    }),
   });
 
   /** A fresh, validated copy, so callers (quality presets) may override values without touching the shared data. */

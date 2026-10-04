@@ -290,6 +290,8 @@ export interface RoutePoint {
 }
 
 export interface LevelData {
+  /** Seed of the generated details (phase 19, `DetailGenerator`): the same seed gives the same rubble everywhere. */
+  seed: number;
   plan: LevelPlan;
   floors: Floor[];
   rooms: Room[];

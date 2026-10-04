@@ -95,9 +95,12 @@ export class MaterialLibrary {
     return material;
   }
 
-  /** A self-lit material in a palette colour (light fixtures); `intensity` above 1 reaches the bloom threshold. */
-  glow(color: PaletteKey, intensity: number): StandardMaterial {
-    const id = `glow:${color}:${intensity}`;
+  /**
+   * A self-lit material in a palette colour (light fixtures); `intensity` above 1 reaches the bloom threshold. A `key`
+   * gives a fixture its own material (a flickering tube dims with its light, phase 19).
+   */
+  glow(color: PaletteKey, intensity: number, key?: string): StandardMaterial {
+    const id = `glow:${color}:${intensity}${key === undefined ? "" : `:${key}`}`;
     let material = this.materials.get(id);
     if (material === undefined) {
       material = MatteDefaults.material(id, this.scene);
