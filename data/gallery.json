@@ -1,5 +1,5 @@
 {
-  "//": "Dev scéna 'gallery' (dev/scenes/GalleryScene.ts, fáze 15): všechny modely z ModelRegistry na podstavcích s popiskem a počtem trojúhelníků, pod herním osvětlením (ambient, zářivky, mlha a pipeline jako ve hře). Sekce jsou police nad sebou (první nahoře, rowHeight m od sebe) na tmavé zdi, kamera hledí zpředu; sekce s víc než 'columns' kusy se zalomí. Model se zmenší, aby se vešel do buňky (cell.fill × width, maxHeight), a zvětší nejvýš na maxScale sekce. 'teachers' rozvine model na 9 podob z data/teachers.json. Modely, které žádná sekce nejmenuje, skončí v poslední sekci 'Ostatní'. yawDeg otočí přední stranu (+z) ke kameře, zbraně bokem; položka může mít vlastní yawDeg (terč má lícem −z). ?section=<id> ukáže jen jednu sekci po camera.focusColumns kusech v řadě (detail). Mlha je herní (data/rendering.json), jen posunutá o vzdálenost kamery tak, aby modely vypadaly jako z fogViewDistance m.",
+  "//": "Dev scéna 'gallery' (dev/scenes/GalleryScene.ts, fáze 15): všechny modely z ModelRegistry na podstavcích s popiskem a počtem trojúhelníků, pod herním osvětlením (ambient, zářivky, mlha a pipeline jako ve hře). Sekce jsou police nad sebou (první nahoře, rowHeight m od sebe) na tmavé zdi, kamera hledí zpředu; sekce s víc než 'columns' kusy se zalomí. Model se zmenší, aby se vešel do buňky (cell.fill × width, maxHeight), a zvětší nejvýš na maxScale sekce. 'teachers' rozvine model na 9 podob z data/teachers.json, 'people' ukáže glTF postavy z data/people.json v klidové animaci. Modely, které žádná sekce nejmenuje, skončí v poslední sekci 'Ostatní'. yawDeg otočí přední stranu (+z) ke kameře, zbraně bokem; položka může mít vlastní yawDeg (terč má lícem −z). ?section=<id> ukáže jen jednu sekci po camera.focusColumns kusech v řadě (detail). Mlha je herní (data/rendering.json), jen posunutá o vzdálenost kamery tak, aby modely vypadaly jako z fogViewDistance m.",
   "columns": 12,
   "cell": { "width": 1.5, "depth": 1.4, "maxHeight": 1.5, "fill": 0.85 },
   "rowHeight": 2.3,
@@ -42,10 +42,25 @@
     },
     {
       "id": "teachers",
-      "title": "Učitelé (≤ 2 000 tri)",
+      "title": "Učitelé (≤ 8 500 tri)",
       "maxScale": 1,
       "teachers": "TeacherModel",
       "items": []
+    },
+    {
+      "id": "people",
+      "title": "Lidé, glTF Quaternius (≤ 8 000 tri)",
+      "maxScale": 1,
+      "items": [
+        { "model": "PersonModel", "label": "woman-suit", "options": { "person": "woman-suit" } },
+        { "model": "PersonModel", "label": "woman-casual", "options": { "person": "woman-casual" } },
+        { "model": "PersonModel", "label": "woman-adventurer", "options": { "person": "woman-adventurer" } },
+        { "model": "PersonModel", "label": "woman-dress", "options": { "person": "woman-dress" } },
+        { "model": "PersonModel", "label": "woman-punk", "options": { "person": "woman-punk" } },
+        { "model": "PersonModel", "label": "man-suit", "options": { "person": "man-suit" } },
+        { "model": "PersonModel", "label": "man-beach", "options": { "person": "man-beach" } },
+        { "model": "PersonModel", "label": "man-casual", "options": { "person": "man-casual" } }
+      ]
     },
     {
       "id": "pickups",

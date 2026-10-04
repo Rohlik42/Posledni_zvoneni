@@ -93,6 +93,8 @@ export class TeacherSystem {
     if (lighting !== null) {
       for (const teacher of this.teachers) if (teacher.placement.room !== null) lighting.attach(teacher.meshes, [teacher.placement.room]);
     }
+    // Shaders of the glTF people compile in the background once their room lights are known (no stall on first sight).
+    for (const teacher of this.teachers) void teacher.model.person.compileMaterials();
     quiz.useTeachers((id) => this.get(id) ?? null);
     this.removeSystem = game.addSystem({ update: (dt) => this.update(dt) });
     this.frameObserver = game.scene.onBeforeRenderObservable.add(() => this.frame());

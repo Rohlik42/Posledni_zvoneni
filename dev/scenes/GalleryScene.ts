@@ -98,10 +98,12 @@ interface Row {
   width: number;
 }
 
-export function create(game: Game): void {
+export async function create(game: Game): Promise<void> {
   const { scene } = game;
   const data = GalleryData.load();
   const all = buildSections(data.sections, data.otherTitle);
+  // glTF people load asynchronously; every model is then built synchronously.
+  await Promise.all(ModelRegistry.list().map((entry) => entry.preload?.(scene)));
   const focus = new URLSearchParams(window.location.search).get(SECTION_PARAM);
   const focused = all.find((section) => section.id === focus) ?? null;
   // ?section=<id> shows just that section in fewer columns, so the camera comes closer.
@@ -182,8 +184,8 @@ function buildSections(sectionData: readonly GallerySectionData[], otherTitle: s
     if (section.teachers !== undefined) {
       const entry = resolve(section.teachers, `section ${section.id}.teachers`);
       for (const teacher of TeacherConfig.load().teachers) {
-        const { variant, colors, features } = teacher.look;
-        items.push({ entry, label: teacher.surname, options: { variant, colors, features } });
+        const { person, colors, scale } = teacher.look;
+        items.push({ entry, label: teacher.surname, options: { person, colors, scale } });
       }
     }
     return { id: section.id, title: section.title, maxScale: section.maxScale, items };

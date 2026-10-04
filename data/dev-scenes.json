@@ -42,6 +42,15 @@
     "yawDeg": 180,
     "spawn": { "position": [0.4, 0, -0.5], "yawDeg": -10 }
   },
+  "people": {
+    "//": "Dev scéna 'people' (dev/scenes/PeopleScene.ts, FEEDBACK 2026-10-04): glTF učitelé zblízka pod jednou zářivkou — vlevo svázaný na židli (seated, id z teachers.json), vpravo osvobozený, stojící (standing), spacing m od sebe. Kamera obíhá bod target ve vzdálenosti distance m (yawDeg 0 = zepředu, kladný = zprava, pitchDeg = shora). ?seated=, ?standing= vybere učitele, ?yaw=, ?pitch=, ?dist= pohne kamerou, ?stand=0…1 zastaví vstávání v půli, ?lamp=0 zhasne zářivku (jen ambient, čitelnost ve tmě).",
+    "seated": "siklova",
+    "standing": "komon",
+    "spacing": 1.6,
+    "floor": { "size": 12, "color": "world.floorTile" },
+    "lamp": { "position": [0, 2.8, 1.2], "color": "light.fluorescent", "intensity": 1.2, "range": 7 },
+    "camera": { "target": [0, 0.85, 0], "distance": 3.6, "yawDeg": 0, "pitchDeg": 8, "fov": 0.8 }
+  },
   "audio": {
     "//": "Dev scéna 'audio' (dev/scenes/AudioScene.ts, fáze 20): místnost scény 'doors' (zamčené dveře do výklenku s robotem = útlum za dveřmi, klíč, pickupy) a navíc prostorové hučení ohně v bodě fire (podlaha, m) s intenzitou fireIntensity a hudba. Kroky, servomotory, výstřely, UI.",
     "fire": [-6, 0, -6],

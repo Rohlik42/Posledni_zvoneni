@@ -1,0 +1,22 @@
+{
+  "//": "Lidé jako glTF modely (FEEDBACK 2026-10-04, DECISIONS: lidé z Quaternius „Ultimate Modular Men + Women“, CC0; roboti, zbraně a rekvizity zůstávají z primitiv). src/level/PeopleLibrary.ts načte každý soubor jednou (directory pod Vite BASE_URL, offline), src/level/models/PersonModel.ts z něj dělá instance. Soubory v public/models/people/ jsou zmenšené nástrojem tools/optimize-people.ts (jen animace z 'animations', bez UV — modely nemají textury — a KHR_mesh_quantization). Všechny sdílí kostru CharacterArmature (Root, Body, Hips, Abdomen, Torso, Chest, Neck, Head, Shoulder/UpperArm/LowerArm/Wrist.L|R, UpperLeg/LowerLeg.L|R, Foot.L|R — chodidla jsou IK kosti přímo pod Root). material: glTF PBR materiály se nahradí matnými StandardMaterial (černý spekulár jako všude ve hře): barva = baseColor glTF (lineární → sRGB) nebo přebarvení z učitele, diffuseScale = jak silně působí světla, baseEmissive = podíl vlastní barvy, kterým model svítí i ve tmě (čitelnost v tmavých kabinetech), skinEmissive navíc pro pleť a oči (obličeje).",
+  "directory": "models/people/",
+  "models": {
+    "woman-suit": { "file": "woman-suit.glb", "title": "Žena v saku" },
+    "woman-casual": { "file": "woman-casual.glb", "title": "Žena, tričko a kalhoty" },
+    "woman-adventurer": { "file": "woman-adventurer.glb", "title": "Žena v outdoorovém" },
+    "woman-dress": { "file": "woman-dress.glb", "title": "Žena v šatech" },
+    "woman-punk": { "file": "woman-punk.glb", "title": "Žena, punk" },
+    "man-suit": { "file": "man-suit.glb", "title": "Muž v obleku" },
+    "man-beach": { "file": "man-beach.glb", "title": "Muž, tričko a kraťasy" },
+    "man-casual": { "file": "man-casual.glb", "title": "Muž, košile" }
+  },
+  "animations": { "idle": "Idle", "greet": "Wave" },
+  "material": { "diffuseScale": 0.85, "baseEmissive": 0.12, "skinEmissive": 0.22, "skinMaterials": ["Skin", "Skin_Darker", "Eye", "Eyebrows"] },
+  "bones": {
+    "hips": "Hips", "body": "Body", "abdomen": "Abdomen", "torso": "Torso", "chest": "Chest", "neck": "Neck", "head": "Head", "headEnd": "Head_end",
+    "upperArmL": "UpperArm.L", "lowerArmL": "LowerArm.L", "wristL": "Wrist.L", "upperArmR": "UpperArm.R", "lowerArmR": "LowerArm.R", "wristR": "Wrist.R",
+    "upperLegL": "UpperLeg.L", "lowerLegL": "LowerLeg.L", "lowerLegEndL": "LowerLeg.L_end", "footL": "Foot.L", "footEndL": "Foot.L_end",
+    "upperLegR": "UpperLeg.R", "lowerLegR": "LowerLeg.R", "lowerLegEndR": "LowerLeg.R_end", "footR": "Foot.R", "footEndR": "Foot.R_end"
+  }
+}

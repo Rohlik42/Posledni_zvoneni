@@ -1,9 +1,11 @@
+import { existsSync } from "node:fs";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { SoundConfig } from "../../src/audio/SoundConfig";
 import { GreyboxConfig } from "../../src/level/GreyboxConfig";
 import { LevelConfig } from "../../src/level/LevelConfig";
 import { LevelLayout } from "../../src/level/LevelLayout";
+import { PeopleConfig } from "../../src/level/PeopleConfig";
 import { PickupConfig } from "../../src/level/PickupConfig";
 import { TeacherConfig } from "../../src/level/TeacherConfig";
 import { TeacherSystem } from "../../src/level/TeacherSystem";
@@ -15,7 +17,7 @@ import { Texts } from "../../src/utils/Texts";
 import { PaletteRefs } from "../support/PaletteRefs";
 
 // Phase 11 data: teachers.json against LEGACY §1, PLAN Evidence → Progrese, level.json, quiz.json, pickups.json,
-// models.json (blueprint `teacher`), sounds.json and texts.json.
+// models.json (blueprint `teacher` = chair and restraints), people.json (glTF people), sounds.json and texts.json.
 
 const data = TeacherConfig.load();
 const level = LevelConfig.load();
@@ -32,7 +34,6 @@ const LEGACY_ROSTER: readonly [string, string][] = [
   ["Ditrichová", "Hudebka"],
   ["Novotná", "Výtvarka"],
 ];
-const JACKETS = ["violet", "orange", "sea"];
 /** PLAN Evidence → Progrese: rewards by slot. */
 const PROGRESSION_REWARDS: Readonly<Record<number, string[]>> = {
   1: ["weapon-extinguisher"],
@@ -60,7 +61,6 @@ test("the 8 LEGACY teachers unchanged (surname, subject, roster order) plus one 
   assert.equal(physics.subject, "Fyzika");
   assert.ok(!LEGACY_ROSTER.some(([surname]) => surname === physics.surname), "the physics teacher is new");
   assert.ok(physics.nickname !== undefined && physics.nickname.length > 0, "the physics teacher has a nickname");
-  data.teachers.forEach((teacher, i) => assert.equal(teacher.look.variant, JACKETS[i % JACKETS.length], `${teacher.id}: jacket by roster index`));
 });
 
 test("every teacher sits in the room of their level.json slot with the same subject", () => {
@@ -101,22 +101,31 @@ test("every subject has quiz questions and the lines are non-empty and distinct"
   assert.equal(QuizConfig.load().wrongAnswerDamage, 20, "DESIGN §3 default damage");
 });
 
-test("the teacher blueprint has every variant, feature part, shackle, pose group and anchor the model uses", () => {
-  const parts = new Set(blueprint.parts.map((p) => p.name));
-  const groups = new Set(Object.keys(blueprint.groups ?? {}));
+test("every teacher is a glTF person of people.json with valid recolours; the chair blueprint has every restraint the model moves", () => {
+  const people = PeopleConfig.load();
   for (const teacher of data.teachers) {
-    assert.ok(blueprint.variants[teacher.look.variant] !== undefined, `${teacher.id}: variant ${teacher.look.variant}`);
-    for (const slot of Object.keys(teacher.look.colors ?? {})) assert.ok(blueprint.variants[teacher.look.variant]![slot] !== undefined, `${teacher.id}: colour slot ${slot}`);
+    assert.ok(people.models[teacher.look.person] !== undefined, `${teacher.id}: person ${teacher.look.person}`);
+    for (const [material, color] of Object.entries(teacher.look.colors ?? {})) assert.ok(PeopleConfig.isColor(color), `${teacher.id}: ${material} → ${color}`);
   }
-  for (const name of [...TeacherConfig.optionalParts(data.model), ...data.model.shackleParts, "trapLed", "trapAntennaTip"]) {
-    assert.ok(parts.has(name), `blueprint part ${name}`);
-  }
-  const { seated, standing } = data.model.pose;
-  for (const group of ["body", "torso", "head", "trap", ...Object.keys(seated.rotations), ...Object.keys(standing.rotations)]) {
-    assert.ok(groups.has(group), `blueprint group ${group}`);
-  }
-  for (const anchor of ["headTop", "chest"]) assert.ok(blueprint.anchors?.[anchor] !== undefined, `anchor ${anchor}`);
+  // FEEDBACK 2026-10-04 casting: every teacher looks different (same model only with different recolours).
+  const looks = data.teachers.map((t) => JSON.stringify([t.look.person, t.look.colors ?? {}]));
+  assert.equal(new Set(looks).size, looks.length, "two teachers look the same");
+  const parts = new Set(blueprint.parts.map((p) => p.name));
+  for (const name of [...data.model.shackleParts, "trapLed", "trapAntennaTip"]) assert.ok(parts.has(name), `blueprint part ${name}`);
+  const groups = new Set(Object.keys(blueprint.groups ?? {}));
+  for (const group of ["cuffL", "cuffR", "ankleL", "ankleR", "ankleChain", "trap"]) assert.ok(groups.has(group), `blueprint group ${group}`);
   assert.equal(blueprint.category, "teacher");
+});
+
+test("people.json: every model file exists under public/, the budgets keep people apart from robots", () => {
+  const people = PeopleConfig.load();
+  for (const id of PeopleConfig.ids()) {
+    const path = `public/${people.directory}${people.models[id]!.file}`;
+    assert.ok(existsSync(path), `${id}: ${path}`);
+  }
+  const { budgets } = ModelBlueprints.load();
+  assert.equal(budgets.robot, 2000);
+  assert.ok(budgets.person <= 8000 && budgets.teacher > budgets.person, "people ≤ 8k triangles, teacher = person + chair");
 });
 
 test("quiz and trap sounds exist; texts.json has the teacher and quiz texts with four answer letters", () => {

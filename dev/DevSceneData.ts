@@ -55,6 +55,15 @@ export interface DevScenesData {
   doors: { door: DevDoor; encounter: string; pickups: DevPickup[] };
   /** One captive teacher in the box room (phase 11). */
   teacher: { teacher: string; position: Vec3Tuple; yawDeg: number; spawn: { position: Vec3Tuple; yawDeg: number } };
+  /** Seated (bound) and standing (freed) glTF teachers side by side under one lamp, orbit camera (FEEDBACK 2026-10-04). */
+  people: {
+    seated: string;
+    standing: string;
+    spacing: number;
+    floor: { size: number; color: string };
+    lamp: { position: Vec3Tuple; color: string; intensity: number; range: number };
+    camera: { target: Vec3Tuple; distance: number; yawDeg: number; pitchDeg: number; fov: number };
+  };
   /** Audio pass (phase 20): the doors room plus a fire loop at `fire` with `fireIntensity`, music on. */
   audio: { fire: Vec3Tuple; fireIntensity: number };
 }
@@ -106,6 +115,20 @@ export class DevSceneData {
       position: Schema.vec3(),
       yawDeg: Schema.number(),
       spawn: Schema.object({ position: Schema.vec3(), yawDeg: Schema.number() }),
+    }),
+    people: Schema.object({
+      seated: Schema.string(),
+      standing: Schema.string(),
+      spacing: Schema.number({ min: 0 }),
+      floor: Schema.object({ size: Schema.number({ min: 0 }), color: Schema.paletteRef() }),
+      lamp: Schema.object({ position: Schema.vec3(), color: Schema.paletteRef(), intensity: Schema.number({ min: 0 }), range: Schema.number({ min: 0 }) }),
+      camera: Schema.object({
+        target: Schema.vec3(),
+        distance: Schema.number({ min: 0.1 }),
+        yawDeg: Schema.number(),
+        pitchDeg: Schema.number({ min: -89, max: 89 }),
+        fov: Schema.number({ min: 0.1, max: 2 }),
+      }),
     }),
     audio: Schema.object({ fire: Schema.vec3(), fireIntensity: Schema.number({ min: 0, max: 1 }) }),
   });

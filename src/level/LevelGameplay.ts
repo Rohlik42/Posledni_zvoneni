@@ -27,6 +27,7 @@ import { LevelLayout } from "./LevelLayout";
 import { LevelProgress } from "./LevelProgress";
 import { LevelStations } from "./LevelStations";
 import { NavMeshService } from "./NavMeshService";
+import { PeopleLibrary } from "./PeopleLibrary";
 import { PickupConfig } from "./PickupConfig";
 import { PickupField } from "./PickupField";
 import { ProgressionConfig } from "./ProgressionConfig";
@@ -158,6 +159,8 @@ export class LevelGameplay {
   ) {}
 
   static async create(game: Game, options: LevelGameplayOptions = {}): Promise<LevelGameplay> {
+    // The teachers' glTF people (FEEDBACK 2026-10-04) load before the level builds its materials (PeopleLibrary.preload).
+    if (options.play === true) await PeopleLibrary.preload(game.scene);
     const physics = await Physics.create(game);
     const level = await LevelBuilder.build(game, physics);
     const play = options.play === true;

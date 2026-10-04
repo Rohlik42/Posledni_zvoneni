@@ -21,6 +21,8 @@ export interface ModelEntry {
   category: ModelCategory;
   /** One line for the gallery label. */
   title: string;
+  /** Loads what `create` needs (glTF files of people); awaited once per scene before the first `create`. */
+  preload?(scene: Scene): Promise<void>;
   /** Builds the model with default parameters, or with a variant / colours / scale (pickups, phase 10). */
   create(scene: Scene, options?: ModelOptions): ModelInstance;
 }

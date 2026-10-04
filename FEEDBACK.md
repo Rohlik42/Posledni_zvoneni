@@ -45,3 +45,9 @@ Zapracováno 2026-10-04 (chladný měsíční ambient, delší dosah lamp, slab�
 - „Ještě zkusíme víc vyvážit zbraně. Pistolka je hodně silná vlastně oproti ostatním. Potřebujeme, aby ty ostatní byly upgrade a aby se s nimi fakt dalo trefit. Hasičák musí mít větší dostřel než pistolka. Nemusí být tolik spray, může to prostě fungovat jako silnější hadice s vodou — paprsek, co dostřelí dál a silněji než pistolka. Naproti tomu paralyzér může být více na blízko a s širším dosahem blesku. Railgun ‚nekonečný‘ dostřel.“
 
 Zapracováno 2026-10-04 (pistolka slabší: TTK humanoida 1,0 → 1,5 s, dostřel 20 m; hasičák = proud vody na 34 m, 63 DPS; paralyzér 3,5 m, ale blesk v kuželu 80° na všechny; railgun do první zdi (300 m); hadice 24 m; tlustý proud a pomoc s mířením `aimAssistDeg`/`beamRadius`; tabulka před/po v DECISIONS.md, měření `weapons-balance.spec.ts` ve scéně `weapons-long`, testy `weapons-all.spec.ts`)
+
+## 2026-10-04 — lidé jako opravdové modely
+
+- „Roboti jsou dobří v současném low-poly, ale na lidi bych chtěl opravdový model, aby nebyli z kostiček.“ (schválen Quaternius „Ultimate Modular Men + Women“, CC0)
+
+Zapracováno 2026-10-04 (učitelé jsou glTF postavy Quaternius, 8 modelů v `public/models/people/` zmenšených na 3,2 MB; svázaní na židli procedurální pózou z kostí, po osvobození vstanou, zamávají a stojí v klidové animaci; roboti, zbraně a rekvizity dál z primitiv; snímky `screenshots/people-seated.png`, `people-standing.png`, `people-gallery.png`, test `tests/e2e/people.spec.ts`, rozhodnutí v DECISIONS „FEEDBACK 2026-10-04 — Lidé jako opravdové modely“)

@@ -2,7 +2,7 @@ import modelsJson from "../../data/models.json";
 import { DataLoader } from "../utils/DataLoader";
 import { Schema } from "../utils/Schema";
 
-export const MODEL_CATEGORIES = ["weapon", "robot", "teacher", "prop", "pickup", "room"] as const;
+export const MODEL_CATEGORIES = ["weapon", "robot", "teacher", "person", "prop", "pickup", "room"] as const;
 export type ModelCategory = (typeof MODEL_CATEGORIES)[number];
 
 export const PART_SHAPES = ["box", "cylinder"] as const;

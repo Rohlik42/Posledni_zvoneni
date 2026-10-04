@@ -29,9 +29,9 @@ export interface TeacherPlacement {
 const HALF = 0.5;
 
 /**
- * One captive teacher (DESIGN §3, §6): the primitive model on its chair, a name tag above the head (LEGACY §1:
- * surname + subject, always facing the camera, unlit) and a static collider so the player cannot walk through the
- * chair. `free()` drops the shackles; the teacher then gets up in the fixed step (`update`) and stays in the room.
+ * One captive teacher (DESIGN §3, §6): the glTF person tied to the primitive chair (TeacherModel), a name tag above
+ * the head (LEGACY §1: surname + subject, always facing the camera, unlit) and a static collider so the player cannot
+ * walk through the chair. `free()` drops the shackles; the teacher then gets up in the fixed step (`update`) and stays in the room.
  */
 export class Teacher {
   readonly model: TeacherModel;
@@ -46,7 +46,7 @@ export class Teacher {
   private readonly tagData: NametagData;
 
   constructor(
-    scene: Scene,
+    private readonly scene: Scene,
     readonly data: TeacherData,
     readonly placement: TeacherPlacement,
     private readonly config: TeachersData,
@@ -54,9 +54,9 @@ export class Teacher {
   ) {
     this.model = new TeacherModel(scene, {
       name: `teacher:${data.id}`,
-      variant: data.look.variant,
+      person: data.look.person,
       colors: data.look.colors,
-      features: data.look.features,
+      scale: data.look.scale,
     });
     this.model.root.position.copyFrom(placement.position);
     this.model.root.rotation.y = placement.yaw;
@@ -98,8 +98,7 @@ export class Teacher {
 
   /** Floor point in front of the chair where dropped rewards land. */
   get dropPosition(): Vector3 {
-    const { standing } = this.config.model.pose;
-    const forward = standing.body[2];
+    const forward = this.config.model.standing.forward;
     const p = this.placement.position;
     return new Vector3(p.x + Math.sin(this.placement.yaw) * forward, p.y, p.z + Math.cos(this.placement.yaw) * forward);
   }
@@ -138,9 +137,12 @@ export class Teacher {
     this.model.setStanding(t * t * (3 - 2 * t));
   }
 
-  /** Per rendered frame: idle motion (real time, so the trap keeps blinking while the quiz pauses the game). */
+  /**
+   * Per rendered frame: idle motion (real time, so the trap keeps blinking while the quiz pauses the game); a bound
+   * teacher now and then looks at the camera.
+   */
   animate(time: number, alarm: boolean): void {
-    this.model.animate(time, alarm);
+    this.model.animate(time, alarm, this.scene.activeCamera?.globalPosition ?? null);
     this.placeNametag();
   }
 

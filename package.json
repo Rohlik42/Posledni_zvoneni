@@ -30,6 +30,9 @@
   },
   "devDependencies": {
     "@babylonjs/inspector": "^9.29.0",
+    "@gltf-transform/core": "^4.5.1",
+    "@gltf-transform/extensions": "^4.5.1",
+    "@gltf-transform/functions": "^4.5.1",
     "@playwright/test": "^1.63.0",
     "@types/node": "^26.6.4",
     "@types/yuka": "^0.7.4",

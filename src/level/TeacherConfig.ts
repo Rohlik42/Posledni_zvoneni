@@ -2,6 +2,7 @@ import teachersJson from "../../data/teachers.json";
 import { DAMAGE_TYPES, type DamageType } from "../core/DamageTypes";
 import type { Vec3Tuple } from "../core/GameConfig";
 import { DataLoader } from "../utils/DataLoader";
+import { PeopleConfig } from "./PeopleConfig";
 import { Schema, type SchemaNode } from "../utils/Schema";
 
 export interface TeacherReward {
@@ -11,12 +12,12 @@ export interface TeacherReward {
 }
 
 export interface TeacherLook {
-  /** Jacket variant of the `teacher` blueprint (LEGACY §1: roster index % 3). */
-  variant: string;
-  /** Colour slot → palette key on top of the variant (hair, tie…). */
+  /** Person model of `data/people.json` (FEEDBACK 2026-10-04: people are glTF models). */
+  person: string;
+  /** glTF material name → `#rrggbb` or palette key (recoloured clothes, hair). */
   colors?: Record<string, string>;
-  /** Names from `model.features` whose parts are shown (hair styles, glasses, moustache). */
-  features: string[];
+  /** Uniform scale of the figure. */
+  scale?: number;
 }
 
 export interface TeacherData {
@@ -36,23 +37,43 @@ export interface TeacherData {
   freedLine: string;
 }
 
-export interface TeacherPose {
-  /** Offset of the `body` group from the blueprint's standing pose (m). */
-  body: Vec3Tuple;
-  /** Group → rotation in degrees [x, y, z]. */
-  rotations: Record<string, Vec3Tuple>;
+/** The bound, seated pose: targets in model metres (x = distance from the centre line, mirrored for left/right). */
+export interface TeacherSeatedPose {
+  /** Middle of the hip joints. */
+  hips: Vec3Tuple;
+  ankle: Vec3Tuple;
+  /** Direction the knees bend towards. */
+  kneePole: Vec3Tuple;
+  /** Wrists behind the backrest. */
+  wrist: Vec3Tuple;
+  /** Direction the elbows bend towards. */
+  elbowPole: Vec3Tuple;
+  footDirection: Vec3Tuple;
+  leanDeg: number;
+  headDownDeg: number;
 }
 
 export interface TeacherModelData {
-  features: Record<string, string[]>;
   shackleParts: string[];
-  pose: { seated: TeacherPose; standing: TeacherPose };
-  /** How strongly lights act on the model (BlueprintOptions.lightScale). */
+  seated: TeacherSeatedPose;
+  /** Freed teachers stand `forward` m in front of the chair. */
+  standing: { forward: number };
+  /** Trap position from the chest joint (model metres). */
+  trapOffset: Vec3Tuple;
+  /** How strongly lights act on the chair (BlueprintOptions.lightScale). */
   lightScale: number;
   standDelay: number;
   standTime: number;
-  breath: { amplitude: number; period: number };
-  head: { boundYawDeg: number; boundPitchDeg: number; freedYawDeg: number; freedPitchDeg: number; period: number };
+  breath: { amplitudeDeg: number; period: number };
+  head: {
+    boundYawDeg: number;
+    boundPitchDeg: number;
+    period: number;
+    lookRange: number;
+    lookPeriod: number;
+    lookShare: number;
+    lookMaxYawDeg: number;
+  };
   trapBlink: { period: number; onShare: number; alarmPeriod: number };
 }
 
@@ -133,13 +154,12 @@ export interface TeachersData {
 
 const positive = (): SchemaNode => Schema.number({ min: 0 });
 const range = (): SchemaNode => Schema.array(Schema.number({ min: 0 }), 2, 2);
-const pose = (): SchemaNode => Schema.object({ body: Schema.vec3(), rotations: Schema.record(Schema.vec3()) });
 const px = (): SchemaNode => Schema.number({ min: 1 });
 const UI_COLORS = ["overlayTop", "overlayBottom", "panel", "title", "subject", "text", "dim", "line", "button", "buttonText", "buttonShadow", "letter", "wrong", "correct"];
 
 /**
  * Typed loader for `data/teachers.json` (phase 11): the captive teachers (names, subjects and rooms from LEGACY §1 and
- * level.json, rewards, lines, look), the teacher model's poses and idle motion, the name tag, the trap explosion and
+ * level.json, rewards, lines, glTF person and recolours), the seated pose and idle motion, the name tag, the trap explosion and
  * the quiz overlay layout.
  */
 export class TeacherConfig {
@@ -156,10 +176,7 @@ export class TeacherConfig {
           subject: Schema.string(),
           room: Schema.string(),
           rewards: Schema.array(Schema.object({ item: Schema.string(), amount: Schema.integer({ min: 1 }) }, ["amount"]), 1),
-          look: Schema.object(
-            { variant: Schema.string(), colors: Schema.record(Schema.paletteRef()), features: Schema.array(Schema.string()) },
-            ["colors"],
-          ),
+          look: Schema.object({ person: Schema.string(), colors: Schema.record(Schema.string()), scale: Schema.number({ min: 0.5, max: 1.5 }) }, ["colors", "scale"]),
           greeting: Schema.string(),
           wrongLine: Schema.string(),
           freedLine: Schema.string(),
@@ -169,19 +186,31 @@ export class TeacherConfig {
       1,
     ),
     model: Schema.object({
-      features: Schema.record(Schema.array(Schema.string(), 1)),
       shackleParts: Schema.array(Schema.string(), 1),
-      pose: Schema.object({ seated: pose(), standing: pose() }),
+      seated: Schema.object({
+        hips: Schema.vec3(),
+        ankle: Schema.vec3(),
+        kneePole: Schema.vec3(),
+        wrist: Schema.vec3(),
+        elbowPole: Schema.vec3(),
+        footDirection: Schema.vec3(),
+        leanDeg: Schema.number({ min: -45, max: 45 }),
+        headDownDeg: Schema.number({ min: -45, max: 60 }),
+      }),
+      standing: Schema.object({ forward: positive() }),
+      trapOffset: Schema.vec3(),
       lightScale: Schema.number({ min: 0.05, max: 2 }),
       standDelay: positive(),
       standTime: Schema.number({ min: 0.05 }),
-      breath: Schema.object({ amplitude: positive(), period: Schema.number({ min: 0.1 }) }),
+      breath: Schema.object({ amplitudeDeg: positive(), period: Schema.number({ min: 0.1 }) }),
       head: Schema.object({
         boundYawDeg: positive(),
         boundPitchDeg: positive(),
-        freedYawDeg: positive(),
-        freedPitchDeg: positive(),
         period: Schema.number({ min: 0.1 }),
+        lookRange: positive(),
+        lookPeriod: Schema.number({ min: 0.1 }),
+        lookShare: Schema.number({ min: 0, max: 1 }),
+        lookMaxYawDeg: Schema.number({ min: 0, max: 180 }),
       }),
       trapBlink: Schema.object({
         period: Schema.number({ min: 0.02 }),
@@ -257,12 +286,7 @@ export class TeacherConfig {
     return teacher;
   }
 
-  /** Every blueprint part some feature can show (hidden unless the teacher has that feature). */
-  static optionalParts(model: TeacherModelData): string[] {
-    return [...new Set(Object.entries(model.features).filter(([key]) => !key.startsWith("//")).flatMap(([, parts]) => parts))];
-  }
-
-  /** Cross-field checks the schema cannot express: unique ids and slots, known features. */
+  /** Cross-field checks the schema cannot express: unique ids and slots, known person models, valid recolours. */
   private static validate(data: TeachersData): void {
     const ids = new Set<string>();
     const slots = new Set<number>();
@@ -271,8 +295,9 @@ export class TeacherConfig {
       if (slots.has(teacher.slot)) throw new Error(`${TeacherConfig.file}: duplicate slot ${teacher.slot}`);
       ids.add(teacher.id);
       slots.add(teacher.slot);
-      for (const feature of teacher.look.features) {
-        if (data.model.features[feature] === undefined) throw new Error(`${TeacherConfig.file}: teacher ${teacher.id} has unknown feature "${feature}"`);
+      if (!PeopleConfig.ids().includes(teacher.look.person)) throw new Error(`${TeacherConfig.file}: teacher ${teacher.id} has unknown person "${teacher.look.person}"`);
+      for (const [material, color] of Object.entries(teacher.look.colors ?? {})) {
+        if (!PeopleConfig.isColor(color)) throw new Error(`${TeacherConfig.file}: teacher ${teacher.id} colours ${material} with "${color}" (not #rrggbb or a palette key)`);
       }
     }
   }
