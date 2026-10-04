@@ -39,6 +39,8 @@ const NOISE_SEED = 1234567;
 const LCG_MULTIPLIER = 1664525;
 const LCG_INCREMENT = 1013904223;
 const LCG_RANGE = 2 ** 32;
+/** "#rrggbb" without a palette alpha suffix. */
+const HEX_RGB_LENGTH = 7;
 
 /**
  * Named level materials from `data/materials.json` on top of the textures in `public/textures/index.json`
@@ -172,7 +174,7 @@ export class MaterialLibrary {
     if (texture !== undefined) return texture;
     texture = new DynamicTexture(`fallback:${id}`, { width: FALLBACK_PX, height: FALLBACK_PX }, this.scene, true, Texture.NEAREST_SAMPLINGMODE);
     const ctx = texture.getContext();
-    const [base, accent] = fallback.colors.map((c) => Palette.hex(c).slice(0, 7));
+    const [base, accent] = fallback.colors.map((c) => Palette.hex(c).slice(0, HEX_RGB_LENGTH));
     const cell = FALLBACK_PX / FALLBACK_CELLS;
     ctx.fillStyle = base!;
     ctx.fillRect(0, 0, FALLBACK_PX, FALLBACK_PX);

@@ -32,6 +32,63 @@ const STENCIL_GLOW = 0.35;
 /** Font loading may hang offline; the decals are drawn with the fallback font after this. */
 const FONT_WAIT_MS = 1500;
 const VARIANT_SEED = 7919;
+/** Base of the string hash that turns a decal id into its variant seed. */
+const HASH_BASE = 31;
+/** Font size used only to ask the browser to load a font face (px). */
+const FONT_PROBE_PX = 32;
+
+// Canvas layout of the procedural decals, as shares of the canvas (`px`, width or height) unless noted.
+/** Scorch: rust rim (alpha share, blob radius), then the soot (blob radius). */
+const SCORCH = { rimAlpha: 0.35, rimRadius: 0.5, sootRadius: 0.36 } as const;
+/** Stain: blob alpha share and radius; tide rings: line width, first radius, step, radius jitter and wobble. */
+const STAIN = {
+  blobAlpha: 0.6,
+  blobRadius: 0.34,
+  ringWidth: 0.012,
+  ringRadius: 0.18,
+  ringStep: 0.07,
+  ringJitter: [0.9, 1.1],
+  ringWobble: [0.85, 1.12],
+  ringSegments: 24,
+} as const;
+/** Hole: outer rim radius and alpha share, inner hole radius, the smallest share of a radius a point may cut in. */
+const HOLE = { rimRadius: 0.49, rimAlpha: 0.8, innerRadius: 0.4, jaggedMin: 0.62 } as const;
+/** Door plate: border, big text height alone / above the small one, its centre alone / above, width; small line. */
+const PLATE = {
+  border: 0.07,
+  bigHeightAlone: 0.62,
+  bigHeight: 0.5,
+  bigCenterAlone: 0.52,
+  bigCenter: 0.4,
+  textWidth: 0.82,
+  smallHeight: 0.17,
+  smallWidth: 0.84,
+  smallCenter: 0.76,
+  /** Dirt speck edge (canvas px). */
+  speck: [1, 4],
+} as const;
+/** Graffiti: text block height and top margin, line fill, spray tilt (rad), overspray, drips, stencil bridges, small line. */
+const GRAFFITI = {
+  block: 0.86,
+  top: 0.07,
+  lineFill: 0.92,
+  textWidth: 0.92,
+  sprayTilt: 0.04,
+  oversprayAlpha: 0.7,
+  oversprayBlur: 0.18,
+  dripAlpha: 0.85,
+  dripStart: 0.3,
+  /** Drip width (canvas px) and length (share of the font size). */
+  dripWidth: [1.5, 3.5],
+  dripLength: [0.1, 0.45],
+  bridgeAt: 0.04,
+  bridgeWidth: 0.05,
+  smallHeight: 0.42,
+  smallWidth: 0.8,
+  smallGap: 0.3,
+} as const;
+/** Soft blobs: radius jitter and the alpha share at the centre of each gradient. */
+const BLOB = { radius: [0.35, 0.7], centerAlpha: 0.45 } as const;
 
 /**
  * Procedural detail textures (phase 19, DESIGN §13 „detailní textury procedurální“): scorch marks, water stains, the hole
@@ -55,7 +112,7 @@ export class DecalTextures {
   static async fontsReady(data: DetailsData = DetailsConfig.load()): Promise<void> {
     const fonts = typeof document === "undefined" ? undefined : document.fonts;
     if (fonts === undefined) return;
-    const specs = [data.textures.sign.font, data.textures.sign.smallFont, data.textures.graffitiFont].map((f) => f.replace(FONT_SIZE_TOKEN, "32"));
+    const specs = [data.textures.sign.font, data.textures.sign.smallFont, data.textures.graffitiFont].map((f) => f.replace(FONT_SIZE_TOKEN, String(FONT_PROBE_PX)));
     const timeout = new Promise<void>((resolve) => setTimeout(resolve, FONT_WAIT_MS));
     try {
       await Promise.race([Promise.all(specs.map((spec) => fonts.load(spec))).then(() => undefined), timeout]);
@@ -132,22 +189,22 @@ export class DecalTextures {
   private scorch(ctx: CanvasRenderingContext2D, px: number, random: Random): void {
     const d = this.data.textures.scorch;
     // Rust-brown rim under the black soot, both made of soft overlapping blobs.
-    this.blobs(ctx, px, random, d.rim, d.alpha * 0.35, 0.5);
-    this.blobs(ctx, px, random, d.color, d.alpha, 0.36);
+    this.blobs(ctx, px, random, d.rim, d.alpha * SCORCH.rimAlpha, SCORCH.rimRadius);
+    this.blobs(ctx, px, random, d.color, d.alpha, SCORCH.sootRadius);
   }
 
   private stain(ctx: CanvasRenderingContext2D, px: number, random: Random): void {
     const d = this.data.textures.stain;
-    this.blobs(ctx, px, random, d.color, d.alpha * 0.6, 0.34);
+    this.blobs(ctx, px, random, d.color, d.alpha * STAIN.blobAlpha, STAIN.blobRadius);
     // Tide marks of dried water.
     const rgb = DecalTextures.rgb(d.color);
     for (let i = 0; i < STAIN_RINGS; i++) {
       ctx.strokeStyle = `rgba(${rgb},${d.alpha})`;
-      ctx.lineWidth = px * 0.012;
+      ctx.lineWidth = px * STAIN.ringWidth;
       ctx.beginPath();
-      const r = px * (0.18 + i * 0.07) * random.range(0.9, 1.1);
-      for (let a = 0; a <= FULL_TURN + 1e-6; a += FULL_TURN / 24) {
-        const wobble = r * random.range(0.85, 1.12);
+      const r = px * (STAIN.ringRadius + i * STAIN.ringStep) * random.range(STAIN.ringJitter[0], STAIN.ringJitter[1]);
+      for (let a = 0; a <= FULL_TURN + 1e-6; a += FULL_TURN / STAIN.ringSegments) {
+        const wobble = r * random.range(STAIN.ringWobble[0], STAIN.ringWobble[1]);
         const x = px * HALF + Math.cos(a) * wobble;
         const y = px * HALF + Math.sin(a) * wobble;
         if (a === 0) ctx.moveTo(x, y);
@@ -165,7 +222,7 @@ export class DecalTextures {
       ctx.beginPath();
       for (let i = 0; i < HOLE_POINTS; i++) {
         const a = (i / HOLE_POINTS) * FULL_TURN;
-        const r = px * radius * random.range(0.62, 1);
+        const r = px * radius * random.range(HOLE.jaggedMin, 1);
         const x = px * HALF + Math.cos(a) * r;
         const y = px * HALF + Math.sin(a) * r;
         if (i === 0) ctx.moveTo(x, y);
@@ -174,14 +231,14 @@ export class DecalTextures {
       ctx.closePath();
       ctx.fill();
     };
-    ring(0.49, d.rim, d.alpha * 0.8);
-    ring(0.4, d.color, d.alpha);
+    ring(HOLE.rimRadius, d.rim, d.alpha * HOLE.rimAlpha);
+    ring(HOLE.innerRadius, d.color, d.alpha);
   }
 
   private sign(ctx: CanvasRenderingContext2D, width: number, height: number, label: string, random: Random): void {
     const d = this.data.textures.sign;
     const [big = "", small = ""] = label.split(SIGN_SEPARATOR);
-    const border = Math.round(height * 0.07);
+    const border = Math.round(height * PLATE.border);
     ctx.fillStyle = Palette.hex(d.border);
     ctx.fillRect(0, 0, width, height);
     ctx.fillStyle = Palette.hex(d.plate);
@@ -189,18 +246,18 @@ export class DecalTextures {
     ctx.fillStyle = Palette.hex(d.text);
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    const bigPx = DecalTextures.fit(ctx, big, d.font, height * (small === "" ? 0.62 : 0.5), width * 0.82);
+    const bigPx = DecalTextures.fit(ctx, big, d.font, height * (small === "" ? PLATE.bigHeightAlone : PLATE.bigHeight), width * PLATE.textWidth);
     ctx.font = d.font.replace(FONT_SIZE_TOKEN, String(bigPx));
-    ctx.fillText(big, width * HALF, height * (small === "" ? 0.52 : 0.4));
+    ctx.fillText(big, width * HALF, height * (small === "" ? PLATE.bigCenterAlone : PLATE.bigCenter));
     if (small !== "") {
-      const smallPx = DecalTextures.fit(ctx, small, d.smallFont, height * 0.17, width * 0.84);
+      const smallPx = DecalTextures.fit(ctx, small, d.smallFont, height * PLATE.smallHeight, width * PLATE.smallWidth);
       ctx.font = d.smallFont.replace(FONT_SIZE_TOKEN, String(smallPx));
-      ctx.fillText(small, width * HALF, height * 0.76);
+      ctx.fillText(small, width * HALF, height * PLATE.smallCenter);
     }
     // Soot and dust on the plate.
     ctx.fillStyle = `rgba(${DecalTextures.rgb("base.soot")},${d.dirt})`;
     for (let i = 0; i < DIRT_SPECKS; i++) {
-      const s = random.range(1, 4);
+      const s = random.range(PLATE.speck[0], PLATE.speck[1]);
       ctx.fillRect(random.next() * width, random.next() * height, s, s);
     }
   }
@@ -212,42 +269,42 @@ export class DecalTextures {
     const rgb = DecalTextures.rgb(g.color);
     const lines = g.lines;
     const rows = lines.length + ((g.small ?? "") === "" ? 0 : HALF);
-    const lineHeight = (height * 0.86) / rows;
+    const lineHeight = (height * GRAFFITI.block) / rows;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     lines.forEach((line, i) => {
-      const fontPx = DecalTextures.fit(ctx, line, this.data.textures.graffitiFont, lineHeight * 0.92, width * 0.92);
+      const fontPx = DecalTextures.fit(ctx, line, this.data.textures.graffitiFont, lineHeight * GRAFFITI.lineFill, width * GRAFFITI.textWidth);
       ctx.font = this.data.textures.graffitiFont.replace(FONT_SIZE_TOKEN, String(fontPx));
-      const y = height * 0.07 + lineHeight * (i + HALF);
-      const jitter = g.style === "spray" ? random.range(-0.04, 0.04) : 0;
+      const y = height * GRAFFITI.top + lineHeight * (i + HALF);
+      const jitter = g.style === "spray" ? random.range(-GRAFFITI.sprayTilt, GRAFFITI.sprayTilt) : 0;
       ctx.save();
       ctx.translate(width * HALF, y);
       ctx.rotate(jitter);
       if (g.style === "spray") {
         // Soft overspray halo, then the paint, then drips running down.
-        ctx.shadowColor = `rgba(${rgb},0.7)`;
-        ctx.shadowBlur = fontPx * 0.18;
+        ctx.shadowColor = `rgba(${rgb},${GRAFFITI.oversprayAlpha})`;
+        ctx.shadowBlur = fontPx * GRAFFITI.oversprayBlur;
       }
       ctx.fillStyle = color;
       ctx.fillText(line, 0, 0);
       ctx.restore();
       if (g.style === "spray") {
         const span = ctx.measureText(line).width;
-        ctx.fillStyle = `rgba(${rgb},0.85)`;
+        ctx.fillStyle = `rgba(${rgb},${GRAFFITI.dripAlpha})`;
         for (let k = 0; k < DRIPS_PER_LINE; k++) {
           const x = width * HALF + random.range(-HALF, HALF) * span;
-          ctx.fillRect(x, y + fontPx * 0.3, random.range(1.5, 3.5), random.range(0.1, 0.45) * fontPx);
+          ctx.fillRect(x, y + fontPx * GRAFFITI.dripStart, random.range(GRAFFITI.dripWidth[0], GRAFFITI.dripWidth[1]), random.range(GRAFFITI.dripLength[0], GRAFFITI.dripLength[1]) * fontPx);
         }
       } else {
         // Stencil bridges: thin gaps cut through the letters.
-        ctx.clearRect(0, y - fontPx * 0.04, width, Math.max(1, fontPx * 0.05));
+        ctx.clearRect(0, y - fontPx * GRAFFITI.bridgeAt, width, Math.max(1, fontPx * GRAFFITI.bridgeWidth));
       }
     });
     if (g.small !== undefined && g.small !== "") {
-      const fontPx = DecalTextures.fit(ctx, g.small, this.data.textures.graffitiFont, lineHeight * 0.42, width * 0.8);
+      const fontPx = DecalTextures.fit(ctx, g.small, this.data.textures.graffitiFont, lineHeight * GRAFFITI.smallHeight, width * GRAFFITI.smallWidth);
       ctx.font = this.data.textures.graffitiFont.replace(FONT_SIZE_TOKEN, String(fontPx));
       ctx.fillStyle = color;
-      ctx.fillText(g.small, width * HALF, height * 0.07 + lineHeight * (lines.length + 0.3));
+      ctx.fillText(g.small, width * HALF, height * GRAFFITI.top + lineHeight * (lines.length + GRAFFITI.smallGap));
     }
   }
 
@@ -259,9 +316,9 @@ export class DecalTextures {
       const out = random.next() * px * BLOB_SPREAD;
       const x = px * HALF + Math.cos(a) * out;
       const y = px * HALF + Math.sin(a) * out;
-      const r = px * radius * random.range(0.35, 0.7);
+      const r = px * radius * random.range(BLOB.radius[0], BLOB.radius[1]);
       const gradient = ctx.createRadialGradient(x, y, 0, x, y, r);
-      gradient.addColorStop(0, `rgba(${rgb},${alpha * 0.45})`);
+      gradient.addColorStop(0, `rgba(${rgb},${alpha * BLOB.centerAlpha})`);
       gradient.addColorStop(1, `rgba(${rgb},0)`);
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, px, px);
@@ -284,7 +341,7 @@ export class DecalTextures {
 
   private static hash(text: string): number {
     let h = 0;
-    for (let i = 0; i < text.length; i++) h = (Math.imul(h, 31) + text.charCodeAt(i)) >>> 0;
+    for (let i = 0; i < text.length; i++) h = (Math.imul(h, HASH_BASE) + text.charCodeAt(i)) >>> 0;
     return h;
   }
 }

@@ -7,7 +7,11 @@ import { ConsoleGuard } from "../support/ConsoleGuard";
 const json = <T>(file: string): T => JSON.parse(readFileSync(file, "utf8")) as T;
 const audio = json<AudioData>("data/audio.json");
 const menu = json<MenuData>("data/menu.json");
-const level = json<{ fires: { id: string; room: string }[]; spawns: { player: { room: string } }; rooms: { id: string; floorMaterial: string }[] }>("data/level.json");
+const level = json<{
+  fires: { id: string; room: string }[];
+  spawns: { player: { room: string } };
+  rooms: { id: string; floorMaterial: string; shaft?: boolean; rect: { x0: number; z0: number; x1: number; z1: number } }[];
+}>("data/level.json");
 const weapons = json<{ weapons: { sounds: { fire: string } }[] }>("data/weapons.json");
 const teachers = json<{ teachers: { id: string }[] }>("data/teachers.json");
 
@@ -27,6 +31,14 @@ const ACCEPT_WAIT_MS = progression.screen.acceptAfter * 1000 + 150;
 const HALF = 0.5;
 const duck = (state: string): number => audio.music.duck.find((d) => d.when === state)!.level;
 const startFloor = level.rooms.find((r) => r.id === level.spawns.player.room)!.floorMaterial;
+/** Phase 24: one room per step sound of the material map (the largest walkable room with that floor). */
+const STEP_ROOMS = [...new Set(Object.values(audio.footsteps.materials))].map((sound) => {
+  const area = (r: (typeof level.rooms)[number]): number => (r.rect.x1 - r.rect.x0) * (r.rect.z1 - r.rect.z0);
+  const rooms = level.rooms.filter((r) => r.shaft !== true && audio.footsteps.materials[r.floorMaterial] === sound).sort((a, b) => area(b) - area(a));
+  return { sound, room: rooms[0]!.id };
+});
+/** A short walk: at least one stride, without leaving the room. */
+const STEP_WALK_MS = 900;
 
 const KEY_SOUNDS = [
   ...new Set([
@@ -166,6 +178,17 @@ test.describe("audio pass", () => {
     const steps = await page.evaluate(() => ({ count: window.__game!.audio!.footsteps!.steps, last: window.__game!.audio!.footsteps!.last }));
     expect(steps.count).toBeGreaterThan(steps0);
     expect(steps.last).toBe(audio.footsteps.materials[startFloor]);
+
+    // Phase 24: every step sound of the map is heard on its floor (tiles, parquet, stone stairs, lino).
+    for (const { sound, room } of STEP_ROOMS) {
+      await page.evaluate((id) => window.__game!.level!.teleportToRoom(id), room);
+      await page.evaluate(() => window.__game!.step(300));
+      const before = await page.evaluate(() => window.__game!.audio!.footsteps!.steps);
+      await page.evaluate((ms) => window.__game!.input!.simulate("KeyW", ms), STEP_WALK_MS);
+      const after = await page.evaluate(() => ({ count: window.__game!.audio!.footsteps!.steps, last: window.__game!.audio!.footsteps!.last }));
+      expect(after.count, `steps in ${room}`).toBeGreaterThan(before);
+      expect(after.last, `step sound in ${room}`).toBe(sound);
+    }
   });
 
   test("robots: a patrolling humanoid's servos whine (muffled from the floor below), its wind-up and shot sound where it stands", async () => {

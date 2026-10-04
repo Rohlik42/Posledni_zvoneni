@@ -51,7 +51,12 @@ export interface GraffitiTextData {
 export interface DetailsData {
   /** Decal quads float this far in front of their surface (above the audit's plane tolerance). */
   lift: number;
-  keepOut: { door: number; teacher: number; point: number; stair: number };
+  /** Keep-out distances (m) of scattered details: door passages, teachers' chairs, pickups/spawns, stairs, furniture. */
+  keepOut: { door: number; teacher: number; point: number; stair: number; prop: number };
+  /** Distance from the room edge (m): `spot` = the floor point in front of a wall spot, `band` = debris along a wall. */
+  clearance: { spot: number; band: number };
+  /** Depth of a rubble chunk as a multiple of its width. */
+  chunkDepth: Range;
   rubble: { perMeter: number; spread: number; size: Range; flatness: Range; sink: number; tilt: Range; materials: string[] };
   collapsedCeiling: {
     beams: number;
@@ -65,8 +70,16 @@ export interface DetailsData {
     slabMaterial: string;
     holeGrow: number;
     holeMaterial: string;
+    /** Longest horizontal run of a beam as a share of the room's shorter side. */
+    beamMaxRun: number;
+    /** Beam heading spread around "towards the room centre" (± rad). */
+    beamSpread: number;
+    beamRoll: number;
+    /** Depth of a hanging slab as a multiple of its width. */
+    slabDepth: number;
+    slabRoll: number;
   };
-  scatter: { perSquareMeter: number; max: number; wallBand: Range; size: Range; materials: string[]; tilt: Range };
+  scatter: { perSquareMeter: number; max: number; wallBand: Range; size: Range; materials: string[]; tilt: Range; flatness: Range; sink: number };
   wrecks: {
     roomTypes: RoomType[];
     perMeter: number;
@@ -77,8 +90,23 @@ export interface DetailsData {
     seat: Size3;
     woodMaterial: string;
     metalMaterial: string;
+    /** Extra distance (m) of the desk's wall spot from the wall ends beyond half the desk width. */
+    wallMargin: number;
+    topRoll: number;
+    /** Leg positions along the wall as multiples of the desk width (left, right). */
+    legSides: Range;
+    /** Leg distance from the wall (m). */
+    legOut: Range;
+    legPitch: number;
+    legRoll: Range;
+    /** Seat distance from the wall (m), shift along the wall (m) and lift above the floor (m). */
+    seatOut: Range;
+    seatSide: number;
+    seatLift: number;
+    seatPitch: Range;
+    seatRoll: number;
   };
-  cables: { roomTypes: RoomType[]; perMeter: number; max: number; length: Range; thickness: number; tilt: Range; material: string };
+  cables: { roomTypes: RoomType[]; perMeter: number; max: number; length: Range; thickness: number; tilt: Range; material: string; wallMargin: number; roll: number };
   scorch: {
     floorScale: number;
     wallDistance: number;
@@ -88,9 +116,37 @@ export interface DetailsData {
     embers: number;
     emberSize: Range;
     emberMaterial: string;
+    /** The wall soot mark stays this far under the wall top (m), is at most `wallAspect` × its width high, `wallLift` off the floor. */
+    wallTopGap: number;
+    wallAspect: number;
+    wallLift: number;
+    emberFlatness: Range;
+    emberSink: number;
+    emberTilt: Range;
   };
-  stains: { perRoom: Range; size: Range; height: Range };
-  windows: { brokenFraction: number; frameShards: Range; shardSize: Range; floorShards: Range; floorSpread: number };
+  /** `topGap`: a stain stays this far under the wall top (m). */
+  stains: { perRoom: Range; size: Range; height: Range; topGap: number };
+  windows: {
+    brokenFraction: number;
+    frameShards: Range;
+    shardSize: Range;
+    floorShards: Range;
+    floorSpread: number;
+    /** Frame shard position from the pane centre as a share of the pane width. */
+    frameShardAt: Range;
+    /** Frame shard rise above the sill as a multiple of its size, its width as a multiple of its height. */
+    frameShardRise: number;
+    frameShardWidth: number;
+    frameShardPitch: number;
+    frameShardRoll: number;
+    /** Floor shards: size multiple of `shardSize`, nearest distance from the wall (m), lift (m), depth multiple. */
+    floorShardScale: number;
+    floorShardMinSpread: number;
+    floorShardLift: number;
+    floorShardDepth: number;
+    floorShardPitch: Range;
+    floorShardRoll: number;
+  };
   signs: { height: number; size: Range; offset: number; corridorTypes: RoomType[] };
   graffiti: GraffitiPlacementData[];
   loose: {
@@ -127,7 +183,9 @@ export class DetailsConfig {
 
   static readonly schema: SchemaNode = Schema.object({
     lift: positive,
-    keepOut: Schema.object({ door: positive, teacher: positive, point: positive, stair: positive }),
+    keepOut: Schema.object({ door: positive, teacher: positive, point: positive, stair: positive, prop: positive }),
+    clearance: Schema.object({ spot: positive, band: positive }),
+    chunkDepth: range,
     rubble: Schema.object({ perMeter: positive, spread: positive, size: range, flatness: range, sink: unit, tilt: range, materials }),
     collapsedCeiling: Schema.object({
       beams: Schema.integer({ min: 0 }),
@@ -141,8 +199,13 @@ export class DetailsConfig {
       slabMaterial: Schema.string(),
       holeGrow: positive,
       holeMaterial: Schema.string(),
+      beamMaxRun: unit,
+      beamSpread: positive,
+      beamRoll: positive,
+      slabDepth: positive,
+      slabRoll: positive,
     }),
-    scatter: Schema.object({ perSquareMeter: positive, max: Schema.integer({ min: 0 }), wallBand: range, size: range, materials, tilt: range }),
+    scatter: Schema.object({ perSquareMeter: positive, max: Schema.integer({ min: 0 }), wallBand: range, size: range, materials, tilt: range, flatness: range, sink: unit }),
     wrecks: Schema.object({
       roomTypes,
       perMeter: positive,
@@ -153,8 +216,29 @@ export class DetailsConfig {
       seat: size3,
       woodMaterial: Schema.string(),
       metalMaterial: Schema.string(),
+      wallMargin: positive,
+      topRoll: positive,
+      legSides: Schema.array(Schema.number(), 2, 2),
+      legOut: range,
+      legPitch: positive,
+      legRoll: range,
+      seatOut: range,
+      seatSide: positive,
+      seatLift: positive,
+      seatPitch: range,
+      seatRoll: positive,
     }),
-    cables: Schema.object({ roomTypes, perMeter: positive, max: Schema.integer({ min: 0 }), length: range, thickness: positive, tilt: range, material: Schema.string() }),
+    cables: Schema.object({
+      roomTypes,
+      perMeter: positive,
+      max: Schema.integer({ min: 0 }),
+      length: range,
+      thickness: positive,
+      tilt: range,
+      material: Schema.string(),
+      wallMargin: positive,
+      roll: positive,
+    }),
     scorch: Schema.object({
       floorScale: positive,
       wallDistance: positive,
@@ -164,9 +248,32 @@ export class DetailsConfig {
       embers: Schema.integer({ min: 0 }),
       emberSize: range,
       emberMaterial: Schema.string(),
+      wallTopGap: positive,
+      wallAspect: positive,
+      wallLift: positive,
+      emberFlatness: range,
+      emberSink: unit,
+      emberTilt: range,
     }),
-    stains: Schema.object({ perRoom: range, size: range, height: range }),
-    windows: Schema.object({ brokenFraction: unit, frameShards: range, shardSize: range, floorShards: range, floorSpread: positive }),
+    stains: Schema.object({ perRoom: range, size: range, height: range, topGap: positive }),
+    windows: Schema.object({
+      brokenFraction: unit,
+      frameShards: range,
+      shardSize: range,
+      floorShards: range,
+      floorSpread: positive,
+      frameShardAt: range,
+      frameShardRise: positive,
+      frameShardWidth: positive,
+      frameShardPitch: positive,
+      frameShardRoll: positive,
+      floorShardScale: positive,
+      floorShardMinSpread: positive,
+      floorShardLift: positive,
+      floorShardDepth: positive,
+      floorShardPitch: range,
+      floorShardRoll: positive,
+    }),
     signs: Schema.object({ height: positive, size: range, offset: positive, corridorTypes: roomTypes }),
     graffiti: Schema.array(
       Schema.object({ room: Schema.string(), wall: Schema.enumOf(SIDES), at: Schema.number(), height: positive, width: positive, text: Schema.integer({ min: 0 }) }),

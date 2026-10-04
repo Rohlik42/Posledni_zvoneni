@@ -21,6 +21,8 @@ const SAME_PLANE = 0.004;
 const LAYER_STEP = 0.004;
 /** Tries to find a free spot before a scattered piece is skipped. */
 const PLACE_TRIES = 8;
+/** Pitch given to a box that would otherwise be axis-aligned (rad): invisible, but the overlap resolver skips it. */
+const MIN_TILT = Number.EPSILON * 1e6;
 /** Seed sections: each part of the generator has its own random stream, so adding one does not reshuffle the rest. */
 const SECTIONS = ["windows", "rubble", "ceiling", "scatter", "wrecks", "cables", "scorch", "stains", "signs", "graffiti", "shards"] as const;
 type Section = (typeof SECTIONS)[number];
@@ -150,12 +152,12 @@ export class DetailGenerator {
     const towardRoom = Math.atan2(roomCx - cx, roomCz - cz);
     // Beams: from the ceiling over the heap (the hole) down to the floor, leaning out into the room.
     const rise = ceilingY - floorY;
-    const maxRun = Math.min(room.rect.x1 - room.rect.x0, room.rect.z1 - room.rect.z0) * 0.9;
+    const maxRun = Math.min(room.rect.x1 - room.rect.x0, room.rect.z1 - room.rect.z0) * d.beamMaxRun;
     for (let i = 0; i < d.beams; i++) {
       const pitch = Math.max(random.range(d.beamTilt[0], d.beamTilt[1]), Math.atan2(rise, maxRun));
       const length = rise / Math.sin(pitch);
       const run = rise / Math.tan(pitch);
-      const heading = towardRoom + random.range(-0.7, 0.7);
+      const heading = towardRoom + random.range(-d.beamSpread, d.beamSpread);
       const mid = { x: cx + Math.sin(heading) * run * HALF, z: cz + Math.cos(heading) * run * HALF };
       const [bx, bz] = DetailGenerator.inside(room.rect, mid.x, mid.z, run * HALF);
       const thickness = random.range(d.beamSize[0], d.beamSize[1]);
@@ -163,7 +165,7 @@ export class DetailGenerator {
         // Plan heading → world yaw (world z = −plan z); positive pitch lowers the room end (+z) to the floor.
         yaw: Math.PI - heading,
         pitch,
-        roll: random.range(-0.1, 0.1),
+        roll: random.range(-d.beamRoll, d.beamRoll),
       });
     }
     // Ceiling slabs hanging down at an angle from the edge of the hole.
@@ -173,10 +175,10 @@ export class DetailGenerator {
       const x = random.range(hole.x0, hole.x1);
       const z = random.range(hole.z0, hole.z1);
       const drop = Math.sin(tilt) * size * HALF;
-      this.box(room.id, d.slabMaterial, LevelLayout.toWorld(x, ceilingY - drop - d.slabThickness, z), { x: size, y: d.slabThickness, z: size * 0.7 }, {
+      this.box(room.id, d.slabMaterial, LevelLayout.toWorld(x, ceilingY - drop - d.slabThickness, z), { x: size, y: d.slabThickness, z: size * d.slabDepth }, {
         yaw: random.next() * FULL_TURN,
         pitch: tilt,
-        roll: random.range(-0.2, 0.2),
+        roll: random.range(-d.slabRoll, d.slabRoll),
       });
     }
   }
@@ -193,7 +195,7 @@ export class DetailGenerator {
     for (let i = 0; i < count; i++) {
       const spot = this.wallBandSpot(room, d.wallBand, random);
       if (spot === null) continue;
-      this.chunk(room.id, spot.x, spot.z, floorY, d.size, [0.3, 0.7], 0.2, d.tilt, DetailGenerator.pick(random, d.materials), random);
+      this.chunk(room.id, spot.x, spot.z, floorY, d.size, d.flatness, d.sink, d.tilt, DetailGenerator.pick(random, d.materials), random);
     }
   }
 
@@ -204,7 +206,7 @@ export class DetailGenerator {
     const count = Math.min(d.max, Math.floor(length * d.perMeter + random.next()));
     const floorY = this.layout.floorY(room);
     for (let i = 0; i < count; i++) {
-      const wall = this.wallSpot(room, PROBE_HEIGHT, random, d.top[0] * HALF + 0.3);
+      const wall = this.wallSpot(room, PROBE_HEIGHT, random, d.top[0] * HALF + d.wallMargin);
       if (wall === null) continue;
       const { point, normal } = wall;
       // Desk top leaning against the wall: long side along the wall, tilted `lean` from the vertical.
@@ -217,27 +219,27 @@ export class DetailGenerator {
         yaw,
         // Positive pitch lowers the room-side edge: the edge at the wall is up, the plate rests on the floor in front.
         pitch: Math.PI * HALF - lean,
-        roll: random.range(-0.08, 0.08),
+        roll: random.range(-d.topRoll, d.topRoll),
       });
       // Legs and a chair seat on the floor in front of it.
       const side = { x: normal.z, z: -normal.x };
-      for (const offset of [-0.35, 0.3]) {
-        const at = random.range(0.35, 0.8);
+      for (const offset of d.legSides) {
+        const at = random.range(d.legOut[0], d.legOut[1]);
         this.box(
           room.id,
           d.metalMaterial,
           { x: point.x + normal.x * at + side.x * offset * tw, y: floorY + d.leg[0] * HALF, z: point.z + normal.z * at + side.z * offset * tw },
           { x: d.leg[0], y: d.leg[1], z: d.leg[2] },
-          { yaw: random.next() * FULL_TURN, pitch: Math.PI * HALF + random.range(-0.08, 0.08), roll: random.range(0.05, 0.25) },
+          { yaw: random.next() * FULL_TURN, pitch: Math.PI * HALF + random.range(-d.legPitch, d.legPitch), roll: random.range(d.legRoll[0], d.legRoll[1]) },
         );
       }
-      const seatAt = random.range(0.5, 0.9);
+      const seatAt = random.range(d.seatOut[0], d.seatOut[1]);
       this.box(
         room.id,
         d.woodMaterial,
-        { x: point.x + normal.x * seatAt - side.x * 0.6, y: floorY + d.seat[1] + 0.05, z: point.z + normal.z * seatAt - side.z * 0.6 },
+        { x: point.x + normal.x * seatAt - side.x * d.seatSide, y: floorY + d.seat[1] + d.seatLift, z: point.z + normal.z * seatAt - side.z * d.seatSide },
         { x: d.seat[0], y: d.seat[1], z: d.seat[2] },
-        { yaw: random.next() * FULL_TURN, pitch: random.range(0.08, 0.25), roll: random.range(-0.2, 0.2) },
+        { yaw: random.next() * FULL_TURN, pitch: random.range(d.seatPitch[0], d.seatPitch[1]), roll: random.range(-d.seatRoll, d.seatRoll) },
       );
     }
   }
@@ -250,13 +252,13 @@ export class DetailGenerator {
     const count = Math.min(d.max, Math.floor(length * d.perMeter + random.next()));
     const ceilingY = this.layout.ceilingY(room);
     for (let i = 0; i < count; i++) {
-      const x = random.range(r.x0 + 0.4, r.x1 - 0.4);
-      const z = random.range(r.z0 + 0.4, r.z1 - 0.4);
+      const x = random.range(r.x0 + d.wallMargin, r.x1 - d.wallMargin);
+      const z = random.range(r.z0 + d.wallMargin, r.z1 - d.wallMargin);
       if (!this.free(room, x, z, 0)) continue;
       const cable = random.range(d.length[0], d.length[1]);
       const tilt = random.range(d.tilt[0], d.tilt[1]);
       const p = LevelLayout.toWorld(x, ceilingY - Math.cos(tilt) * cable * HALF, z);
-      this.box(room.id, d.material, p, { x: d.thickness, y: cable, z: d.thickness }, { yaw: random.next() * FULL_TURN, pitch: tilt, roll: random.range(-0.1, 0.1) });
+      this.box(room.id, d.material, p, { x: d.thickness, y: cable, z: d.thickness }, { yaw: random.next() * FULL_TURN, pitch: tilt, roll: random.range(-d.roll, d.roll) });
     }
   }
 
@@ -268,7 +270,7 @@ export class DetailGenerator {
     const top = this.layout.wallTop(room);
     for (let i = 0; i < count; i++) {
       const size = random.range(d.size[0], d.size[1]);
-      const height = Math.min(top - size * HALF - 0.05, floorY + random.range(d.height[0], d.height[1]) + size * HALF);
+      const height = Math.min(top - size * HALF - d.topGap, floorY + random.range(d.height[0], d.height[1]) + size * HALF);
       const wall = this.wallSpot(room, height - floorY, random, size * HALF);
       if (wall === null) continue;
       const variant = Math.floor(random.next() * this.data.textures.stain.variants);
@@ -306,15 +308,15 @@ export class DetailGenerator {
     }
     if (nearest !== null) {
       const width = random.range(d.wallSize[0], d.wallSize[1]);
-      const height = Math.min(this.layout.wallTop(room) - floorY - 0.1, width * 1.2);
-      const spot = { point: { ...nearest.point, y: floorY + height * HALF + 0.02 }, normal: nearest.normal };
+      const height = Math.min(this.layout.wallTop(room) - floorY - d.wallTopGap, width * d.wallAspect);
+      const spot = { point: { ...nearest.point, y: floorY + height * HALF + d.wallLift }, normal: nearest.normal };
       if (this.flatWall(spot, width, height)) this.wallDecal(room.id, `${DECAL}:scorch:${variant()}`, spot, width, height, false);
     }
     // A charred heap in the fire itself.
     for (let i = 0; i < d.embers; i++) {
       const angle = random.next() * FULL_TURN;
       const at = random.next() * fire.radius;
-      this.chunk(room.id, fire.x + Math.cos(angle) * at, fire.z + Math.sin(angle) * at, floorY, d.emberSize, [0.3, 0.7], 0.25, [0.1, 0.6], d.emberMaterial, random);
+      this.chunk(room.id, fire.x + Math.cos(angle) * at, fire.z + Math.sin(angle) * at, floorY, d.emberSize, d.emberFlatness, d.emberSink, d.emberTilt, d.emberMaterial, random);
     }
   }
 
@@ -377,29 +379,29 @@ export class DetailGenerator {
     for (let i = 0; i < frame; i++) {
       const size = random.range(d.shardSize[0], d.shardSize[1]);
       // Jagged pieces left in the bottom corners and along the sill.
-      const u = (random.next() < HALF ? -1 : 1) * random.range(0.25, HALF) * pane.width;
-      const v = -pane.height * HALF + size * 0.4;
+      const u = (random.next() < HALF ? -1 : 1) * random.range(d.frameShardAt[0], d.frameShardAt[1]) * pane.width;
+      const v = -pane.height * HALF + size * d.frameShardRise;
       this.box(
         pane.room,
         glass,
         { x: pane.center.x + along.x * u, y: pane.center.y + v, z: pane.center.z + along.z * u },
-        { x: size * 0.6, y: size, z: thickness },
-        { yaw, pitch: random.range(-0.05, 0.05), roll: random.range(-0.6, 0.6) },
+        { x: size * d.frameShardWidth, y: size, z: thickness },
+        { yaw, pitch: random.range(-d.frameShardPitch, d.frameShardPitch), roll: random.range(-d.frameShardRoll, d.frameShardRoll) },
       );
     }
     const room = this.layout.room(pane.room);
     const floorY = this.layout.floorY(room);
     const floor = Math.round(random.range(d.floorShards[0], d.floorShards[1]));
     for (let i = 0; i < floor; i++) {
-      const size = random.range(d.shardSize[0], d.shardSize[1]) * 0.6;
+      const size = random.range(d.shardSize[0], d.shardSize[1]) * d.floorShardScale;
       const u = random.range(-HALF, HALF) * pane.width;
-      const inward = random.range(0.3, d.floorSpread);
+      const inward = random.range(d.floorShardMinSpread, d.floorSpread);
       this.box(
         pane.room,
         glass,
-        { x: pane.center.x + along.x * u + pane.inward.x * inward, y: floorY + 0.01, z: pane.center.z + along.z * u + pane.inward.z * inward },
-        { x: size, y: thickness, z: size * 0.7 },
-        { yaw: random.next() * FULL_TURN, pitch: random.range(0.03, 0.12), roll: random.range(-0.1, 0.1) },
+        { x: pane.center.x + along.x * u + pane.inward.x * inward, y: floorY + d.floorShardLift, z: pane.center.z + along.z * u + pane.inward.z * inward },
+        { x: size, y: thickness, z: size * d.floorShardDepth },
+        { yaw: random.next() * FULL_TURN, pitch: random.range(d.floorShardPitch[0], d.floorShardPitch[1]), roll: random.range(-d.floorShardRoll, d.floorShardRoll) },
       );
     }
   }
@@ -411,7 +413,7 @@ export class DetailGenerator {
     const s = random.range(size[0], size[1]);
     const h = s * random.range(flatness[0], flatness[1]);
     const sign = (): number => (random.next() < HALF ? -1 : 1);
-    this.box(owner, material, LevelLayout.toWorld(x, baseY + h * HALF - sink * h, z), { x: s, y: h, z: s * random.range(0.6, 1.1) }, {
+    this.box(owner, material, LevelLayout.toWorld(x, baseY + h * HALF - sink * h, z), { x: s, y: h, z: s * random.range(this.data.chunkDepth[0], this.data.chunkDepth[1]) }, {
       yaw: random.next() * FULL_TURN,
       pitch: sign() * random.range(tilt[0], tilt[1]),
       roll: sign() * random.range(tilt[0], tilt[1]),
@@ -420,7 +422,7 @@ export class DetailGenerator {
 
   private box(owner: string, material: string, center: Vec3, size: Vec3, rotation: { yaw: number; pitch: number; roll: number }): void {
     // Never axis-aligned: the overlap resolver must leave details alone (a carved wall would leave a hole).
-    const pitch = rotation.pitch === 0 && rotation.roll === 0 ? Number.EPSILON * 1e6 : rotation.pitch;
+    const pitch = rotation.pitch === 0 && rotation.roll === 0 ? MIN_TILT : rotation.pitch;
     const piece: BoxPiece = { owner, material, center, size, yaw: rotation.yaw, pitch, roll: rotation.roll, ...DETAIL };
     this.sink.box(piece);
   }
@@ -512,7 +514,7 @@ export class DetailGenerator {
       const spot = this.sideSpot(room, side, at, y);
       if (spot === null) continue;
       const plan = { x: spot.point.x + spot.normal.x * 0.5, z: -(spot.point.z + spot.normal.z * 0.5) };
-      if (!this.free(room, plan.x, plan.z, 0.2)) continue;
+      if (!this.free(room, plan.x, plan.z, this.data.clearance.spot)) continue;
       return spot;
     }
     return null;
@@ -535,7 +537,7 @@ export class DetailGenerator {
         z = random.range(r.z0 + inset, r.z1 - inset);
         x = side === "minX" ? r.x0 + inset : r.x1 - inset;
       }
-      if (this.free(room, x, z, 0.1)) return { x, z, y: this.layout.floorY(room) };
+      if (this.free(room, x, z, this.data.clearance.band)) return { x, z, y: this.layout.floorY(room) };
     }
     return null;
   }
@@ -554,7 +556,7 @@ export class DetailGenerator {
     const points = [...level.pickups.filter((p) => p.room === room.id), ...level.spawns.enemies.filter((e) => e.room === room.id)];
     if (points.some((p) => Math.hypot(p.x - x, p.z - z) < k.point)) return false;
     if (level.spawns.player.room === room.id && Math.hypot(level.spawns.player.x - x, level.spawns.player.z - z) < k.teacher) return false;
-    return !this.props.instances.some((p) => p.room === room.id && inRect(p.footprint, 0.05));
+    return !this.props.instances.some((p) => p.room === room.id && inRect(p.footprint, k.prop));
   }
 
   /** Big number (or first word) and the rest of a room's name for its door plate: "30|UČEBNA", "KABINET|ZEMĚPISU". */

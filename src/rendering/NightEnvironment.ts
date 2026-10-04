@@ -17,6 +17,9 @@ const SMOKE_HEIGHT = 0.6;
 const SMOKE_MIX = 0.55;
 /** Below the horizon the ground is the zenith colour with a little of the glow (burning streets). */
 const GROUND_GLOW = 0.25;
+/** Smoke bands: waves per turn and slope of each band (random in these ranges). */
+const BAND_FREQUENCY: readonly [number, number] = [1, 5];
+const BAND_TILT = 2;
 /** Cube faces in Babylon's order (+x, −x, +y, −y, +z, −z): direction of a face pixel (u, v in −1..1). */
 const FACES: ReadonlyArray<(u: number, v: number) => [number, number, number]> = [
   (u, v) => [1, -v, -u],
@@ -42,7 +45,7 @@ export class NightEnvironment {
     const smoke = PaletteColor.color3(data.smoke);
     const glow = PaletteColor.color3(data.glow);
     const random = new Random(data.seed);
-    const bands = Array.from({ length: data.smokeBands }, () => ({ frequency: random.range(1, 5), phase: random.next() * FULL_TURN, tilt: random.range(-2, 2) }));
+    const bands = Array.from({ length: data.smokeBands }, () => ({ frequency: random.range(BAND_FREQUENCY[0], BAND_FREQUENCY[1]), phase: random.next() * FULL_TURN, tilt: random.range(-BAND_TILT, BAND_TILT) }));
     const size = data.px;
     const faces = FACES.map((direction) => {
       const pixels = new Uint8Array(size * size * RGBA);

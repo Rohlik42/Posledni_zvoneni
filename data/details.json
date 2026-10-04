@@ -1,7 +1,11 @@
 {
   "//": "Generátor detailů (src/level/DetailGenerator.ts, fáze 19): suť, trámy a propadlé stropy u závalů, rozbitý nábytek, kabely, spáleniny, skvrny, graffiti, cedulky u dveří a vyražená okna. Vše z kvádrů a quadů, deterministicky ze seedu level.json → seed; detaily nekolidují a nejdou zasáhnout (kromě volných těles 'loose', ta jsou dynamická Havok tělesa jen v celé hře). Rozměry v metrech, úhly v radiánech, rozsahy [min, max]. Materiály jsou id z data/materials.json, 'decal:<druh>:<varianta>' jsou procedurální textury z src/rendering/DecalTextures.ts.",
   "lift": 0.012,
-  "keepOut": { "door": 0.9, "teacher": 1.1, "point": 0.5, "stair": 0.3 },
+  "keepOut": { "door": 0.9, "teacher": 1.1, "point": 0.5, "stair": 0.3, "prop": 0.05 },
+  "//clearance": "Odstup kusu od okraje místnosti (m): spot = bod před zdí u opřeného nábytku, band = drobná suť u zdi.",
+  "clearance": { "spot": 0.2, "band": 0.1 },
+  "//chunkDepth": "Hloubka kusu suti jako násobek jeho šířky [min, max].",
+  "chunkDepth": [0.6, 1.1],
   "rubble": {
     "//": "Hromada sutě kolem každého závalu (level.json → blockers): kusy v pásu 'spread' kolem obdélníku, zabořené o 'sink' své výšky, náklon 'tilt'.",
     "perMeter": 5,
@@ -24,7 +28,12 @@
     "slabTilt": [0.25, 0.7],
     "slabMaterial": "ceiling",
     "holeGrow": 0.6,
-    "holeMaterial": "decal:hole:0"
+    "holeMaterial": "decal:hole:0",
+    "beamMaxRun": 0.9,
+    "beamSpread": 0.7,
+    "beamRoll": 0.1,
+    "slabDepth": 0.7,
+    "slabRoll": 0.2
   },
   "scatter": {
     "//": "Drobná suť a omítka podél zdí ve všech vnitřních místnostech (hustota na m² podlahy, nejvýš max kusů), ve vzdálenosti 'wallBand' od zdi.",
@@ -33,7 +42,9 @@
     "wallBand": [0.08, 0.6],
     "size": [0.06, 0.3],
     "materials": ["fallen-plaster", "rubble", "fallen-plaster"],
-    "tilt": [0.1, 0.6]
+    "tilt": [0.1, 0.6],
+    "flatness": [0.3, 0.7],
+    "sink": 0.2
   },
   "wrecks": {
     "//": "Rozbitý nábytek na chodbách a v halách: zlomená deska lavice opřená o zeď, nohy, sedák. Počet na metr délky místnosti.",
@@ -45,7 +56,18 @@
     "leg": [0.04, 0.68, 0.04],
     "seat": [0.4, 0.03, 0.38],
     "woodMaterial": "furniture-wood",
-    "metalMaterial": "furniture-metal"
+    "metalMaterial": "furniture-metal",
+    "wallMargin": 0.3,
+    "topRoll": 0.08,
+    "legSides": [-0.35, 0.3],
+    "legOut": [0.35, 0.8],
+    "legPitch": 0.08,
+    "legRoll": [0.05, 0.25],
+    "seatOut": [0.5, 0.9],
+    "seatSide": 0.6,
+    "seatLift": 0.05,
+    "seatPitch": [0.08, 0.25],
+    "seatRoll": 0.2
   },
   "cables": {
     "//": "Utržené kabely visící ze stropu (šikmo), na metr délky místnosti.",
@@ -55,7 +77,9 @@
     "length": [1.0, 2.4],
     "thickness": 0.035,
     "tilt": [0.15, 0.6],
-    "material": "cable"
+    "material": "cable",
+    "wallMargin": 0.4,
+    "roll": 0.1
   },
   "scorch": {
     "//": "Spáleniny: na podlaze pod každým ohněm (poloměr ohně × floorScale) a na nejbližší zdi do wallDistance, plus 'extra' menších skvrn od ohně v místnosti. Ohořelé trosky kolem ohně.",
@@ -66,13 +90,20 @@
     "extraSize": [0.8, 1.6],
     "embers": 7,
     "emberSize": [0.12, 0.4],
-    "emberMaterial": "burnt"
+    "emberMaterial": "burnt",
+    "wallTopGap": 0.1,
+    "wallAspect": 1.2,
+    "wallLift": 0.02,
+    "emberFlatness": [0.3, 0.7],
+    "emberSink": 0.25,
+    "emberTilt": [0.1, 0.6]
   },
   "stains": {
     "//": "Zatečené skvrny a šmouhy na zdech každé vnitřní místnosti.",
     "perRoom": [2, 4],
     "size": [0.6, 1.5],
-    "height": [0.3, 3.0]
+    "height": [0.3, 3.0],
+    "topGap": 0.05
   },
   "windows": {
     "//": "Vyražená okna: podíl oken bez skla (kolize zůstane, hráč nevypadne), střepy v rámu a na podlaze.",
@@ -80,7 +111,18 @@
     "frameShards": [2, 4],
     "shardSize": [0.08, 0.32],
     "floorShards": [3, 6],
-    "floorSpread": 1.2
+    "floorSpread": 1.2,
+    "frameShardAt": [0.25, 0.5],
+    "frameShardRise": 0.4,
+    "frameShardWidth": 0.6,
+    "frameShardPitch": 0.05,
+    "frameShardRoll": 0.6,
+    "floorShardScale": 0.6,
+    "floorShardMinSpread": 0.3,
+    "floorShardLift": 0.01,
+    "floorShardDepth": 0.7,
+    "floorShardPitch": [0.03, 0.12],
+    "floorShardRoll": 0.1
   },
   "signs": {
     "//": "Cedulka s číslem učebny (z názvu místnosti, 'č. 30') nebo jménem místnosti na zdi chodby vedle každých dveří (kind door) do místnosti jiného typu než chodba/hala.",
@@ -99,7 +141,7 @@
     { "room": "f3-wing", "wall": "maxX", "at": 8, "height": 1.5, "width": 1.6, "text": 2 }
   ],
   "loose": {
-    "//": "Dynamická Havok tělesa (jen v celé hře, src/level/LooseDebris.ts): reagují na zásah (impuls od hráče × damage × impulsePerDamage podle typu), výbuch pasti a zničení robota (radiální impuls do radius). 'hanging' kusy stropu visí staticky, dokud je něco netrefí. Pozice v plánových souřadnicích, mimo trasu (datový test).",
+    "//": "Dynamická Havok tělesa (jen v celé hře, src/level/LooseDebris.ts): reagují na zásah (impuls od hráče × damage × impulsePerDamage podle typu), výbuch pasti a zničení robota (radiální impuls do radius). 'hanging' kusy stropu visí staticky, dokud je něco netrefí. Židle v tělocvičně stojí na dostřel hadice od hydrantu (fáze 24). Pozice v plánových souřadnicích, mimo trasu (datový test).",
     "impulsePerDamage": { "water": 1.0, "electric": 1.0, "kinetic": 1.2, "explosion": 1.5, "quiz": 0 },
     "maxImpulse": 40,
     "blast": { "radius": 4.5, "impulse": 30 },
@@ -119,7 +161,8 @@
       { "kind": "ceiling", "room": "f3-corridor", "x": 40.0, "z": 21.75, "yawDeg": 0, "hanging": true },
       { "kind": "chair", "room": "f2-corridor", "x": 24.0, "z": 19.85, "yawDeg": 0 },
       { "kind": "plank", "room": "f2-corridor", "x": 16.0, "z": 19.75, "yawDeg": 0 },
-      { "kind": "chunk", "room": "f2-gym", "x": 56.0, "z": 23.4, "yawDeg": 40 }
+      { "kind": "chunk", "room": "f2-gym", "x": 56.0, "z": 23.4, "yawDeg": 40 },
+      { "kind": "chair", "room": "f2-gym", "x": 46.8, "z": 29.3, "yawDeg": 200 }
     ]
   },
   "textures": {

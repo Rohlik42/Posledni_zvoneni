@@ -124,7 +124,8 @@
       "pointer": "ui.difficultyPointer",
       "check": "ui.difficultyCheck",
       "stats": "ui.difficultySubtitle",
-      "hint": "ui.difficultyHint"
+      "hint": "ui.difficultyHint",
+      "focus": "ui.difficultyFocus"
     }
   }
 }

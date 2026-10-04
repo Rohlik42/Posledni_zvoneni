@@ -56,5 +56,9 @@ Playwright probe (headless Chromium, 1280×720):
   `src/ui/MenuPages.ts:190`: `legacy.href = \`${import.meta.env.BASE_URL}${this.data.legacyUrl}\`;` — dev server
   BASE_URL is `/`, Pages build `/Posledni_zvoneni/`, both resolve from `/` and `/dev/`; a local `./` build from `/`
   still works. The real game page (`/`) is fine as is.
-- Fonts (phase 18 flag) are still not bundled; on Pages the menu uses system fallbacks, same as locally.
+- ~~Fonts (phase 18 flag) are still not bundled; on Pages the menu uses system fallbacks, same as locally.~~
+  **Corrected by phase 24:** out of date since phase 19 (same shift, merged after this phase) bundles Barlow Condensed and
+  Inter from `@fontsource/*` (`src/ui/BundledFonts.ts`, DECISIONS „Fáze 19“), so the build ships the woff2 files under
+  `assets/` and Pages serves them from the base path like every other asset. This phase's probe ran on a branch cut
+  before phase 19 merged.
 - Shift gate: nothing in `src/` or tests changed; `npm run build` (part of test:full) is unaffected.

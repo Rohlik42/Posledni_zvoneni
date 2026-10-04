@@ -34,3 +34,18 @@ Co pomohlo:
    throttled 25 → 33.
 3. Nízké kreslí jen 2 průchody daleko (Střední/Vysoké 3), velké animované skupiny (učitelé) obnovují boxy líně.
    Throttled 33 → 38,5.
+
+## 2026-10-04 — fáze 24 (DoD audit)
+
+Stejná scéna a metodika jako fáze 21 (`tests/e2e/perf.spec.ts`, `test-results/perf.json`), main @ 5c8c4ca + změny fáze 24
+(jen data detailů, pojmenované konstanty, jedna židle v tělocvičně navíc; nic, co by mělo měnit výkon).
+
+| Měření | Fáze 21 | Fáze 24 |
+| --- | --- | --- |
+| Vysoké, 1080p | 60 fps, 1042 draw callů | **60,0 fps**, 880 draw callů, 848 aktivních meshů |
+| Nízké + CPU 4×, 1080p | 38,5 fps | **40,1 fps**, 643 draw callů |
+| Načtení do hratelného stavu | 2,0 s | **1,8 s** |
+| Autodetekce | Střední 56,1 → Vysoké | Střední 57,3 → **Vysoké**, Vysoké 60,0 → zůstává |
+
+Pokles draw callů na Vysoké (1042 → 880) fáze 24 nezkoumala: render ani culling se neměnily a hra během měření běží
+(roboti chodí, culling po místnostech, ohně), takže ho nečtěte jako zlepšení; fps je na vsync stropu v obou bězích.

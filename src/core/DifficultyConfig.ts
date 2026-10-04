@@ -86,7 +86,8 @@ export type PickerColors = Record<
   | "pointer"
   | "check"
   | "stats"
-  | "hint",
+  | "hint"
+  | "focus",
   string
 >;
 
@@ -121,6 +122,7 @@ const COLOR_KEYS: (keyof PickerColors)[] = [
   "check",
   "stats",
   "hint",
+  "focus",
 ];
 
 /** Typed loader for `data/difficulty.json` (phase 17). */

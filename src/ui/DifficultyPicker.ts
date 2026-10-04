@@ -27,7 +27,7 @@ const HINT_LINE_HEIGHT = 1.65;
 const ROW_GAP_PX = 14;
 const COPY_GAP_PX = 2;
 const NAME_LINE_HEIGHT = 1.1;
-const FOCUS_OUTLINE = "2px solid #ffe5b5";
+const FOCUS_OUTLINE_PX = 2;
 const FOCUS_OFFSET_PX = 3;
 const POINTER_WIDTH_PX = 14;
 
@@ -253,7 +253,7 @@ ${ROOT} .difficulty-row { display: flex; align-items: center; gap: ${ROW_GAP_PX}
   padding: ${l.rowPadding}; border: 1px solid ${c.rowBorder}; background: linear-gradient(90deg, ${c.rowTop}, ${c.rowBottom});
   color: inherit; font: inherit; transition: background .15s, border-color .15s; outline: none; }
 ${ROOT} .difficulty-row:hover { border-color: ${c.rowHover}; }
-${ROOT} .difficulty-row:focus-visible { outline: ${FOCUS_OUTLINE}; outline-offset: ${FOCUS_OFFSET_PX}px; }
+${ROOT} .difficulty-row:focus-visible { outline: ${FOCUS_OUTLINE_PX}px solid ${c.focus}; outline-offset: ${FOCUS_OFFSET_PX}px; }
 ${ROOT} .difficulty-pointer { width: ${POINTER_WIDTH_PX}px; flex: none; font-size: 14px; visibility: hidden; color: ${c.pointer}; }
 ${ROOT} .difficulty-face { width: ${l.portraitSize}px; height: ${l.portraitSize}px; flex: none; display: block; filter: saturate(${FACE_SATURATION});
   box-shadow: ${FACE_SHADOW}; }

@@ -21,6 +21,8 @@ const DEG_TO_RAD = Math.PI / 180;
 const TWITCH_RATE = 31;
 /** The shoulder the cannon turns around, above the feet (m); aim pitch is measured from here. */
 const SHOULDER_HEIGHT = 1.47;
+/** Horizontal aim distance never drops below this (m): the arm pitch stays defined with the target overhead. */
+const MIN_AIM_DISTANCE = 0.1;
 
 /** Everything a humanoid uses from the scene around it. */
 export interface HumanoidContext {
@@ -249,7 +251,7 @@ export class Humanoid extends Enemy implements AgentBody {
 
     const aimAt = this.agent.aimPoint(0) ?? this.agent.target.eye;
     const shoulder = this.agent.feet.y + SHOULDER_HEIGHT;
-    const horizontal = Math.max(0.1, Math.hypot(aimAt.x - this.agent.position.x, aimAt.z - this.agent.position.z));
+    const horizontal = Math.max(MIN_AIM_DISTANCE, Math.hypot(aimAt.x - this.agent.position.x, aimAt.z - this.agent.position.z));
     const aimPitch = Math.atan2(shoulder - aimAt.y, horizontal);
     const twitch = this.stunned ? Math.sin(this.time * TWITCH_RATE) : 0;
 
