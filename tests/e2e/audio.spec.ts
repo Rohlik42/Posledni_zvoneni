@@ -213,6 +213,34 @@ test.describe("audio pass", () => {
     await page.evaluate(() => window.__game!.player!.heal(1000));
   });
 
+  test("phase 19 atmosphere: sparks crackle where they burst, a falling ceiling piece thuds when it lands", async () => {
+    const result = await page.evaluate(
+      ({ spark, impact }) => {
+        const g = window.__game!;
+        const v = g.visuals!;
+        const sparks0 = g.audio!.plays(spark);
+        const eye = g.player!.eye;
+        v.sparkAt(eye.x + 2, eye.y, eye.z);
+        const sparkLast = g.audio!.lastPositional;
+        const sparks = g.audio!.plays(spark) - sparks0;
+        const index = v.debris().findIndex((p) => p.hanging);
+        const impacts0 = g.audio!.plays(impact);
+        for (let i = 0; i < 30 && v.debris()[index]!.hanging; i++) {
+          v.hitDebris(index, 20, "water");
+          g.step(50);
+        }
+        g.step(3000);
+        return { sparks, sparkLast, hanging: v.debris()[index]!.hanging, impacts: g.audio!.plays(impact) - impacts0 };
+      },
+      { spark: audio.sparks.sound, impact: audio.debris.sound },
+    );
+    expect(result.sparks).toBe(1);
+    expect(result.sparkLast!.name).toBe(audio.sparks.sound);
+    expect(result.sparkLast!.distance).toBeCloseTo(2, 1);
+    expect(result.hanging).toBe(false);
+    expect(result.impacts).toBeGreaterThan(0);
+  });
+
   test("closed doors muffle; positional one-shots carry the occlusion", async () => {
     const door = await page.evaluate(() => window.__game!.doors!.list().find((d) => !d.open)!);
     expect(door).toBeDefined();
