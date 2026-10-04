@@ -275,3 +275,10 @@ Každé rozhodnutí je jedna věta s důvodem. Člověk je může změnit. Agent
 - **`scene.skipPointerMovePicking = true` pro celou hru:** nic nereaguje na najetí myši na mesh a Babylon by jinak při každém pohybu myši pickoval přes všechny meshe (v headless měření se neprojeví, ve hře ano).
 - **Skybox Nízké je zmenšená kopie `prague-1k_*.jpg` z `tools/prague-skybox.ts` (`variants`), ne zmenšení za běhu:** stejný zdroj a deterministický výstup, 120 kB místo 356 kB; při přepnutí předvolby se cube mapa vymění po načtení nové.
 - **Merge a instancování statiky, `freezeActiveMeshes`, sdílené materiály, pooling a code-splitting se nedělaly:** plán je chce jen tehdy, když presety cíle nesplní; po bodech výše má Vysoké 60 fps a Nízké s 4× CPU 38,5 fps (PERF.md).
+
+## Fáze 24 — DoD audit (2026-10-04)
+
+- **Rozměry a rozptyly tvarů detailů (`DetailGenerator`) jsou v `data/details.json` (např. `wrecks.legOut`, `windows.frameShardAt`, `clearance`, `chunkDepth`), proporce kreslení procedurálních decalů (`DecalTextures`) a barevné podíly ohně jsou pojmenované konstanty v kódu:** první jsou metry a úhly scény, tedy herní data (CLAUDE.md); druhé jsou rozvržení plátna a algoritmus, které nikdo nebude ladit odděleně od kódu, a stačí jim pravidlo „pojmenované konstanty místo magických čísel“; výstup generátoru se nezměnil (stejný sha1 `LevelBuilder.collect`).
+- **Meze validace ve schématech `*Config.ts` (`Schema.number({ min, max })`) a popisky galerie (`title` v modelových třídách) zůstávají v kódu:** meze nejsou herní hodnoty, ale kontrola dat, a popisky patří k modelové třídě, která se sama registruje do galerie (CLAUDE.md „každý model je samostatná třída“).
+- **V tělocvičně je navíc volná židle 3–4 m od hydrantu (`details.json → loose.items`):** bod 19.7 chce, aby hadice hýbala předměty, ale jediná troska v tělocvičně ležela 14 m od hydrantu a dostřel hadice je 12 m; test `visuals.spec` to teď ověřuje.
+- **ASSETS.md má řádky i pro knihovny přibalené do buildu (Babylon.js, Havok, recast-navigation, Yuka):** build je šíří včetně WASM a obrazovka Zdroje vypisuje ASSETS.md, takže licence mají být vidět tam.
