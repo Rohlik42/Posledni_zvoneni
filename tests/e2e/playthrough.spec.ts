@@ -113,6 +113,8 @@ function installPlayer(cfg: {
   const KILL_TIMEOUT_MS = 12_000;
   const APPROACH_DISTANCE = 3;
   const DOOR_SWING_MS = 700;
+  /** Radius (m) of the robots listed in a "stuck" log line. */
+  const STUCK_NEAR_M = 3;
   const STEP = 1000 / 60;
   const stats: PlayStats = { walkMs: 0, fightMs: 0, walkChunks: 0, fireChunks: 0, walked: 0, teleports: 0, teleported: 0, heals: 0, kills: [], shots: 0 };
 
@@ -256,6 +258,54 @@ function installPlayer(cfg: {
     return g.doors!.get(id)!.open;
   };
 
+  /**
+   * Robots on the player's floor (as in `threats()`) within `range` m, nearest first, with what `threats()` decides on:
+   * their room, `seesPlayer`, `skipped` and AI state. Phase 26: the old diagnostic used the flat distance only and listed
+   * robots of the floor below (e15 under the floor-3 stair foot).
+   */
+  const robotsNear = (range: number, aliveOnly: boolean): string => {
+    const me = g.player!.position;
+    return g
+      .enemies!.list()
+      .filter((e) => (!aliveOnly || e.alive) && Math.abs(enemyFloor(e) - me.y) < SAME_FLOOR && flat(e.position, me) < range)
+      .sort((a, b) => flat(a.position, me) - flat(b.position, me))
+      .map((e) => {
+        const room = roomOf({ ...e.position, y: enemyFloor(e) });
+        return `${e.id}${e.alive ? "" : "†"}@${flat(e.position, me).toFixed(2)} room=${room} sees=${e.seesPlayer} skipped=${skipped.has(e.id)} state=${e.state}`;
+      })
+      .join(", ");
+  };
+
+  /**
+   * Phase 26: a robot `fight()` gave up on (in `skipped`: no line of sight, no complete path) or one `threats()` does not
+   * count (in a doorway between two room rects its room is null; it does not see the player) can still stand in the
+   * player's way. When a waypoint is not reached, every live robot on this floor within `ROOM_RANGE` is taken off
+   * `skipped`, approached and destroyed, and the waypoint is walked once more from the previous one. Logged as
+   * "cleared <id> at route[i]" with the robots' state at the moment of the stall — not a failure.
+   */
+  const clearBlockers = (i: number, from: number, target: Vec, log: string[]): boolean => {
+    const me = g.player!.position;
+    const live = g
+      .enemies!.list()
+      .filter((e) => e.alive && Math.abs(enemyFloor(e) - me.y) < SAME_FLOOR && flat(e.position, me) < ROOM_RANGE)
+      .sort((a, b) => flat(a.position, me) - flat(b.position, me));
+    if (live.length === 0) return false;
+    const before = robotsNear(ROOM_RANGE, true);
+    const where = `player room=${roomOf(me)} at ${me.x.toFixed(2)}, ${me.y.toFixed(2)}, ${(-me.z).toFixed(2)}`;
+    let cleared = 0;
+    for (const e of live) {
+      skipped.delete(e.id);
+      approach(e.id);
+      if (!kill(e.id)) continue;
+      cleared++;
+      log.push(`cleared ${e.id} at route[${i}] (${where}; on this floor: ${before})`);
+    }
+    if (cleared === 0) return false;
+    const back = cfg.route[Math.max(from, i - 1)]!;
+    teleport(world(back, (back.y ?? 0) + 0.05));
+    return walkTo(target);
+  };
+
   const walkRoute = (from: number, to: number): WalkResult => {
     const log: string[] = [];
     for (let i = from; i <= to; i++) {
@@ -277,10 +327,10 @@ function installPlayer(cfg: {
         log.push(`retried route[${i}]`);
         if (walkTo(target)) continue;
       }
+      if (flat(target, g.player!.position) >= WAYPOINT_RADIUS && clearBlockers(i, from, target, log)) continue;
       if (flat(target, g.player!.position) >= WAYPOINT_RADIUS) {
         const me = g.player!.position;
-        const near = g.enemies!.list().filter((e) => flat(e.position, me) < 3).map((e) => `${e.id}${e.alive ? "" : "†"}@${flat(e.position, me).toFixed(2)}`);
-        log.push(`stuck before route[${i}] at ${JSON.stringify(me)} (robots within 3 m: ${near.join(", ") || "none"})`);
+        log.push(`stuck before route[${i}] at ${JSON.stringify(me)} (robots within ${STUCK_NEAR_M} m on this floor: ${robotsNear(STUCK_NEAR_M, false) || "none"})`);
         return { ok: false, stuckAt: i, log };
       }
     }
@@ -320,7 +370,10 @@ test.describe.serial("playthrough of the level on the main page", () => {
   let guard: ConsoleGuard;
   const walk = async (from: number, to: number): Promise<void> => {
     const result = await page.evaluate(({ from, to }) => window.__pt!.walkRoute(from, to), { from, to });
-    expect(result.log.filter((l) => !l.startsWith("opened") && !l.startsWith("retried")), JSON.stringify(result.log)).toEqual([]);
+    // Phase 26: retries, cleared blockers and stalls go to the output, for the handoff.
+    const notable = result.log.filter((l) => !l.startsWith("opened"));
+    console.log(`walkRoute(${from}, ${to}): ${notable.join(" | ") || "clean"}`);
+    expect(result.log.filter((l) => !l.startsWith("opened") && !l.startsWith("retried") && !l.startsWith("cleared")), JSON.stringify(result.log)).toEqual([]);
     expect(result.ok).toBe(true);
   };
   const free = async (slot: number, wrongFirst = false): Promise<{ asked: number; wrong: number; result: string }> => {
