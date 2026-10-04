@@ -14,7 +14,10 @@ import { ConsoleGuard } from "../support/ConsoleGuard";
 // the measured frames (the lamp's cube shadow map renders every `rendering.json → shadows.refreshRate` frames, so one
 // frame is not representative). The automatic choice is also checked going down: Střední under a heavy CPU throttle.
 // Phase 27: the GPU side. A page opened with `?gpuTiming=1` in its own context asks the WebGPU device for
-// `timestamp-query` (players never get it), and `stats().window.gpuFrameMs` holds the GPU time of the measured frames.
+// `timestamp-query` (players never get it), and `stats().window.gpuFrameMs` holds Babylon's GPU frame counter. On the
+// M1 Pro (Metal) that counter does not follow GPU work: switching SSAO off leaves it unchanged, and at 3× the device
+// pixel ratio, where SSAO alone takes the game from 48 to 33 fps, it reads ~0.02 ms (PERF.md, fáze 27). So the test
+// only records it and checks that the measurement runs; the GPU side is guarded by `fps ≥ 57` alone.
 
 const json = <T>(file: string): T => JSON.parse(readFileSync(file, "utf8")) as T;
 const quality = json<QualityData>("data/quality.json");
@@ -35,14 +38,6 @@ const HIGH_MIN_FPS = 57;
  * measurement, so a regression of more than that fails here long before the fps leave the vsync cap (DECISIONS „Fáze 25“).
  */
 const HIGH_MAX_CPU_FRAME_MS = 12;
-/**
- * Phase 27: average GPU time of a Vysoké frame (WebGPU timestamp queries, `?gpuTiming=1`). Measured 1.5–1.7 ms on the
- * M1 Pro (PERF.md, fáze 27; 2.1 ms at 4× the pixels); 5 ms is 3× the measurement and keeps 11.7 ms of the 16.7 ms frame
- * free, so a GPU regression (shadows, SSAO, bloom) of more than that fails here long before the fps leave the vsync cap
- * (DECISIONS „Fáze 27“). On Apple/Metal the frame stamps are written outside render passes, so read the number as a
- * lower bound of the GPU work, not its exact cost.
- */
-const HIGH_MAX_GPU_FRAME_MS = 5;
 const LOW_THROTTLED_MIN_FPS = 30;
 const CPU_THROTTLE = 4;
 /** Phase 25: CPU throttle under which Střední measures well below `autodetect.downFps` (12.6 fps measured at 8×, 18 at 6×). */
@@ -279,7 +274,7 @@ test.describe("quality presets and performance (1920×1080)", () => {
     expect(guard.problems).toEqual([]);
   });
 
-  test("Vysoké with ?gpuTiming=1: the GPU time of a frame at the start view stays well under 16.7 ms", async ({ browser }) => {
+  test("Vysoké with ?gpuTiming=1: the device gets timestamp-query, the GPU counter is recorded, 60 fps", async ({ browser }) => {
     // The shared page stops rendering first, so the GPU (and the CPU) serve this page alone.
     await page.goto("about:blank");
     const context = await browser.newContext({ viewport: VIEWPORT });
@@ -293,13 +288,13 @@ test.describe("quality presets and performance (1920×1080)", () => {
       const device = await gpuPage.evaluate(() => ({ renderer: window.__game!.renderer, gpuTiming: window.__game!.quality!.stats().gpuTiming }));
       const high = await fpsAt(gpuPage, "high");
       const gpu = high.stats.window.gpuFrameMs;
-      results.highGpu = { ...summary(high), url: GPU_TIMING_URL, ...device, gpuFrameLimitMs: HIGH_MAX_GPU_FRAME_MS };
+      results.highGpu = { ...summary(high), url: GPU_TIMING_URL, ...device };
       expect(device.renderer).toBe("webgpu");
       expect(device.gpuTiming, "the adapter offers timestamp-query and the device got it").toBe(true);
       expect(high.stats.window.gpuSamples, "GPU measurements in the window").toBeGreaterThan(0);
       expect(gpu, "GPU frame time recorded").not.toBeNull();
-      expect(gpu!.avg, "average GPU time of a Vysoké frame is a real number, ms").toBeGreaterThan(0);
-      expect(gpu!.avg, "average GPU time of a Vysoké frame, ms").toBeLessThanOrEqual(HIGH_MAX_GPU_FRAME_MS);
+      // Recorded, not limited: on Metal the counter does not track the cost of the passes (DECISIONS „Fáze 27“).
+      expect(gpu!.avg, "the GPU counter delivers non-zero stamps (writeTimestamp works)").toBeGreaterThan(0);
       expect(high.fps).toBeGreaterThanOrEqual(HIGH_MIN_FPS);
       expect(gpuGuard.problems).toEqual([]);
     } finally {
