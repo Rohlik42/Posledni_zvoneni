@@ -100,5 +100,6 @@
     "elDeg": [-30, 10]
   },
   "//skyline": "Město pod linií atiky domalované obrazovým modelem (tools/outpaint-skyline.ts, FEEDBACK 2026-10-04) místo prázdného oparu a místo dřívějších vlepených fasád, které na fotku nenavazovaly. Vkládá se do fotky před nočním gradingem, takže dostane stejnou noc, zář požárů i rozsvícená okna.",
-  "skyline": "tools/outpaint-skyline.json"
+  "skyline": "tools/outpaint-skyline.json",
+  "skylineEdge": { "topDeg": 0.6, "fullDeg": 0.4 }
 }

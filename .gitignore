@@ -14,3 +14,4 @@ handoff/NEXT_SESSION
 handoff/shift-loop.log
 handoff.txt
 reference/matterport/outpaint/views/*-in.jpg
+reference/matterport/outpaint/views*/*-in.*
