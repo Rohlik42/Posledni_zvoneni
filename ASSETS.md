@@ -37,3 +37,5 @@ Každý stažený nebo odvozený soubor má řádek: název, zdroj, licence. Mod
 | `@babylonjs/havok` 1.3.14 (`HavokPhysics.wasm` v `assets/`) | Havok Physics pro Babylon.js, npm `@babylonjs/havok`; fyzika hráče, projektilů a volných trosek | MIT |
 | `@recast-navigation/core`, `generators`, `wasm` 0.43.1 (recast WASM v `assets/`) | recast-navigation-js, https://github.com/isaac-mason/recast-navigation-js, npm; navmesh robotů | MIT (Recast & Detour: zlib) |
 | `yuka` 0.7.8 | Yuka, https://github.com/Mugen87/yuka, npm; rozhodování, vnímání a steering robotů | MIT |
+| `reference/matterport/panoramas_4k/ulice_fasada/*`, `reference/matterport/panoramas_4k/dvur_boulder/*` | 360° panorámata ulice Josefská a dvora (Matterport, 4096²/stěna), zdroj fasád do skyboxu | stejné jako ostatní Matterport reference |
+| `reference/matterport/facades/*.png` | srovnané fasády z panorámat výše (`tools/rectify-facades.ts`) | odvozené z Matterport referencí |

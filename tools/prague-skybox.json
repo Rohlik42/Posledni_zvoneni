@@ -96,6 +96,27 @@
     "selectLo": 0.7,
     "selectHi": 0.76,
     "seed": 2066,
-    "elDeg": [-0.3, 10]
+    "elDeg": [-30, 10]
+  },
+  "//facades": "Skutečné fasády domů pod linií atiky místo prázdného oparu (FEEDBACK 2026-10-04): srovnané fasády z tools/rectify-facades.ts (Josefská naproti škole, dvůr) poskládané za sebou dokola na pravidelný mnohoúhelník svislých rovin (planes), první kus vystředěný na centerAzDeg (270 = východ = ulice Josefská, viz DECISIONS F1). Výška: t = tTop leží ve středu roviny v elevaci topDeg, t = tBottom v bottomDeg. Vkládají se do fotky před nočním gradingem, takže dostanou stejnou noc i rozsvícená okna. gain = jas kusu (slunná Josefská vs. zatažená terasa).",
+  "facades": {
+    "rectifyConfig": "tools/rectify-facades.json",
+    "planes": 8,
+    "centerAzDeg": 270,
+    "topDeg": -0.4,
+    "bottomDeg": -24,
+    "tTop": 2.2,
+    "tBottom": 0,
+    "fadeBottomT": 0.35,
+    "sequence": [
+      { "facade": "josefska", "gain": 0.55 },
+      { "facade": "dvur", "gain": 0.6 },
+      { "facade": "josefska", "flip": true, "gain": 0.5 },
+      { "facade": "dvur", "flip": true, "gain": 0.55 },
+      { "facade": "josefska", "gain": 0.5 },
+      { "facade": "dvur", "flip": true, "gain": 0.55 },
+      { "facade": "josefska", "flip": true, "gain": 0.5 },
+      { "facade": "dvur", "gain": 0.6 }
+    ]
   }
 }

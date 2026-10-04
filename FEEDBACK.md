@@ -23,3 +23,6 @@ Zapracováno 2026-10-03
 - **Skybox měl být skutečná fotka Prahy**, ne silueta; to se po cestě ztratilo → Phase F2 (fotka z terasy školy s převodem den→noc, bez per-sloupcového zpracování).
 
 Zapracováno 2026-10-04
+
+## 2026-10-04 — fasády do skyboxu
+- Pod linií střech je prázdná tma → doplnit fasády. Zapracováno 2026-10-04 (fasády Josefské a dvora z Matterportu, `tools/rectify-facades.ts` + `FacadeRing`).
