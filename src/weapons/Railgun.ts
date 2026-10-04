@@ -12,10 +12,8 @@ import { RailgunModel } from "./models/RailgunModel";
 
 /** Seed offset of the beam RNG relative to the aim RNG. */
 const EFFECTS_SEED_OFFSET = 5;
-/** Glow of the front coil (× the effect colour) when fully recharged; dark right after a shot (FEEDBACK: tlumeně). */
+/** Glow of a barrel coil (× the effect colour) when fully recharged; dark right after a shot (FEEDBACK: tlumeně). */
 const GLOW_FULL = 0.5;
-/** The glow follows readiness^GLOW_CURVE, so it stays dark for most of the recharge and lights up near the end. */
-const GLOW_CURVE = 2;
 /** Ready to fire: the glow pulses this fast (rad/s) by this share, so "ready" reads at a glance. */
 const READY_PULSE_RATE = 12;
 const READY_PULSE = 0.12;
@@ -32,7 +30,8 @@ interface Glowing {
  * and stops at the first wall; its `range` is practically endless (FEEDBACK 2026-10-04: „nekonečný dostřel“), and a
  * near miss within `params.aimAssistDeg` is pulled onto the robot it was meant for. A bright blooming beam (`RailBeam`) shows it. One shot per magazine: it reloads from the
  * scarce reserve right after firing (`ammo.reloadTime` = the recharge; `fireRate` matches it). Coils, cells and the
- * Only the front coil glows: dark right after the shot, lighting up during the recharge, a soft pulse when ready.
+ * The barrel coils glow: all dark right after the shot, lighting up one by one from the back during the recharge (coil i
+ * over readiness i/n…(i+1)/n), a soft pulse when ready. Cells and tube by the hand are plain body parts.
  */
 export class Railgun extends Weapon {
   private readonly beam: RailBeam;
@@ -47,9 +46,8 @@ export class Railgun extends Weapon {
     this.pierce = WeaponConfig.param(data, "pierce");
     this.beam = new RailBeam(context.scene, data.id, this.effect, context.config.aimRandomSeed + EFFECTS_SEED_OFFSET);
     const model = this.railgun;
-    // Own material for the front coil, so its glow can follow the recharge without touching shared materials.
-    const front = model.coils[model.coils.length - 1]!;
-    this.glowing = [this.ownMaterial(front, 0)];
+    // Own materials for the barrel coils, so their glow can follow the recharge without touching shared materials.
+    this.glowing = model.coils.map((mesh, i) => this.ownMaterial(mesh, i));
     this.updateGlow();
   }
 
@@ -148,10 +146,11 @@ export class Railgun extends Weapon {
     const t = this.context.game.simulatedTimeMs / MS_PER_SECOND;
     const readiness = this.readiness;
     const pulse = readiness >= 1 ? 1 + READY_PULSE * Math.sin(t * READY_PULSE_RATE) : 1;
-    const glow = GLOW_FULL * Math.pow(readiness, GLOW_CURVE) * pulse;
-    const charged = PaletteColor.emissive(this.effect.color, glow);
-    for (const { material, base } of this.glowing) {
-      material.emissiveColor = readiness > 0 ? base.add(charged) : base;
-    }
+    const n = this.glowing.length;
+    this.glowing.forEach(({ material, base }, i) => {
+      // Coil i (back to front) fills over its own slice of the recharge.
+      const level = Math.min(1, Math.max(0, readiness * n - i));
+      material.emissiveColor = level > 0 ? base.add(PaletteColor.emissive(this.effect.color, GLOW_FULL * level * pulse)) : base;
+    });
   }
 }

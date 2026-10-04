@@ -280,7 +280,7 @@
       ]
     },
     "railgun": {
-      "//": "Školní railgun (zbraň 5, fáze 13): kondenzátor z kabinetu fyziky — dvě měděné kolejnice, čtyři cívky ('coil1'–'coil4'), dva kondenzátory ('cell1', 'cell2') a trubice ('chargeTube'). Svítí jen přední cívka 'coil4' (FEEDBACK 2026-10-04: tlumeně, po výstřelu zhasne a během prodlevy se rozsvítí, src/weapons/Railgun.ts); ostatní díly jsou matné tělo zbraně. Osa = +z, počátek u spouště.",
+      "//": "Školní railgun (zbraň 5, fáze 13): kondenzátor z kabinetu fyziky — dvě měděné kolejnice, čtyři cívky ('coil1'–'coil4'), dva kondenzátory ('cell1', 'cell2') a trubice ('chargeTube'). Svítí jen cívky na hlavni 'coil1'–'coil4' (FEEDBACK 2026-10-04: tlumeně, po výstřelu zhasnou a během prodlevy se rozsvítí jedna po druhé, src/weapons/Railgun.ts); ostatní díly jsou matné tělo zbraně. Osa = +z, počátek u spouště.",
       "category": "weapon",
       "defaultVariant": "default",
       "variants": {

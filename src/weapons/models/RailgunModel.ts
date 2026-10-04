@@ -13,13 +13,13 @@ const TUBE = "chargeTube";
 /**
  * School railgun (weapon 5): a physics-cabinet capacitor gun with two copper rails, four coils, two capacitor cells and
  * a glass charge tube (blueprint `railgun`). Parameters: variant, colour overrides, scale. Exposes the muzzle and the
- * coils (the front one glows during the recharge, src/weapons/Railgun.ts), cells and tube.
+ * coils (they glow during the recharge, src/weapons/Railgun.ts), cells and tube.
  */
 export class RailgunModel {
   readonly root: TransformNode;
   readonly meshes: readonly Mesh[];
   readonly muzzle: TransformNode;
-  /** Coils (back to front; the last one glows), capacitor cells and the tube (plain body parts). */
+  /** Coils (back to front; they glow), capacitor cells and the tube (plain body parts). */
   readonly coils: readonly Mesh[];
   readonly cells: readonly Mesh[];
   readonly tube: Mesh;
