@@ -27,6 +27,8 @@ const DETAIL_MESH = ":detail";
 /** Seed offsets of the parts, all derived from `atmosphere.json → seed`. */
 const FIRE_SEED = 1;
 const SPARK_SEED = 2;
+/** Name of the scene's ambient light (`Game.addAmbientLight`). */
+const AMBIENT_LIGHT = "ambient";
 
 /** `window.__game.visuals` — the visual pass of phase 19. */
 export interface VisualsTestApi {
@@ -40,11 +42,22 @@ export interface VisualsTestApi {
   lightLevels: () => Record<string, number>;
   /** Names of the lights casting shadows now (at most `rendering.json → shadows.maxLights`). */
   shadowLights: () => string[];
+  /** Switches the point-light shadows on or off (quality presets, phase 21; A/B checks). */
+  setShadows: (enabled: boolean) => void;
   readonly environment: boolean;
   readonly sparkBursts: number;
   sparkAt: (x: number, y: number, z: number) => void;
   /** Loose Havok debris (full game only): kind, room, still hanging, distance moved from the start, pushes. */
-  debris: () => { kind: string; room: string; hanging: boolean; moved: number; pushes: number; position: { x: number; y: number; z: number } }[];
+  debris: () => {
+    kind: string;
+    room: string;
+    hanging: boolean;
+    moved: number;
+    pushes: number;
+    position: { x: number; y: number; z: number };
+    /** Centre of the drawn piece (aim here). */
+    center: { x: number; y: number; z: number };
+  }[];
   /** Hits a debris piece as a weapon would (`amount` of `type` from the player's eyes). */
   hitDebris: (index: number, amount: number, type: DamageType) => void;
   /** A blast (trap, robot death) at a world point. */
@@ -81,11 +94,21 @@ export class LevelAtmosphere {
   constructor(game: Game, level: Level, lighting: RoomLighting, player: Player, enemies: EnemyManager | null, parts: AtmosphereGameParts | null) {
     const data = AtmosphereConfig.load();
     const scene = game.scene;
+    // Quake 1 dark: the level is lit by its lamps and fires, the shared ambient only keeps black from being pitch black.
+    const ambient = scene.getLightByName(AMBIENT_LIGHT);
+    if (ambient !== null) ambient.intensity *= data.ambientScale;
     const eye = (): Vector3 => player.eyePosition;
     this.sparks = new DamageSparks(scene, data.sparks, () => enemies?.enemies ?? [], data.seed + SPARK_SEED);
     this.lights = new LightAnimator(level, data.flicker, data.seed, (at) => this.sparks.burst(at));
     this.fires = new FireEffects(scene, level.layout, data.fire, SynthSounds.for(game), eye, data.seed + FIRE_SEED);
-    this.shadows = new PointShadows(RenderingConfig.load().shadows, () => LevelAtmosphere.shadowCandidates(level), eye);
+    // Only lights shining into the player's room cast shadows (a lamp one floor down is near, but not seen).
+    const candidates = LevelAtmosphere.shadowCandidates(level);
+    const inRoom = (): ShadowCandidate[] => {
+      const room = lighting.roomAt(eye());
+      const lights = room === null ? [] : level.lightsFor(room);
+      return candidates.filter((c) => lights.includes(c.light));
+    };
+    this.shadows = new PointShadows(RenderingConfig.load().shadows, inRoom, eye);
     this.environment = new NightEnvironment(scene, data.environment);
     const glass = level.materials.get(level.layout.greybox.windows.glassMaterial);
     glass.reflectionTexture = this.environment.texture;
@@ -154,6 +177,7 @@ export class LevelAtmosphere {
       animatedLights: this.lights.count,
       lightLevels: () => atmosphere.lights.levels(),
       shadowLights: () => atmosphere.shadows.lights(),
+      setShadows: (enabled) => atmosphere.shadows.setEnabled(enabled),
       get environment() {
         return level.layout !== null && atmosphere.environment.texture.isReady();
       },
@@ -169,6 +193,7 @@ export class LevelAtmosphere {
           moved: atmosphere.debris!.moved()[i]!,
           pushes: p.pushes,
           position: { x: p.mesh.position.x, y: p.mesh.position.y, z: p.mesh.position.z },
+          center: (({ x, y, z }) => ({ x, y, z }))(p.mesh.getBoundingInfo().boundingBox.centerWorld),
         })),
       hitDebris: (index, amount, type) => {
         const piece = atmosphere.debris?.pieces[index];

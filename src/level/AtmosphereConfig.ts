@@ -62,6 +62,8 @@ export interface EnvironmentData {
 
 export interface AtmosphereData {
   seed: number;
+  /** Multiplies the scene's ambient light in the level (data/game.json → ambient is shared with the boxroom and arena). */
+  ambientScale: number;
   flicker: FlickerData;
   fire: FireData;
   sparks: SparksData;
@@ -79,6 +81,7 @@ export class AtmosphereConfig {
 
   static readonly schema: SchemaNode = Schema.object({
     seed: Schema.integer(),
+    ambientScale: unit,
     flicker: Schema.object({
       onTime: range,
       offTime: range,

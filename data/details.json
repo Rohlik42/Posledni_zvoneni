@@ -28,18 +28,18 @@
   },
   "scatter": {
     "//": "Drobná suť a omítka podél zdí ve všech vnitřních místnostech (hustota na m² podlahy, nejvýš max kusů), ve vzdálenosti 'wallBand' od zdi.",
-    "perSquareMeter": 0.1,
-    "max": 36,
+    "perSquareMeter": 0.24,
+    "max": 64,
     "wallBand": [0.08, 0.6],
-    "size": [0.05, 0.2],
+    "size": [0.06, 0.3],
     "materials": ["fallen-plaster", "rubble", "fallen-plaster"],
     "tilt": [0.1, 0.6]
   },
   "wrecks": {
     "//": "Rozbitý nábytek na chodbách a v halách: zlomená deska lavice opřená o zeď, nohy, sedák. Počet na metr délky místnosti.",
     "roomTypes": ["chodba", "hala", "telocvicna", "satna"],
-    "perMeter": 0.07,
-    "max": 4,
+    "perMeter": 0.12,
+    "max": 6,
     "top": [1.1, 0.04, 0.55],
     "topLean": [0.35, 0.8],
     "leg": [0.04, 0.68, 0.04],
@@ -50,8 +50,8 @@
   "cables": {
     "//": "Utržené kabely visící ze stropu (šikmo), na metr délky místnosti.",
     "roomTypes": ["chodba", "hala", "schodiste", "telocvicna", "ucebna", "satna"],
-    "perMeter": 0.09,
-    "max": 5,
+    "perMeter": 0.14,
+    "max": 7,
     "length": [1.0, 2.4],
     "thickness": 0.035,
     "tilt": [0.15, 0.6],
@@ -70,7 +70,7 @@
   },
   "stains": {
     "//": "Zatečené skvrny a šmouhy na zdech každé vnitřní místnosti.",
-    "perRoom": [1, 3],
+    "perRoom": [2, 4],
     "size": [0.6, 1.5],
     "height": [0.3, 3.0]
   },
@@ -100,7 +100,7 @@
   ],
   "loose": {
     "//": "Dynamická Havok tělesa (jen v celé hře, src/level/LooseDebris.ts): reagují na zásah (impuls od hráče × damage × impulsePerDamage podle typu), výbuch pasti a zničení robota (radiální impuls do radius). 'hanging' kusy stropu visí staticky, dokud je něco netrefí. Pozice v plánových souřadnicích, mimo trasu (datový test).",
-    "impulsePerDamage": { "water": 0.5, "electric": 0.6, "kinetic": 0.8, "explosion": 1.2, "quiz": 0 },
+    "impulsePerDamage": { "water": 1.0, "electric": 1.0, "kinetic": 1.2, "explosion": 1.5, "quiz": 0 },
     "maxImpulse": 40,
     "blast": { "radius": 4.5, "impulse": 30 },
     "kinds": {
@@ -110,16 +110,16 @@
       "ceiling": { "size": [1.0, 0.1, 0.7], "mass": 12, "material": "ceiling" }
     },
     "items": [
-      { "kind": "chair", "room": "f4-corridor", "x": 33.0, "z": 21.6 },
-      { "kind": "chunk", "room": "f4-corridor", "x": 25.0, "z": 21.5 },
-      { "kind": "plank", "room": "f4-corridor", "x": 41.0, "z": 21.6 },
-      { "kind": "ceiling", "room": "f4-corridor", "x": 35.5, "z": 20.2, "hanging": true },
-      { "kind": "chunk", "room": "f3-corridor", "x": 47.5, "z": 21.7 },
-      { "kind": "chair", "room": "f3-corridor", "x": 22.0, "z": 20.0 },
-      { "kind": "ceiling", "room": "f3-corridor", "x": 40.0, "z": 20.2, "hanging": true },
-      { "kind": "chair", "room": "f2-corridor", "x": 24.0, "z": 21.7 },
-      { "kind": "plank", "room": "f2-corridor", "x": 16.0, "z": 21.7 },
-      { "kind": "chunk", "room": "f2-gym", "x": 56.0, "z": 23.4 }
+      { "kind": "chair", "room": "f4-corridor", "x": 33.0, "z": 21.68, "yawDeg": 180 },
+      { "kind": "chunk", "room": "f4-corridor", "x": 27.0, "z": 21.62, "yawDeg": 25 },
+      { "kind": "plank", "room": "f4-corridor", "x": 41.0, "z": 21.75, "yawDeg": 0 },
+      { "kind": "ceiling", "room": "f4-corridor", "x": 35.5, "z": 21.65, "yawDeg": 0, "hanging": true },
+      { "kind": "chunk", "room": "f3-corridor", "x": 47.5, "z": 21.68, "yawDeg": 70 },
+      { "kind": "chair", "room": "f3-corridor", "x": 22.0, "z": 21.78, "yawDeg": 180 },
+      { "kind": "ceiling", "room": "f3-corridor", "x": 40.0, "z": 21.75, "yawDeg": 0, "hanging": true },
+      { "kind": "chair", "room": "f2-corridor", "x": 24.0, "z": 19.85, "yawDeg": 0 },
+      { "kind": "plank", "room": "f2-corridor", "x": 16.0, "z": 19.75, "yawDeg": 0 },
+      { "kind": "chunk", "room": "f2-gym", "x": 56.0, "z": 23.4, "yawDeg": 40 }
     ]
   },
   "textures": {

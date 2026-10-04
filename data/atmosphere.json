@@ -1,6 +1,8 @@
 {
   "//": "Živá atmosféra levelu (src/level/LevelAtmosphere.ts, fáze 19): blikání světel, oheň (částice, kouř, jiskry, praskání), jiskry z poškozených robotů a lamp, noční prostředí. Časy v sekundách simulace, barvy jsou klíče palety. Světla a ohně samotné jsou v level.json (lights.flicker, fires).",
   "seed": 1919,
+  "//ambient": "Násobič ambientního světla scény v levelu (game.json → ambient platí i pro boxroom a arénu): tma Quake 1, světlo dávají lampy a ohně.",
+  "ambientScale": 0.55,
   "flicker": {
     "//": "Zářivka na poškozeném obvodu: většinou svítí ('base' × intenzita z level.json), občas zhasne na 'offTime' a při rozsvěcení zakoktá 'stutters'× (každé 'stutterTime'). Svítidlo (samosvítící kvádr) tlumí s ní. Oheň: součet dvou sinusů a šumu kolem 1 v rozsahu 'fire'. Nouzová světla pomalu dýchají ('emergency').",
     "onTime": [1.5, 6.0],

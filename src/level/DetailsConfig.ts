@@ -35,6 +35,8 @@ export interface LooseItemData {
   room: string;
   x: number;
   z: number;
+  /** Heading in degrees (world yaw: 0 = local x along plan x). */
+  yawDeg: number;
   /** Hangs from the ceiling (static) until something hits it. */
   hanging?: boolean;
 }
@@ -175,7 +177,7 @@ export class DetailsConfig {
       blast: Schema.object({ radius: positive, impulse: positive }),
       kinds: Schema.record(Schema.object({ size: size3, mass: positive, material: Schema.string(), blueprint: Schema.string() }, ["blueprint"])),
       items: Schema.array(
-        Schema.object({ kind: Schema.string(), room: Schema.string(), x: Schema.number(), z: Schema.number(), hanging: Schema.boolean() }, ["hanging"]),
+        Schema.object({ kind: Schema.string(), room: Schema.string(), x: Schema.number(), z: Schema.number(), yawDeg: Schema.number(), hanging: Schema.boolean() }, ["hanging"]),
       ),
     }),
     textures: Schema.object({

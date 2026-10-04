@@ -15,6 +15,7 @@ import { LevelLayout } from "./LevelLayout";
 import type { RoomLighting } from "./RoomLighting";
 
 const HALF = 0.5;
+const DEG_TO_RAD = Math.PI / 180;
 /** A hit also lifts the piece a little, so it tumbles instead of sliding. */
 const LIFT = 0.35;
 /** Hanging ceiling pieces hang this far below the ceiling, tilted by `HANG_TILT` (rad). */
@@ -63,7 +64,7 @@ export class LooseDebris {
       const y = hanging ? layout.ceilingY(room) - sy * HALF - HANG_GAP - Math.sin(HANG_TILT) * sx * HALF : layout.floorY(room) + (kind.blueprint === undefined ? sy * HALF : 0) + DROP_HEIGHT;
       const p = LevelLayout.toWorld(item.x, y, item.z);
       mesh.position.set(p.x, p.y, p.z);
-      mesh.rotationQuaternion = Quaternion.RotationYawPitchRoll(index * 1.3, 0, hanging ? HANG_TILT : 0);
+      mesh.rotationQuaternion = Quaternion.RotationYawPitchRoll(item.yawDeg * DEG_TO_RAD, 0, hanging ? HANG_TILT : 0);
       const body = new PhysicsBody(mesh, hanging ? PhysicsMotionType.STATIC : PhysicsMotionType.DYNAMIC, false, scene);
       // Blueprint models stand on their origin: the box shape sits half its height above it.
       const centre = kind.blueprint === undefined ? Vector3.Zero() : new Vector3(0, sy * HALF, 0);

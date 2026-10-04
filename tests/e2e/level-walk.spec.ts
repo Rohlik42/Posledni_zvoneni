@@ -41,6 +41,12 @@ const DOOR_PROBE_M = 1.0;
 /** A neighbour path may wind around furniture-free corners, but not around the building (× straight distance + slack). */
 const PATH_DETOUR_FACTOR = 3;
 const PATH_DETOUR_SLACK_M = 4;
+/** Phase 19: sample the animated lights this often for this long (12 s covers the longest `onTime` twice). */
+const FLICKER_STEP_MS = 100;
+const FLICKER_SAMPLES = 120;
+/** A tube that dropped out is below this share of its intensity; a fire wavers by more than this. */
+const FLICKER_DARK = 0.1;
+const FIRE_WAVER = 0.1;
 
 const world = (p: PlanPoint, y = 0): Vec => ({ x: p.x, y, z: -p.z });
 const floorY = (roomId: string): number => {
@@ -235,6 +241,42 @@ test.describe.serial("greybox level (dev scene `level`)", () => {
     expect(info.navigable).toBeGreaterThan(0);
     // FEEDBACK.md (light near walls): no material may have specular highlights.
     expect(info.specular).toBe(0);
+  });
+
+  test("visual pass (phase 19): details in every inner room, fires burn, tubes flicker, ≤ 2 shadow lights of the player's room, night environment", async () => {
+    const corridor = "f4-corridor";
+    const result = await page.evaluate(
+      ({ room, samples, stepMs }) => {
+        const g = window.__game!;
+        const v = g.visuals!;
+        g.level!.teleportToRoom(room);
+        const levels: Record<string, number>[] = [];
+        for (let i = 0; i < samples; i++) {
+          g.step(stepMs);
+          levels.push(v.lightLevels());
+        }
+        return { details: v.details(), fires: v.fires, animated: v.animatedLights, levels, shadows: v.shadowLights(), env: v.environment, debris: v.debris().length };
+      },
+      { room: corridor, samples: FLICKER_SAMPLES, stepMs: FLICKER_STEP_MS },
+    );
+    for (const room of level.rooms) {
+      if (room.type === "exterier" || room.shaft === true) continue;
+      expect(result.details.rooms[room.id] ?? 0, `${room.id} details`).toBeGreaterThan(0);
+    }
+    expect(result.fires).toBe(level.fires.length);
+    expect(result.animated).toBe(level.lights.filter((l) => l.flicker || l.kind !== "fluorescent").length);
+    // A flickering tube went dark and came back; a fire wavered.
+    const tubes = level.lights.filter((l) => l.flicker && l.kind === "fluorescent").map((l) => l.id);
+    const series = (id: string): number[] => result.levels.map((l) => l[id]!);
+    expect(tubes.some((id) => Math.min(...series(id)) < FLICKER_DARK && Math.max(...series(id)) === 1), "a tube dropped out and recovered").toBe(true);
+    const fire = level.lights.find((l) => l.kind === "fire")!.id;
+    expect(Math.max(...series(fire)) - Math.min(...series(fire))).toBeGreaterThan(FIRE_WAVER);
+    expect(result.shadows.length).toBeGreaterThan(0);
+    expect(result.shadows.length).toBeLessThanOrEqual(2);
+    for (const name of result.shadows) expect(level.lights.find((l) => `light:${l.id}` === name)?.room, name).toBe(corridor);
+    expect(result.env).toBe(true);
+    expect(result.debris, "loose Havok debris only in the full game").toBe(0);
+    await expect.poll(() => page.evaluate(() => window.__game!.visuals!.fireParticles()), { timeout: READY_TIMEOUT_MS }).toBeGreaterThan(0);
   });
 
   test("no z-fighting in the drawn level and the Prague skybox is up (FEEDBACK 2026-10-03, phase F1)", async () => {
