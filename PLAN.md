@@ -31,6 +31,7 @@ Cíl: single-player FPS v prohlížeči (Babylon.js 9 + TypeScript + Vite) podle
 | 4 | `16`, `18`, `17` | `15` | 18 (menu) před 17 (výběr obtížnosti v menu); 15 = jen modely rekvizit + PropPlacer, napojí 16 |
 | 5 | `19`, `20` | `23` | po směně 5 → člověk hraje Visual pass |
 | 6 | `21`, `24` | – | 21 měří fps → běží sama, bez paralelní zátěže |
+| 7 | `26`, `25` | – | groom po směně 6 (kritika); 25 měří fps → poslední a bez paralelní zátěže, proto vše serial |
 
 **Pravidla pro paralelní fáze:** nepřidávají npm závislosti (`sharp` a `tsx` už jsou nainstalované; potřebnou závislost zapiš do handoffu a přidá ji další serial fáze). V worktree se nikdy neinstaluje. Needitují soubory, které vlastní jiná fáze téže směny. Sdílené registry jsou navržené bez konfliktů: dev scény se hledají přes `import.meta.glob("./scenes/*Scene.ts")` a test API registruje každý modul sám (`TestHooks.register("weapons", api)`), viz fáze 1. `DECISIONS.md`, `ASSETS.md` a `PERF.md` mají v `.gitattributes` `merge=union`, jen se do nich připisuje na konec.
 
@@ -492,6 +493,43 @@ Opravovat z-fighting posunem kamery nebo vypnutím depth testu. Používat jiné
 
 **Done 2026-10-03** (handoff `handoff/phase-F1.md`). Audit `src/level/GeometryAudit.ts` (`__game.level.audit()`, `npm run tool tools/geometry-audit.ts`): 571 nálezů před opravou, 0 po ní (datový test i `level-walk.spec.ts`). Skybox `tools/prague-skybox.ts` → `public/textures/sky/prague_*.jpg` (2048², 364 kB), `src/rendering/Skybox.ts` + `data/sky.json`, dev scéna `?scene=skybox`; Mikuláš je vidět ze západních oken chodby 2. patra. Odchylky od litery: příčina z-fightingu (překryv objemů viditelných kvádrů) se neřeší zvlášť v každém builderu, ale jedním krokem generátoru `OverlapResolver` (ořez viditelných kvádrů v pořadí deska → detail → zeď → suť, kolize beze změny); v builderech přibylo jen to, co byla chyba i bez z-fightingu: dotýkající se místnosti staví zeď dovnitř, uliční zeď nesahá před fasádu horních pater, sklo je o 5 mm menší než otvor; okno `w-f3-cj-1` posunuté o 1,3 m (stálo za uliční zdí). Audit hlásí odvrácené dvojice ploch jen u oboustranných materiálů. Reverse depth zapnutý na obou rendererech (zisk přesnosti jen na WebGPU), `maxZ` 150. Nízké preset 1024² nevyrábí (fáze 21 může zmenšit při načtení). Z kritiky směny 2: světla levelu změřená A/B u zdi (`tools/level-wall-light-ab.ts`) neklipují, takže se nepřelaďovala; `MaterialLibrary`, `BoxRoom` i `FlatMaterials` dělají materiály přes `MatteDefaults.material`.
 
+## Phase 26 — Stabilní průchod, cache LineOfSight a trvalé důkazy
+
+Zdroj: kritika směny 6 (groom 2026-10-04). Běží ve směně 7 před fází 25 (25 měří fps až na výsledném kódu).
+
+**Implement**
+1. **Flaky průchod 3. patra:** ve fázi 24 jednou spadl `tests/e2e/playthrough.spec.ts` → test „floor 3: red door…“ hláškou `stuck before route[33] … (robots within 3 m: e06, e15)`; při opakování a v shift gate prošel. `route[33]` je pata schodiště `stair-mid-34` ve 3. patře (x 34,33, z 19,45, y 5) hned před dveřmi `d-f3-stair-mid` do `f3-corridor`, kde hlídkuje humanoid `e06` (`level.json`: x 36–50, z 20,85). `e15` je čtyřnožec v `f2-corridor` o patro níž na stejném x/z: diagnostika ve `walkRoute` počítá `flat()` vzdálenost bez ohledu na patro, takže hlásí i roboty z jiného patra. Oprav v `walkRoute` (řádky ~270–285):
+   - diagnostika „robots within 3 m“ jen pro roboty na stejném patře (`enemyFloor` jako v `threats()`), včetně příznaku `skipped`;
+   - když se chůze zasekne a v okruhu `ROOM_RANGE` na stejném patře stojí živý robot, vyřaď ho ze `skipped`, zabij ho (`approach` + `kill`) a waypoint zkus znovu (jednou, zalogovat jako `cleared <id> at route[i]`, ne jako selhání). Robot ze `skipped` (bez výhledu, bez celé cesty) dnes může fyzicky stát ve dveřích a `fight()` ho už neřeší.
+   - Zjisti ze stavu při zaseknutí (zalogovat `room`, `seesPlayer`, `skipped` robotů na patře), proč `e06` nebyl v `threats()` (room/seesPlayer na prahu schodiště?), a příčinu zapiš do handoffu. Oprav test, ne hru, pokud hra dělá, co má.
+2. **Past v cache `LineOfSight`** (`src/enemies/ai/LineOfSight.ts`, flag handoffu fáze 21): seznam blokujících meshů se staví jen při `dirty`, které nastaví jen `onNewMeshAdded/onMeshRemoved`. Mesh, který se po přidání stane pickable (nebo přestane/začne být `DamageTargets`, nebo se mu odmrazí world matrix), zůstane do další změny sady meshů neviditelný. Dnes to nic nedělá, ale chyba je tichá. Oprav levně: např. v `refresh()` každých N kroků (pojmenovaná konstanta) porovnej podpis sady (počet pickable meshů s `renderingGroupId 0` mimo DamageTargets + počet zmražených) a při změně nastav `dirty`; nebo veřejné `invalidate()` + volání tam, kde se pickable mění. Zvol jednodušší robustní variantu a zapiš ji do DECISIONS.md.
+   - Regresní test: `tests/data/line-of-sight.test.ts` s `NullEngine` (mesh přidaný jako non-pickable, pak `isPickable = true`, po `beginStep` ho `firstHit` vidí), nebo, pokud NullEngine v Node nejde, additivní hook v `__game.enemies` a test v `enemies-all.spec.ts`.
+3. **Odkaz na starou verzi z dev scény:** oprava fáze 21 (`src/ui/MenuPages.ts:199`, `import.meta.env.BASE_URL`) je ověřená jen na `/` (`tests/e2e/menu.spec.ts:90–92`), chyba ale byla na `/dev/?scene=menu` (handoff fáze 23: odkaz vedl na `dev/legacy/index.html`, 404). Přidej do `menu.spec.ts` krátký test: `/dev/?scene=menu` → ZDROJE → `new URL(href).pathname` = `/${menu.json → legacyUrl}`.
+4. **Trvalý důkaz DoD 2a:** řádek 2a v `## DoD audit` cituje `test-results/screenshots/16-level-end.png`, které je v `.gitignore` (DECISIONS „Testy ukládají snímky do test-results…“), takže důkaz po úklidu zmizí. Při jednom běhu quick gate pusť playthrough se `SAVE_SCREENSHOTS=1` (`tests/support/ShotPath.ts`), prohlédni `screenshots/16-level-end.png` a commitni ho; v řádku 2a cituj `screenshots/16-level-end.png` a asserty testu „main entrance with the blue key ends the level“.
+
+**Verification**
+Quick gate: `tests/e2e/playthrough.spec.ts`, `tests/e2e/menu.spec.ts`, `tests/e2e/enemies-all.spec.ts`. Nový datový test LOS projde v `npm run test:data`. Quick gate běží u implementace, review i merge (3× průchod); v handoffu log `walkRoute` všech běhů s případnými `cleared`, žádné další běhy navíc. Snímek `screenshots/16-level-end.png` prohlédnutý.
+
+**Do not**
+Zvyšovat timeouty nebo počet opakování (`retries`) místo opravy. Měnit AI robotů nebo `level.json` kvůli testu. Měřit fps (to dělá fáze 25). Měnit veřejné API `LineOfSight` jinak než přidáním. Spouštět plnou sadu.
+
+## Phase 25 — Perf test s rezervou pod vsync a poctivé PERF.md
+
+Zdroj: kritika směny 6 (groom 2026-10-04). Běží ve směně 7 **sama a poslední** (měří fps; viz fáze 21).
+
+**Implement**
+1. **Rezerva pod vsync stropem:** `tests/e2e/perf.spec.ts` má `HIGH_MIN_FPS = 57` a Vysoké měří přes `requestAnimationFrame`, které je zastropované na 60 Hz (fáze 21 i 24 naměřily 60,0). Test tak nepozná regresi, která nespadne pod strop; `stats().frameTimeMs` (`Game.frameTimeMs`) je čas mezi snímky, tedy taky 16,6 ms. Přidej metriku, kterou vsync neomezuje: průměrný CPU čas snímku (`SceneInstrumentation.frameTimeCounter` / `renderTimeCounter`, případně `EngineInstrumentation.gpuFrameTimeCounter`, pokud na WebGPU v headless něco vrací) do `__game.quality.stats()` (jen přidat pole) a do `test-results/perf.json`. Nejdřív změř skutečné hodnoty (Vysoké i Nízké + CPU 4×), pak v testu assertuj CPU čas snímku na Vysoké ≤ pojmenovaná mez s rozumnou rezervou pod 16,7 ms (mez podle naměřených čísel, zdůvodnění do DECISIONS). Assert `fps ≥ 57` nech jako kontrolu stropu. Alternativa, pokud ji headless Chromium respektuje: odemknout rAF (`--disable-frame-rate-limit --disable-gpu-vsync` jen pro perf.spec) a měřit skutečné fps; zvol jednu cestu, zapiš ji.
+2. **Autodetekce dolů v e2e:** DoD řádek 1d tvrdí „oba presety“, ale krok dolů (< `downFps` 30) ověřuje jen `tests/data/quality.test.ts`. Přidej do `perf.spec` test: CPU throttling přes CDP tak silný, aby Střední spadlo pod 30 fps s rezervou (změř, např. 8×), `__game.quality.set("auto")` restartuje detekci (`QualityManager` ř. ~148–153), čekej `detection().done` → první měření < `downFps` a `preset === "low"`, `autodetected === "low"`; throttling pak vrať na 1.
+3. **Draw cally:** PERF.md má Vysoké 1042 (fáze 21) vs 880 (fáze 24) při stejném počtu aktivních meshů 848 a bez změny renderu. `stats().drawCalls` je `drawCallsCounter.current` jednoho snímku. Zjisti příčinu (stínové mapy lamp s `refreshRate` > 1, SSAO/depth průchody, roboti vcházející do nevyřazených místností — porovnej `activeByKind`), ber v testu min/průměr/max přes měřené okno (`drawCallsCounter` má `min/max/average` nebo vzorkuj) a do perf.json zapiš rozsah.
+4. **PERF.md poctivě:** v hlavičce tabulky fáze 21 „Vysoké (vše zapnuto, stíny 2 světel)“ — naměřeno bylo 1 stínové světlo (`handoff/phase-21.md`: „1 shadow light“; `quality.json → high.shadows.maxLights` 2 je strop, ne počet). Oprav na „stíny až 2 světel, v učebně 30 aktivní 1“. Přidej sekci „fáze 25“ s novými čísly (fps, CPU čas snímku, rozsah draw callů, autodetekce dolů) a vysvětlením rozdílu 1042/880.
+5. `## DoD audit` v PLAN.md: řádky 1b (rezerva pod stropem), 1c a 1d (autodetekce nahoru i dolů v e2e) aktualizuj na nová čísla a testy.
+
+**Verification**
+Quick gate: `tests/e2e/perf.spec.ts`. Projde 2× za sebou (čísla obou běhů do handoffu, rozptyl CPU času snímku a draw callů). Nové pole v `stats()` je jen přidané (kontrakt `window.__game`).
+
+**Do not**
+Snižovat meze (`LOW_THROTTLED_MIN_FPS` 30, `HIGH_MIN_FPS`) ani měnit presety v `data/quality.json`, aby test prošel. Optimalizovat render (merge statiky, `freezeActiveMeshes`, pooling — DECISIONS „Fáze 21“: cíle splněné). Videa, snímky navíc, plnou sadu.
+
 ## DoD audit
 
 Fáze 24, 2026-10-04, main @ 5c8c4ca + větev fáze 24. DESIGN §15 bod po bodu s úpravami z DECISIONS. „Shift gate 5“ = `npm run test:full` na main @ d05ca2a (build bez varování, data 124/124, Playwright 112/112). „Quick gate 24“ = běh této fáze: typecheck 0, data 128/128, Playwright 17/17 (6 smoke + 4 `perf` + 7 `playthrough`), navíc `audio.spec` + `visuals.spec` 11/11 kvůli změnám fáze. Co stroj ověřit nemůže, je v Backlogu (konec tabulky).
@@ -540,3 +578,8 @@ Fáze 24, 2026-10-04, main @ 5c8c4ca + větev fáze 24. DESIGN §15 bod po bodu 
 - (DoD audit, fáze 24) Dohrát celou hru od hlavního menu po obrazovku konce na skutečném počítači s myší a zapsat čas do FEEDBACK.md: DoD chce 15–25 min a stroj má jen odhad ≈ 18 min (skriptovaný průchod trvá 151 s simulovaného času: chodí bez zaváhání, míří přesně a kvíz odpoví hned)
 - (DoD audit, fáze 24) Poslechnout zvuky ve hře (kroky na dlažbě, parketách a schodech, oheň, roboti, hudba): testy ověří jen, že správný zvuk hraje, ne že zní dobře
 - (DoD audit, fáze 24) Po pushi: první běh `npm ci` v GitHub Actions je první skutečná zkouška `package-lock.json` (lokálně ověřený proti registru npm); když Actions spadne na locku, stačí jednou lokálně `npm install` a commitnout lock
+- (Groom 2026-10-04, kritika směny 6 — mimo nové fáze 25/26) Render scale Nízké 0,6 vs DECISIONS #12 0,5: šum, rozhodnuto v DECISIONS „Fáze 21“ (Nízké = render scale 0,6 …), #12 je starší
+- (Groom 2026-10-04) `public/textures/mp/window-prague.png` nepoužitý od F1, ale v `textures/index.json` a ASSETS.md: zdokumentované rozhodnutí (DECISIONS „Skybox…“ F1: zůstává ve výstupu fáze 7), 64 kB; smazat jen pokud to chce člověk
+- (Groom 2026-10-04) Rezerva Nízké + CPU 4× (38,5–40,1 vs 30) „pod paralelní zátěží“: šum, Playwright má `workers: 1` a fps fáze běží v rozvrhu samy; meze nesnižovat
+- (Groom 2026-10-04) Neprovedené optimalizace (merge statiky, `freezeActiveMeshes`, pooling, code-splitting, CSM okenního světla): zdokumentované rozhodnutí (DECISIONS „Fáze 21“, #11), cíle presetů splněné
+- (Groom 2026-10-04) Drobné flagy handoffů: `layout.freeSpot` ignoruje rekvizity (jen dev `?room=`, fáze 15/16/19), volné trosky nejsou v checkpointu (fáze 19, kosmetické): vědomě ponechané, bez akce
