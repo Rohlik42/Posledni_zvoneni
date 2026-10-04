@@ -2,6 +2,7 @@ import type { PointLight } from "@babylonjs/core/Lights/pointLight";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import type { Scene } from "@babylonjs/core/scene";
+import { AudioService } from "../audio/AudioService";
 import { SynthSounds } from "../audio/SynthSounds";
 import type { DamageType } from "../core/DamageTypes";
 import type { Game } from "../core/Game";
@@ -122,6 +123,7 @@ export class LevelAtmosphere {
       parts?.quiz?.onTrapBlast.add((at) => debris.blast(at));
       enemies?.onEnemyDeath.add((enemy) => debris.blast(enemy.center));
     }
+    AudioService.for(game).attachAtmosphere(this.fires, this.sparks, this.debris);
     this.removeSystem = game.addSystem({
       update: (dt) => {
         this.lights.update(dt);

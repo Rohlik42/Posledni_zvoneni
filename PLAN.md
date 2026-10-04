@@ -421,6 +421,8 @@ Quick gate: `tests/e2e/audio.spec.ts`. Ověří, že se audio engine odemkne po 
 **Do not**
 Zvukové soubory z internetu.
 
+**Done 2026-10-04** (handoff `handoff/phase-20.md`). `src/audio/AudioService.ts` (jeden na hru) spojuje mix a jednorázové zvuky (`SynthSounds`: sběrnice efekty / hudba pod hlavní hlasitostí, `playAt` = PannerNode), prostorové smyčky přes Babylon AudioV2 (`SpatialAudio`: hučení 6 ohňů, bzučení dronů, servomotory robotů podle rychlosti; posluchač na aktivní kameře, nejvýš 10 nejhlasitějších), útlum za zavřenými dveřmi a o patro jinde (`DoorOcclusion`), hudbu (`MusicPlayer`, vlastní chiptune sekvencer, smyčka 7,3 s, tišší v kvízu, menu/pauze i při stojící hře), kroky podle `floorMaterial` místnosti (`Footsteps`) a UI pípání tlačítek; data `data/audio.json`, 17 nových receptů v `sounds.json` (smyčky `loop: true` s plochou obálkou a tremolem). Nastavení má posuvníky Hudba a Efekty. Dev scéna `?scene=audio`. Quick gate zelený: typecheck, data 124/124 (+6 `tests/data/audio.test.ts`), Playwright 13/13 (6 smoke + 7 `tests/e2e/audio.spec.ts`). Odchylky od litery: prostorové jednorázové zvuky (výstřely robotů, jiskry, dopady suti, praskání ohně) jsou Web Audio `PannerNode` na posluchači AudioV2, ne AudioV2 zvuky (AudioV2 má pozici per zvuk a vytváří asynchronně); útlum jen za dveřmi a mezi patry, zdi se netrasují; humanoid hlásí nápřah a výstřel novou událostí `Enemy.onAttack`, zvuky čtyřnožce a dronu hrají prostorově ze stejných dat; `Drone.buzzCount` počítá chvíle na doslech, zvuk je smyčka AudioService; testy nezapisují snímky.
+
 ## Phase 21 — Quality presets a výkon
 
 **Implement**

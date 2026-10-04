@@ -1,6 +1,7 @@
 import type { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { Observable, type Observer } from "@babylonjs/core/Misc/observable";
 import type { Scene } from "@babylonjs/core/scene";
+import { AudioService } from "../audio/AudioService";
 import { SynthSounds } from "../audio/SynthSounds";
 import type { Game } from "../core/Game";
 import { TestHooks } from "../core/TestHooks";
@@ -123,6 +124,8 @@ export class QuizSystem {
       if (this.active && game.paused) player.animatePausedEffects(game.engine.getDeltaTime() / MS_PER_SECOND);
     });
     player.health.onDeath.add(() => this.close());
+    // The music steps back while a teacher asks (phase 20).
+    AudioService.for(game).addDucker("quiz", () => this.active);
     this.registerTestHooks();
   }
 

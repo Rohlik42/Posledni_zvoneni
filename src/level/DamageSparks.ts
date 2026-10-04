@@ -1,5 +1,6 @@
 import { Color4 } from "@babylonjs/core/Maths/math.color";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
+import { Observable } from "@babylonjs/core/Misc/observable";
 import type { Scene } from "@babylonjs/core/scene";
 import type { Enemy } from "../enemies/Enemy";
 import { DropletEmitter } from "../rendering/DropletEmitter";
@@ -17,6 +18,8 @@ const SPARK_END_GREEN = 0.3;
  * `DropletEmitter` for all of them; bursts are scheduled in the fixed simulation step, so `__game.step` drives them.
  */
 export class DamageSparks {
+  /** A burst went off at this point (phase 20: `AudioService` crackles there). */
+  readonly onBurst = new Observable<Vector3>();
   private readonly emitter: DropletEmitter;
   private readonly random: Random;
   private readonly timers = new Map<Enemy, number>();
@@ -54,6 +57,7 @@ export class DamageSparks {
       this.emitter.emit({ position: position.clone(), velocity: direction.scale(this.random.range(d.speed[0], d.speed[1])), life: this.random.range(d.life[0], d.life[1]) });
     }
     this.bursts += 1;
+    this.onBurst.notifyObservers(position);
   }
 
   update(dt: number): void {

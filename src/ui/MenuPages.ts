@@ -128,13 +128,16 @@ export class MenuPages {
     const t = this.data.texts.settings;
     const s = this.data.settings;
     const values = this.settings.values;
+    const percent = (v: number): string => Texts.format(t.volumeValue, { value: Math.round(v * PERCENT) });
     const grid = this.grid(["auto", "auto", "auto"]);
     grid.style.rowGap = `${SETTINGS_ROW_GAP_PX}px`;
     grid.append(
       ...this.slider("mouseSensitivity", t.labels.mouseSensitivity, s.mouseSensitivity, values.mouseSensitivity, (v) =>
         Texts.format(t.sensitivityValue, { value: v.toFixed(SENSITIVITY_DECIMALS).replace(DECIMAL_POINT, DECIMAL_COMMA) }),
       ),
-      ...this.slider("volume", t.labels.volume, s.volume, values.volume, (v) => Texts.format(t.volumeValue, { value: Math.round(v * PERCENT) })),
+      ...this.slider("volume", t.labels.volume, s.volume, values.volume, percent),
+      ...this.slider("musicVolume", t.labels.musicVolume, s.musicVolume, values.musicVolume, percent),
+      ...this.slider("effectsVolume", t.labels.effectsVolume, s.effectsVolume, values.effectsVolume, percent),
       ...this.toggle("invertY", t.labels.invertY, values.invertY, t.on, t.off),
     );
     return { id: "settings", texts: t, content: [grid], items: [this.backItem()], onBack: () => this.back() };
@@ -208,7 +211,7 @@ export class MenuPages {
     this.show(this.parent);
   }
 
-  private slider(name: "mouseSensitivity" | "volume", label: string, range: RangeSetting, value: number, format: (v: number) => string): HTMLElement[] {
+  private slider(name: "mouseSensitivity" | "volume" | "musicVolume" | "effectsVolume", label: string, range: RangeSetting, value: number, format: (v: number) => string): HTMLElement[] {
     const input = document.createElement("input");
     input.type = "range";
     input.min = String(range.min);

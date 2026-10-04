@@ -39,7 +39,7 @@ export interface DroneContext {
  * The annoying flyer (DESIGN §5 "létá, hledá hráče, slabý"): `DroneModel` driven by a `DroneAgent` (free 3D flight
  * with Yuka steering and raycasts, no navmesh). It hovers `flight.hoverHeight` above the floor, keeps
  * `attack.preferredDistance` from the player and zaps him with weak bolts after a short telegraph. It buzzes
- * (`sounds.buzz` every `buzz.interval`, quieter with distance), sinks while stunned and its parts fall to the floor
+ * (`sounds.buzz`, a spatial loop played by `AudioService` since phase 20), sinks while stunned and its parts fall to the floor
  * when destroyed. Spawn and teleport points are on the floor; the drone flies `hoverHeight` above them.
  */
 export class Drone extends Enemy implements DroneBody {
@@ -244,19 +244,20 @@ export class Drone extends Enemy implements DroneBody {
     const random = this.context.aimRandom;
     const offset = new Vector3(random.range(-1, 1), random.range(-1, 1), random.range(-1, 1)).scaleInPlace(Math.tan(error) * distance);
     this.context.projectiles.fire(origin, aimPoint.add(offset), projectile, attack.damage, attack.damageType, (damage) => this.recordPlayerHit(damage));
-    this.context.sounds.play(sounds.zap);
+    this.context.sounds.playAt(sounds.zap, origin);
     this.shots++;
   }
 
   private buzz(dt: number): void {
-    const { buzz, sounds } = this.data;
+    const { buzz } = this.data;
     this.buzzTimer -= dt;
     if (this.buzzTimer > 0) return;
     this.buzzTimer += buzz.interval;
     if (this.buzzTimer <= 0) this.buzzTimer = buzz.interval;
     const distance = Vector3.Distance(this.context.listener(), this.agent.center);
     if (distance > buzz.maxDistance) return;
-    this.context.sounds.play(sounds.buzz, buzz.volume * (1 - distance / buzz.maxDistance));
+    // The buzz itself is a spatial loop since phase 20 (AudioService, data/audio.json → emitters.drone); this only
+    // counts the moments the drone was within earshot.
     this.buzzes++;
   }
 

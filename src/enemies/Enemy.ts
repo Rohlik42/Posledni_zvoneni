@@ -28,6 +28,13 @@ export interface DropEvent {
   position: Vector3;
 }
 
+/** A robot telegraphs (`windup`) or fires (`shot`) an attack (phase 20: `AudioService` plays it where it happens). */
+export interface EnemyAttackEvent {
+  enemy: Enemy;
+  kind: "windup" | "shot";
+  position: Vector3;
+}
+
 /**
  * Base of every robot (DESIGN §5): health with resistances per damage type from data/enemies.json (water and
  * electricity hurt robots more), status effects (`applyStatus`: slow, stun), a death that fires once and rolls the
@@ -39,6 +46,8 @@ export abstract class Enemy implements IDamageable, Simulated {
   readonly onDamaged = new Observable<EnemyDamageEvent>();
   readonly onDeath = new Observable<Enemy>();
   readonly onDrop = new Observable<DropEvent>();
+  /** Attack wind-ups and shots of robots that do not play their own sounds (the humanoid, phase 20). */
+  readonly onAttack = new Observable<EnemyAttackEvent>();
   readonly status: StatusEffects;
   /** Robots are metal: hits spark and clank (phase 5). */
   readonly surface = "metal" as const;
@@ -225,6 +234,7 @@ export abstract class Enemy implements IDamageable, Simulated {
     this.onDamaged.clear();
     this.onDeath.clear();
     this.onDrop.clear();
+    this.onAttack.clear();
   }
 
   protected abstract tick(dt: number): void;

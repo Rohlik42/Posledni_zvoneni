@@ -1,0 +1,110 @@
+{
+  "//": "Fáze 20 — audio pass (src/audio/AudioService.ts). Zvuky samotné jsou recepty v data/sounds.json; tady je mix a kdo co kdy hraje. buses = hlasitost sběrnic pod hlavní hlasitostí (sounds.json → masterVolume × nastavení „Hlasitost“): effects = jednorázové efekty (zbraně, UI, kroky, prostorové výstřely), world = prostorové smyčky přes Babylon AudioV2 (ohně, drony, servomotory), music = hudba. Nastavení „Hudba“ a „Efekty“ (data/menu.json) je násobí; efekty platí pro effects i world. worldWhilePaused = násobič světa, když hra stojí (pauza, kvíz, menu). rampSeconds = jak rychle se mění hlasitost sběrnic a ztlumení hudby.",
+  "buses": { "effects": 1, "world": 1, "music": 0.5 },
+  "worldWhilePaused": 0.35,
+  "rampSeconds": 0.25,
+  "spatial": {
+    "//": "Prostorové zvuky (Web Audio PannerNode přes AudioV2): model útlumu, refDistance = do této vzdálenosti (m) plná hlasitost, maxDistance = dál už neslábne (inverse) / ticho (linear), rolloff = strmost. maxLoops = nejvýš tolik smyček hraje současně (nejhlasitější vyhrají), minAudible = smyčka slabší než tohle se zastaví. Posluchač je aktivní kamera.",
+    "distanceModel": "inverse",
+    "panningModel": "equalpower",
+    "refDistance": 1.5,
+    "maxDistance": 40,
+    "rolloff": 1.4,
+    "maxLoops": 10,
+    "minAudible": 0.02
+  },
+  "occlusion": {
+    "//": "Útlum za zavřenými dveřmi: úsečka posluchač → zdroj protne otvor zavřených dveří → hlasitost × doorGain a dolní propust doorLowpassHz (jednorázové zvuky; smyčky jen hlasitost). Pootevřené dveře tlumí úměrně. Zdroj o víc než floorDeltaY m výš nebo níž (jiné patro) → × floorGain.",
+    "doorGain": 0.3,
+    "doorLowpassHz": 900,
+    "floorGain": 0.35,
+    "floorDeltaY": 2.6,
+    "openLowpassHz": 20000
+  },
+  "emitters": {
+    "//": "Prostorové smyčky (loop: true v sounds.json). maxDistance = za touto vzdáleností smyčka nehraje (m). servo: hlasitost úměrná rychlosti robota / refSpeed, rate = výška (rychlost přehrávání), lift = výška zdroje nad nohama (m). drone: stunnedLevel = hlasitost omráčeného dronu. fire: hlasitost × intenzita ohně (level.json → fires).",
+    "drone": { "sound": "droneBuzz", "volume": 0.9, "maxDistance": 20, "stunnedLevel": 0.35 },
+    "fire": { "sound": "fireRoar", "volume": 0.75, "maxDistance": 16, "lift": 0.5 },
+    "servo": {
+      "sound": "servoLoop",
+      "maxDistance": 14,
+      "humanoid": { "volume": 0.55, "rate": 1, "refSpeed": 2.2, "lift": 1.2 },
+      "quadruped": { "volume": 0.65, "rate": 1.45, "refSpeed": 4, "lift": 0.6 }
+    }
+  },
+  "enemies": {
+    "//": "Jednorázové prostorové zvuky robotů, které jejich data nemají: humanoid nápřah (windup) a výstřel (shot). Čtyřnožec a dron hrají své zvuky z enemies.json → sounds, od fáze 20 prostorově.",
+    "humanoid": { "windup": "humanoidCharge", "shot": "humanoidShot", "volume": 1 }
+  },
+  "sparks": { "//": "Jiskry z poškozených robotů a vypadávajících zářivek (DamageSparks, fáze 19).", "sound": "sparkBurst", "volume": 0.7 },
+  "debris": {
+    "//": "Padající předměty (LooseDebris, fáze 19): když kus prudce zpomalí o víc než minImpactSpeed m/s (dopad), zazní debrisImpact; plná hlasitost od fullImpactSpeed. cooldown = nejkratší odstup dvou dopadů jednoho kusu (s).",
+    "sound": "debrisImpact",
+    "volume": 0.9,
+    "minImpactSpeed": 1.2,
+    "fullImpactSpeed": 5,
+    "cooldown": 0.2
+  },
+  "footsteps": {
+    "//": "Kroky hráče: jeden krok na stride m ušlé po zemi (walkStride chůze, sprintStride sprint), pod minSpeed m/s žádné kroky. Zvuk podle materiálu podlahy místnosti (level.json → rooms[].floorMaterial), jinak default. land = doskok, hlasitost od landMinSpeed do landFullSpeed m/s rychlosti dopadu. floorTolerance = jak hluboko pod nohama ještě hledat podlahu místnosti (m).",
+    "walkStride": 2.1,
+    "sprintStride": 2.6,
+    "minSpeed": 0.8,
+    "volume": 0.6,
+    "sprintVolume": 0.85,
+    "floorTolerance": 0.6,
+    "default": "stepConcrete",
+    "materials": {
+      "floor-checker": "stepTile",
+      "floor-lino-orange": "stepLino",
+      "floor-lino-yellow": "stepLino",
+      "floor-lino-green": "stepLino",
+      "floor-parquet-gym": "stepWood",
+      "stair-tread": "stepStone",
+      "courtyard-paving": "stepStone"
+    },
+    "land": "land",
+    "landMinSpeed": 2,
+    "landFullSpeed": 9
+  },
+  "ui": { "//": "Zvuky DOM menu, kvízu a obrazovek: move = posun výběru (focus), click = tlačítko, back = zpět (Esc / ← ZPĚT).", "move": "uiMove", "click": "uiClick", "back": "uiBack", "volume": 0.8 },
+  "music": {
+    "//": "Krátká chiptune smyčka z vlastního krokového sekvenceru (src/audio/MusicPlayer.ts, oscilátory Web Audio + bicí z sounds.json), ne Tone.js. bpm, stepsPerBeat (16 kroků = takt), root = MIDI nota tóniny (45 = A2). Vzory: tokeny oddělené mezerou po krocích, '.' = pauza; basa a melodie jsou půltóny nad root (+ octave nástroje), bicí písmena z instruments.drums. bars = pořadí taktů smyčky, transpose v půltónech. duck = tišší hudba: první platný stav vyhrává (quiz = kvíz otevřený, menu = hlavní menu nebo pauza, pause = hra stojí). lookahead = jak daleko dopředu se plánují noty (s), tickMs = jak často.",
+    "bpm": 132,
+    "stepsPerBeat": 4,
+    "root": 45,
+    "lookahead": 0.2,
+    "tickMs": 40,
+    "duck": [
+      { "when": "quiz", "level": 0.3 },
+      { "when": "menu", "level": 0.55 },
+      { "when": "pause", "level": 0.45 }
+    ],
+    "instruments": {
+      "bass": { "wave": "triangle", "volume": 0.3, "octave": 0, "gate": 0.85 },
+      "lead": { "wave": "square", "volume": 0.06, "octave": 24, "gate": 0.5 },
+      "drums": { "volume": 0.7, "kit": { "k": "musicKick", "s": "musicSnare", "h": "musicHat" } }
+    },
+    "patterns": {
+      "bass": {
+        "a": "0 . 0 12 . 0 12 . 0 . 0 12 . 0 10 12",
+        "b": "0 . 0 12 . 0 12 . 0 0 . 0 7 . 5 3"
+      },
+      "lead": {
+        "a": "0 . 3 . 7 . 3 . 10 . 7 . 3 . 5 .",
+        "b": "12 . 10 . 7 . . 5 7 . 3 . 0 . . .",
+        "c": ". . . . 0 . 3 5 7 . . . 10 . 12 ."
+      },
+      "drums": {
+        "a": "k . h . s . h . k . h k s . h .",
+        "b": "k . h . s . h . k k h . s . s s"
+      }
+    },
+    "bars": [
+      { "bass": "a", "lead": "a", "drums": "a", "transpose": 0 },
+      { "bass": "a", "lead": "b", "drums": "a", "transpose": 0 },
+      { "bass": "a", "lead": "a", "drums": "a", "transpose": -4 },
+      { "bass": "b", "lead": "c", "drums": "b", "transpose": -2 }
+    ]
+  }
+}

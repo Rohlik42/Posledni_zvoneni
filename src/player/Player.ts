@@ -1,3 +1,4 @@
+import { AudioService } from "../audio/AudioService";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import type { Observer } from "@babylonjs/core/Misc/observable";
 import type { Scene } from "@babylonjs/core/scene";
@@ -102,6 +103,7 @@ export class Player {
     this.settingsObserver = settings.onChanged.add((values) => this.applySettings(values));
 
     this.removeSystem = game.addSystem(this.controller);
+    AudioService.for(game).attachPlayer(this.controller);
     this.frameObserver = game.scene.onBeforeRenderObservable.add(() => this.frame());
     game.useCamera(this.camera.camera);
     this.frame();

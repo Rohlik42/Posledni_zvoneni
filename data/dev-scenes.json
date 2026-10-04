@@ -41,5 +41,10 @@
     "position": [0, 0, 1.5],
     "yawDeg": 180,
     "spawn": { "position": [0.4, 0, -0.5], "yawDeg": -10 }
+  },
+  "audio": {
+    "//": "Dev scéna 'audio' (dev/scenes/AudioScene.ts, fáze 20): místnost scény 'doors' (zamčené dveře do výklenku s robotem = útlum za dveřmi, klíč, pickupy) a navíc prostorové hučení ohně v bodě fire (podlaha, m) s intenzitou fireIntensity a hudba. Kroky, servomotory, výstřely, UI.",
+    "fire": [-6, 0, -6],
+    "fireIntensity": 1
   }
 }

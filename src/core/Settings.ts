@@ -7,6 +7,10 @@ export interface SettingsValues {
   mouseSensitivity: number;
   /** Master volume 0–1 (multiplies `sounds.json → masterVolume`). */
   volume: number;
+  /** Music volume 0–1 (multiplies `audio.json → buses.music`, phase 20). */
+  musicVolume: number;
+  /** Effects volume 0–1 (multiplies `audio.json → buses.effects` and `buses.world`, phase 20). */
+  effectsVolume: number;
   invertY: boolean;
   /** Quality preset (phase 21 applies it). */
   quality: QualityOption;
@@ -17,7 +21,7 @@ interface StoredSettings extends SettingsValues {
 }
 
 /**
- * Mouse sensitivity, volume, invert Y and the quality preset, kept in `localStorage` (key and ranges from
+ * Mouse sensitivity, volumes (master, music, effects), invert Y and the quality preset, kept in `localStorage` (key and ranges from
  * data/menu.json → settings). One shared instance per page: the player camera and the sounds read it when they are
  * created and follow `onChanged`, so the settings apply in every scene, not only behind the menu. Unreadable or blocked
  * storage gives the defaults; values out of range are clamped.
@@ -43,7 +47,14 @@ export class Settings {
 
   get defaults(): SettingsValues {
     const d = this.data;
-    return { mouseSensitivity: d.mouseSensitivity.default, volume: d.volume.default, invertY: d.invertY, quality: d.quality };
+    return {
+      mouseSensitivity: d.mouseSensitivity.default,
+      volume: d.volume.default,
+      musicVolume: d.musicVolume.default,
+      effectsVolume: d.effectsVolume.default,
+      invertY: d.invertY,
+      quality: d.quality,
+    };
   }
 
   /** Changes some values, stores them and notifies; returns the values after clamping. */
@@ -88,6 +99,8 @@ export class Settings {
     return {
       mouseSensitivity: Settings.clamp(values.mouseSensitivity, this.data.mouseSensitivity),
       volume: Settings.clamp(values.volume, this.data.volume),
+      musicVolume: Settings.clamp(values.musicVolume, this.data.musicVolume),
+      effectsVolume: Settings.clamp(values.effectsVolume, this.data.effectsVolume),
       invertY: typeof values.invertY === "boolean" ? values.invertY : d.invertY,
       quality: (QUALITY_OPTIONS as readonly string[]).includes(values.quality) ? values.quality : d.quality,
     };

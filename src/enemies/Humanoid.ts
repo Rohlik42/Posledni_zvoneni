@@ -141,6 +141,7 @@ export class Humanoid extends Enemy implements AgentBody {
     if (this.windingUp || !this.alive) return;
     this.windupTime = 0;
     this.windups++;
+    this.onAttack.notifyObservers({ enemy: this, kind: "windup", position: this.model.muzzlePosition() });
   }
 
   cancelWindup(): void {
@@ -233,6 +234,7 @@ export class Humanoid extends Enemy implements AgentBody {
     const { attack, projectile } = this.data;
     this.context.projectiles.fire(origin, aimPoint.add(offset), projectile, attack.damage, attack.damageType, (damage) => this.recordPlayerHit(damage));
     this.shots++;
+    this.onAttack.notifyObservers({ enemy: this, kind: "shot", position: origin });
   }
 
   private animate(dt: number, moved: number): void {

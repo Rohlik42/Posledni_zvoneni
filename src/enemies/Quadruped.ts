@@ -30,9 +30,10 @@ export interface MeleeTarget {
   damage(amount: number, type: DamageType): void;
 }
 
-/** Plays a synthesized sound by name (`SynthSounds`). */
+/** Plays a synthesized sound by name (`SynthSounds`): flat, or at a world position (phase 20). */
 export interface SoundPlayer {
   play(name: string, volume?: number): void;
+  playAt(name: string, position: Vector3, volume?: number): void;
 }
 
 /** Everything a quadruped uses from the scene around it. */
@@ -172,7 +173,7 @@ export class Quadruped extends Enemy implements QuadrupedBody {
     this.leaping = true;
     this.bitThisLeap = false;
     this.lunges++;
-    this.context.sounds.play(this.data.sounds.lunge);
+    this.context.sounds.playAt(this.data.sounds.lunge, this.center);
   }
 
   tryBite(): boolean {
@@ -189,7 +190,7 @@ export class Quadruped extends Enemy implements QuadrupedBody {
     melee.damage(damage, damageType);
     this.recordPlayerHit(damage);
     this.bitThisLeap = true;
-    this.context.sounds.play(this.data.sounds.bite);
+    this.context.sounds.playAt(this.data.sounds.bite, this.center);
     return true;
   }
 

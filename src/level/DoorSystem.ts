@@ -1,6 +1,7 @@
 import type { Material } from "@babylonjs/core/Materials/material";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { Observable } from "@babylonjs/core/Misc/observable";
+import { AudioService } from "../audio/AudioService";
 import { SynthSounds } from "../audio/SynthSounds";
 import type { Game } from "../core/Game";
 import type { Physics } from "../core/Physics";
@@ -39,6 +40,8 @@ export interface DoorInfo {
   progress: number;
   /** Middle of the opening (world). */
   center: Vec3Like;
+  /** World axis the wall runs along (phase 20: tests put sounds either side of the door). */
+  along: "x" | "z";
   rooms: (string | null)[];
   openings: number;
 }
@@ -109,6 +112,8 @@ export class DoorSystem {
         lighting.attach(door.meshes, rooms);
       }
     }
+    // Closed doors muffle sounds behind them (phase 20).
+    AudioService.for(game).attachDoors(this.doors);
     this.removeSystem = game.addSystem({ update: (dt) => this.update(dt) });
     this.registerTestHooks();
   }
@@ -294,6 +299,7 @@ export class DoorSystem {
       open: door.isOpen,
       progress: door.openProgress,
       center: { x: middle.x, y: middle.y, z: middle.z },
+      along: door.spec.along,
       rooms: door.spec.sides.map((s) => s.room),
       openings: door.openCount,
     };
