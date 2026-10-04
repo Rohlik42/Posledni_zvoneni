@@ -286,3 +286,11 @@ Každé rozhodnutí je jedna věta s důvodem. Člověk je může změnit. Agent
 ## Fáze 26 — Stabilní průchod, cache LineOfSight a trvalé důkazy (2026-10-04)
 
 - **Cache blokujících meshů v `LineOfSight` hlídá podpis sady každých 30 kroků (`SIGNATURE_CHECK_STEPS`, 0,5 s), ne veřejným `invalidate()`:** podpis (počet a součet `uniqueId` kandidátů = pickable, rendering group 0, bez `DamageTargets`, a totéž pro zmražené world matrix) zachytí každou změnu příznaků bez toho, aby na ni musel pamatovat kód, který je mění; stojí jeden průchod `scene.meshes` za půl sekundy a veřejné API se nemění.
+
+## Fáze 25 — Perf test s rezervou pod vsync a poctivé PERF.md (2026-10-04)
+
+- **Rezervu pod vsync hlídá CPU čas snímku, ne odemčené fps:** `FrameSampler` měří čas od `engine.onBeginFrameObservable` po `onEndFrameObservable` (kroky hry + `scene.render` + odeslání WebGPU), který vsync neomezuje a zahrnuje i simulaci, kterou `SceneInstrumentation.frameTimeCounter` (jen `scene.render`) nevidí; odemčení rAF přes `--disable-frame-rate-limit --disable-gpu-vsync` headless Chromium narazí na další strop ~120 fps a potřebovalo by vlastní spuštění prohlížeče jen pro perf.spec.
+- **Mez Vysoké: průměrný CPU čas snímku ≤ 12 ms (`HIGH_MAX_CPU_FRAME_MS`):** naměřeno 7,8 ms ve dvou bězích (max snímku 10,1 ms); 12 ms nechá 4,7 ms (28 %) ze 16,7 ms snímku volných a zároveň ~55 % na šum, takže zachytí regresi dřív, než fps spadnou pod strop, a nebude padat na rozptylu.
+- **Autodetekci dolů ověřuje e2e s CPU throttlingem 8×:** Střední tam měří 8–13 fps (6× = 18 fps), hluboko pod `downFps` 30, takže výsledek nezávisí na šumu; `quality.set("auto")` po ruční volbě detekci restartuje od startovní předvolby.
+- **GPU čas snímku se neměří:** `timestamp-query` by vyžadoval vytvářet `WebGPUEngine` s jinými volbami pro všechny hráče kvůli testu, a hra je na měřicím stroji omezená CPU.
+- **Draw cally se zapisují jako min / průměr / max a nejčastější hodnoty přes měřené okno:** stínová cube mapa se obnovuje každý druhý snímek (`shadows.refreshRate` 2), jeden snímek tedy ukáže 880, nebo 1042 (rozdíl 162 = 6 stěn × 27 vrhačů); `refreshRate` ani presety se kvůli tomu neměnily.
