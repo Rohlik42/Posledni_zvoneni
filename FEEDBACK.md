@@ -145,3 +145,8 @@ Zapracováno 2026-10-04 (kadence 6 → 3 výstřely/s při stejném poškození 
 - „BFG potřebuje ukazovat fázi chlazení. Stačí, když boční červený pruh bude normálně tmavší a při chlazení bude jasně červeně svítit.“
 
 Zapracováno 2026-10-04 (boční LED panel je normálně tmavě červený a posunul se dopředu na šedý boční panel, aby byl z pohledu hráče vidět; po výstřelu celých 5 s chlazení jasně svítí červeně (`effect.cooldownColor` neon.robot, `params.cooldownGlow`), po vychladnutí plynule zhasne; snímky `screenshots/bfg-look-cooldown.png`, `bfg-look-0.png`; test `bfg.spec.ts` hlídá hák `ledGlow`: připravená zbraň tma, při chlazení 1 až do konce, po vychladnutí zhasíná)
+
+## 2026-10-04 — hasičák míří hubicí na střed
+- „Oprav hasičák, musí mířit na střed, teď voda vychází v jiném úhlu, než míří hubice.“
+
+Zapracováno 2026-10-04 (zbraň v ruce už není natočená o 18° doleva: natočení −1,6° / −1,9° míří osou hubice na zaměřovač zhruba 8 m před hráčem, takže proud vychází z hubice v jejím směru; snímek `screenshots/extinguisher-aim.png`; testy `weapons-all.spec.ts`, `weapon.spec.ts`, `visuals.spec.ts`, `weapons-balance.spec.ts`)
