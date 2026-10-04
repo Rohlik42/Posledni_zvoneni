@@ -11,6 +11,8 @@ import type { Light } from "./LevelTypes";
 const FULL_TURN = Math.PI * 2;
 /** Fixtures hang this far below the ceiling: sparks start there (m). */
 const FIXTURE_DROP = 0.05;
+/** Fire flicker: two sine waves of `fire.speed` around the middle; the second runs at this phase ratio. */
+const FIRE_WAVE = { middle: 0.5, amplitude: 0.25, phaseRatio: 1.7 } as const;
 
 type Mode = "tube" | "fire" | "emergency" | "steady";
 
@@ -125,7 +127,7 @@ export class LightAnimator {
   private fire(a: Animated): number {
     const f = this.data.fire;
     const t = this.time;
-    const wave = 0.5 + 0.25 * Math.sin(t * f.speed[0] + a.phase) + 0.25 * Math.sin(t * f.speed[1] + a.phase * 1.7);
+    const wave = FIRE_WAVE.middle + FIRE_WAVE.amplitude * Math.sin(t * f.speed[0] + a.phase) + FIRE_WAVE.amplitude * Math.sin(t * f.speed[1] + a.phase * FIRE_WAVE.phaseRatio);
     const noise = (this.random.next() - 0.5) * 2 * f.noise;
     return Math.min(f.max, Math.max(f.min, f.min + (f.max - f.min) * wave + noise));
   }

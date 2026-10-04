@@ -13,6 +13,8 @@ const TWO_PI = Math.PI * 2;
 const EFFECTS_SEED_OFFSET = 3;
 /** Foam particles alive at once, in shots' worth (fireRate × the longest life, with headroom). */
 const FOAM_HEADROOM = 1.5;
+/** Above this |y| the direction counts as vertical and the side axis is built from world right instead of up. */
+const NEAR_VERTICAL = 0.9;
 
 /**
  * Weapon 2, the fire extinguisher (DESIGN §4: cone, short range, slows): every tick it hits every robot inside a cone
@@ -90,7 +92,7 @@ export class Extinguisher extends Weapon {
   private spray(direction: Vector3, reach: number): void {
     const { effect, random } = this;
     const muzzle = this.muzzlePosition();
-    const side = Vector3.Cross(direction, Math.abs(direction.y) > 0.9 ? Vector3.Right() : Vector3.Up()).normalize();
+    const side = Vector3.Cross(direction, Math.abs(direction.y) > NEAR_VERTICAL ? Vector3.Right() : Vector3.Up()).normalize();
     const up = Vector3.Cross(side, direction).normalize();
     for (let i = 0; i < effect.particles; i++) {
       const tilt = random.range(0, this.halfAngle);

@@ -35,6 +35,8 @@ const CAPSULE_SAMPLES = 4;
 /** Spark burst where a bolt ends (wall or player). */
 const IMPACT_SPARKS = 14;
 const IMPACT_SPEED = 3;
+/** Impact sparks fly mostly up: the lowest vertical share of their random direction. */
+const IMPACT_MIN_RISE = -0.3;
 const TRAIL_SEED = 5;
 /** The flash fades from full size to this fraction over its life. */
 const FLASH_END_SCALE = 0.3;
@@ -230,7 +232,7 @@ export class EnemyProjectiles implements Simulated {
   private burst(position: Vector3, velocity: Vector3): void {
     const back = velocity.normalizeToNew().scale(-IMPACT_SPEED * IMPACT_BACK_SHARE);
     for (let i = 0; i < IMPACT_SPARKS; i++) {
-      const spread = new Vector3(this.random.range(-1, 1), this.random.range(-0.3, 1), this.random.range(-1, 1)).scale(IMPACT_SPEED);
+      const spread = new Vector3(this.random.range(-1, 1), this.random.range(IMPACT_MIN_RISE, 1), this.random.range(-1, 1)).scale(IMPACT_SPEED);
       this.trail.emit({ position: position.clone(), velocity: spread.addInPlace(back), life: this.random.range(IMPACT_LIFE[0], IMPACT_LIFE[1]) });
     }
   }

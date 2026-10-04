@@ -117,6 +117,7 @@
     "difficultyFrame": "#644332",
     "difficultyName": "#c66d54",
     "difficultySelected": "#ffe2a0",
+    "difficultyFocus": "#ffe5b5",
     "difficultyBoxTop": "#281e1bf5",
     "difficultyBoxBottom": "#151315fa",
     "difficultyRowBorder": "#ffffff12",

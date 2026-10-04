@@ -65,6 +65,7 @@ const PARALLEL_EPSILON = 1e-4;
 /** Triangles with a smaller doubled area are skipped (m²). */
 const DEGENERATE_AREA = 1e-10;
 const XYZ = 3;
+const CM2_PER_M2 = 1e4;
 
 /**
  * Finds z-fighting candidates in static geometry (FEEDBACK 2026-10-03 „problikávání“): pairs of triangles that lie in
@@ -159,7 +160,7 @@ export class GeometryAudit {
       f.facing,
       `(${round(f.normal.x)}, ${round(f.normal.y)}, ${round(f.normal.z)})`,
       `(${round(f.position.x)}, ${round(f.position.y)}, ${round(f.position.z)})`,
-      (f.area * 1e4).toFixed(0),
+      (f.area * CM2_PER_M2).toFixed(0),
       `${f.meshA}${f.meshA === f.meshB ? "" : ` × ${f.meshB}`}`,
     ]);
     const header = ["room", "material", "facing", "normal", "position (world)", "cm²", "mesh"];

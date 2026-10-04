@@ -20,6 +20,16 @@ const FLAME_LIFT = 0.1;
 const SMOKE_LIFT = 0.8;
 /** Sideways drift of flames and smoke relative to their upward speed. */
 const DRIFT = 0.25;
+/** Emitter radius of each layer as a share of the fire's radius. */
+const EMIT_RADIUS = { flames: 0.7, smoke: 0.5, embers: 0.6 } as const;
+/** Colour shares: flames fade to `end` × glow × endGlow and die dark red; smoke darkens; embers cool to orange-red. */
+const FLAME_END_GLOW = 0.5;
+const FLAME_DEAD = { r: 0.3, g: 0.1 } as const;
+const SMOKE_FADE = 0.8;
+const EMBER_COOL = { g: 0.6, b: 0.2, deadR: 0.5 } as const;
+/** Smoke reaches at least this high before it stops under the ceiling (m); its life adds this share of `life[0]`. */
+const SMOKE_MIN_REACH = 0.5;
+const SMOKE_LIFE_SLACK = 0.5;
 
 interface Burning {
   fire: Fire;
@@ -118,13 +128,13 @@ export class FireEffects {
 
   private flames(scene: Scene, fire: Fire, at: Vector3): ParticleSystem {
     const d = this.data.flames;
-    const system = this.system(`fire:${fire.id}:flames`, scene, d, fire, at.add(new Vector3(0, FLAME_LIFT, 0)), fire.radius * 0.7);
+    const system = this.system(`fire:${fire.id}:flames`, scene, d, fire, at.add(new Vector3(0, FLAME_LIFT, 0)), fire.radius * EMIT_RADIUS.flames);
     const start = PaletteColor.color3(d.colorStart).scale(d.glow);
-    const end = PaletteColor.color3(d.colorEnd).scale(d.glow * 0.5);
+    const end = PaletteColor.color3(d.colorEnd).scale(d.glow * FLAME_END_GLOW);
     system.blendMode = ParticleSystem.BLENDMODE_ADD;
     system.color1 = new Color4(start.r, start.g, start.b, 1);
     system.color2 = new Color4(end.r, end.g, end.b, 1);
-    system.colorDead = new Color4(end.r * 0.3, end.g * 0.1, 0, 0);
+    system.colorDead = new Color4(end.r * FLAME_DEAD.r, end.g * FLAME_DEAD.g, 0, 0);
     system.addSizeGradient(0, 1);
     system.addSizeGradient(1, FLAME_SHRINK);
     return system;
@@ -132,29 +142,29 @@ export class FireEffects {
 
   private smoke(scene: Scene, fire: Fire, at: Vector3, ceiling: number): ParticleSystem {
     const d = this.data.smoke;
-    const system = this.system(`fire:${fire.id}:smoke`, scene, d, fire, at.add(new Vector3(0, SMOKE_LIFT, 0)), fire.radius * 0.5);
+    const system = this.system(`fire:${fire.id}:smoke`, scene, d, fire, at.add(new Vector3(0, SMOKE_LIFT, 0)), fire.radius * EMIT_RADIUS.smoke);
     const c = PaletteColor.color3(d.color);
     system.blendMode = ParticleSystem.BLENDMODE_STANDARD;
     system.color1 = new Color4(c.r, c.g, c.b, d.alpha);
-    system.color2 = new Color4(c.r * 0.8, c.g * 0.8, c.b * 0.8, d.alpha * 0.8);
+    system.color2 = new Color4(c.r * SMOKE_FADE, c.g * SMOKE_FADE, c.b * SMOKE_FADE, d.alpha * SMOKE_FADE);
     system.colorDead = new Color4(c.r, c.g, c.b, 0);
     system.addSizeGradient(0, 1);
     system.addSizeGradient(1, SMOKE_GROWTH);
     // Smoke stops under the ceiling: a life short enough that the fastest puff does not pass it.
-    const reach = Math.max(0.5, ceiling - SMOKE_LIFT);
-    system.maxLifeTime = Math.min(d.life[1], reach / Math.max(d.speed[1], Number.EPSILON) + d.life[0] * 0.5);
+    const reach = Math.max(SMOKE_MIN_REACH, ceiling - SMOKE_LIFT);
+    system.maxLifeTime = Math.min(d.life[1], reach / Math.max(d.speed[1], Number.EPSILON) + d.life[0] * SMOKE_LIFE_SLACK);
     system.minLifeTime = Math.min(d.life[0], system.maxLifeTime);
     return system;
   }
 
   private embers(scene: Scene, fire: Fire, at: Vector3): ParticleSystem {
     const d = this.data.embers;
-    const system = this.system(`fire:${fire.id}:embers`, scene, d, fire, at.add(new Vector3(0, FLAME_LIFT, 0)), fire.radius * 0.6);
+    const system = this.system(`fire:${fire.id}:embers`, scene, d, fire, at.add(new Vector3(0, FLAME_LIFT, 0)), fire.radius * EMIT_RADIUS.embers);
     const c = PaletteColor.color3(d.color).scale(d.glow);
     system.blendMode = ParticleSystem.BLENDMODE_ADD;
     system.color1 = new Color4(c.r, c.g, c.b, 1);
-    system.color2 = new Color4(c.r, c.g * 0.6, c.b * 0.2, 1);
-    system.colorDead = new Color4(c.r * 0.5, 0, 0, 0);
+    system.color2 = new Color4(c.r, c.g * EMBER_COOL.g, c.b * EMBER_COOL.b, 1);
+    system.colorDead = new Color4(c.r * EMBER_COOL.deadR, 0, 0, 0);
     system.gravity = new Vector3(0, -1, 0);
     return system;
   }

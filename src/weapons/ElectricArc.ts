@@ -20,6 +20,8 @@ const DEFAULT_TIME = 0.12;
 const END_JITTER = 0.15;
 /** Sparks start this far off the surface (m). */
 const SURFACE_OFFSET = 0.02;
+/** Above this |y| the direction counts as vertical and the side axis is built from world right instead of up. */
+const NEAR_VERTICAL = 0.9;
 
 /**
  * The taser's electric arc (phase 13): a jagged line of glowing strokes from the prongs to the hit (or to the end of
@@ -80,7 +82,7 @@ export class ElectricArc {
     const distance = path.length();
     if (distance <= 0) return;
     const direction = path.scale(1 / distance);
-    const side = Vector3.Cross(direction, Math.abs(direction.y) > 0.9 ? Vector3.Right() : Vector3.Up()).normalize();
+    const side = Vector3.Cross(direction, Math.abs(direction.y) > NEAR_VERTICAL ? Vector3.Right() : Vector3.Up()).normalize();
     const up = Vector3.Cross(side, direction).normalize();
     const count = Math.max(1, Math.ceil(distance / this.segment));
     for (let branch = 0; branch < BRANCHES; branch++) {

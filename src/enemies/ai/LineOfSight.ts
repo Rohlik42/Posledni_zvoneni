@@ -28,6 +28,9 @@ const XYZ = 3;
 const CHECK_TOLERANCE = 1e-3;
 /** Normals agree when |cos| of their angle is at least this (`probe` turns them towards the ray). */
 const NORMAL_AGREEMENT = 0.99;
+/** Numerical Recipes LCG of the self-check's ray directions (independent of the game's Random streams). */
+const LCG_MULTIPLIER = 1664525;
+const LCG_INCREMENT = 1013904223;
 
 /** Result of `selfCheck`: rays compared with `scene.pickWithRay` and those that answered differently. */
 export interface SightCheck {
@@ -125,7 +128,7 @@ export class LineOfSight {
   selfCheck(origins: readonly Vector3[], rays: number, length: number, seed: number): SightCheck {
     let state = seed >>> 0 || 1;
     const random = (): number => {
-      state = (state * 1664525 + 1013904223) >>> 0;
+      state = (state * LCG_MULTIPLIER + LCG_INCREMENT) >>> 0;
       return state / 0x100000000;
     };
     const result: SightCheck = { rays: 0, hits: 0, mismatches: [] };
