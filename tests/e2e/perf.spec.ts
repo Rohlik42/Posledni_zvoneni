@@ -35,6 +35,14 @@ const HIGH_MIN_FPS = 57;
  * measurement, so a regression of more than that fails here long before the fps leave the vsync cap (DECISIONS „Fáze 25“).
  */
 const HIGH_MAX_CPU_FRAME_MS = 12;
+/**
+ * Phase 27: average GPU time of a Vysoké frame (WebGPU timestamp queries, `?gpuTiming=1`). Measured 1.5–1.7 ms on the
+ * M1 Pro (PERF.md, fáze 27; 2.1 ms at 4× the pixels); 5 ms is 3× the measurement and keeps 11.7 ms of the 16.7 ms frame
+ * free, so a GPU regression (shadows, SSAO, bloom) of more than that fails here long before the fps leave the vsync cap
+ * (DECISIONS „Fáze 27“). On Apple/Metal the frame stamps are written outside render passes, so read the number as a
+ * lower bound of the GPU work, not its exact cost.
+ */
+const HIGH_MAX_GPU_FRAME_MS = 5;
 const LOW_THROTTLED_MIN_FPS = 30;
 const CPU_THROTTLE = 4;
 /** Phase 25: CPU throttle under which Střední measures well below `autodetect.downFps` (12.6 fps measured at 8×, 18 at 6×). */
@@ -271,7 +279,9 @@ test.describe("quality presets and performance (1920×1080)", () => {
     expect(guard.problems).toEqual([]);
   });
 
-  test("Vysoké with ?gpuTiming=1: the GPU time of a frame at the start view, recorded in perf.json", async ({ browser }) => {
+  test("Vysoké with ?gpuTiming=1: the GPU time of a frame at the start view stays well under 16.7 ms", async ({ browser }) => {
+    // The shared page stops rendering first, so the GPU (and the CPU) serve this page alone.
+    await page.goto("about:blank");
     const context = await browser.newContext({ viewport: VIEWPORT });
     try {
       const gpuPage = await context.newPage();
@@ -283,11 +293,13 @@ test.describe("quality presets and performance (1920×1080)", () => {
       const device = await gpuPage.evaluate(() => ({ renderer: window.__game!.renderer, gpuTiming: window.__game!.quality!.stats().gpuTiming }));
       const high = await fpsAt(gpuPage, "high");
       const gpu = high.stats.window.gpuFrameMs;
-      results.highGpu = { ...summary(high), url: GPU_TIMING_URL, ...device };
+      results.highGpu = { ...summary(high), url: GPU_TIMING_URL, ...device, gpuFrameLimitMs: HIGH_MAX_GPU_FRAME_MS };
       expect(device.renderer).toBe("webgpu");
       expect(device.gpuTiming, "the adapter offers timestamp-query and the device got it").toBe(true);
       expect(high.stats.window.gpuSamples, "GPU measurements in the window").toBeGreaterThan(0);
       expect(gpu, "GPU frame time recorded").not.toBeNull();
+      expect(gpu!.avg, "average GPU time of a Vysoké frame is a real number, ms").toBeGreaterThan(0);
+      expect(gpu!.avg, "average GPU time of a Vysoké frame, ms").toBeLessThanOrEqual(HIGH_MAX_GPU_FRAME_MS);
       expect(high.fps).toBeGreaterThanOrEqual(HIGH_MIN_FPS);
       expect(gpuGuard.problems).toEqual([]);
     } finally {
