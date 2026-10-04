@@ -34,6 +34,12 @@ Zapracováno 2026-10-04
 
 Zapracováno 2026-10-04 (F střelba i držením, Q dveře, ] [ Tab zbraně, šipky rozhlížení, Enter myš do hry a pokračování, menu ↑↓←→ + Enter + Esc; cheaty IDDQD / IDKFA / IDCLIP; testy `keyboard-only.spec.ts` a `cheats.spec.ts`)
 
+## 2026-10-04 — světelnost
+
+- **„Pojďme trochu zvednout světelnost. Chci temnou atmosféru, ale ne aby v chodbách byla literally tma, na to se nedá koukat.“**
+
+Zapracováno 2026-10-04 (chladný měsíční ambient, delší dosah lamp, slabší vinětace, mlha dál, zářivka při výpadku nezhasne úplně, 2 nová světla v boční chodbě a hale 2. patra, měsícem nasvícené fasády za okny; měření `tests/e2e/lighting.spec.ts`, snímky `screenshots/light-before-*` / `light-after-*`, čísla v DECISIONS „FEEDBACK 2026-10-04 — světelnost“)
+
 ## 2026-10-04 — vyvážení zbraní
 
 - „Ještě zkusíme víc vyvážit zbraně. Pistolka je hodně silná vlastně oproti ostatním. Potřebujeme, aby ty ostatní byly upgrade a aby se s nimi fakt dalo trefit. Hasičák musí mít větší dostřel než pistolka. Nemusí být tolik spray, může to prostě fungovat jako silnější hadice s vodou — paprsek, co dostřelí dál a silněji než pistolka. Naproti tomu paralyzér může být více na blízko a s širším dosahem blesku. Railgun ‚nekonečný‘ dostřel.“

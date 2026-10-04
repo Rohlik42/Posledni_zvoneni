@@ -64,6 +64,9 @@ export interface AtmosphereData {
   seed: number;
   /** Multiplies the scene's ambient light in the level (data/game.json → ambient is shared with the boxroom and arena). */
   ambientScale: number;
+  /** Colours of the ambient light in the level (palette keys): cool moonlight through the windows, darker from below. */
+  ambientSky: string;
+  ambientGround: string;
   flicker: FlickerData;
   fire: FireData;
   sparks: SparksData;
@@ -81,7 +84,9 @@ export class AtmosphereConfig {
 
   static readonly schema: SchemaNode = Schema.object({
     seed: Schema.integer(),
-    ambientScale: unit,
+    ambientScale: positive,
+    ambientSky: Schema.paletteRef(),
+    ambientGround: Schema.paletteRef(),
     flicker: Schema.object({
       onTime: range,
       offTime: range,

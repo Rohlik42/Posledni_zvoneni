@@ -122,6 +122,22 @@ export class WallBuilder {
       collide: true,
       role: "wall",
     });
+    if (segment.neighbour === null && !segment.inward && !this.layout.isExterior(room)) this.facade(side, segment, along, a1 - a0, y, vertical);
+  }
+
+  /** The moonlit outer skin of a perimeter wall piece (`walls.facade`): outside the wall, drawn only, carved last. */
+  private facade(side: RoomSide, segment: SideSegment, along: number, length: number, y: number, vertical: number): void {
+    const { material, thickness, owner } = this.data.walls.facade;
+    const across = side.line + WallBuilder.direction(side, segment) * (segment.thickness + thickness / 2);
+    this.sink.box({
+      owner,
+      material,
+      center: side.axis === "x" ? LevelLayout.toWorld(across, y, along) : LevelLayout.toWorld(along, y, across),
+      size: side.axis === "x" ? { x: thickness, y: vertical, z: length } : { x: length, y: vertical, z: thickness },
+      visible: true,
+      collide: false,
+      role: "fill",
+    });
   }
 
   /**

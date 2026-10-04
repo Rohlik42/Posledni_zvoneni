@@ -1,7 +1,9 @@
+import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
 import { PointLight } from "@babylonjs/core/Lights/pointLight";
 import type { Material } from "@babylonjs/core/Materials/material";
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
+import type { Scene } from "@babylonjs/core/scene";
 import type { Game } from "../core/Game";
 import type { Physics } from "../core/Physics";
 import { DecalTextures } from "../rendering/DecalTextures";
@@ -27,6 +29,8 @@ import { WallBuilder } from "./WallBuilder";
 
 /** Material ids of light fixtures: `glow:<palette key>:<emissive intensity>` (resolved by `MaterialLibrary.glow`). */
 const GLOW_PREFIX = "glow:";
+/** Name of the light on the façade skin (`greybox.json → lights.moon`); `LevelAtmosphere.unlit` counts it as reaching. */
+export const FACADE_LIGHT = "moon";
 
 /**
  * Builds the playable school from `data/level.json` (layout) and `data/greybox.json` (generator parameters): floors,
@@ -93,7 +97,22 @@ export class LevelBuilder {
       lightRooms.set(point, [...rooms]);
       return point;
     });
+    LevelBuilder.moon(scene, greybox, geometry);
     return new Level(layout, geometry, materials, lights, lightRooms);
+  }
+
+  /** Cool moonlight on the outer skin of the perimeter walls only (seen from the windows), never inside a room. */
+  private static moon(scene: Scene, greybox: GreyboxData, geometry: StaticGeometry): void {
+    const { moon } = greybox.lights;
+    const skin = geometry.owners.get(greybox.walls.facade.owner)?.visible ?? [];
+    // An empty includedOnlyMeshes means "every mesh": without a skin there is nothing to light.
+    if (skin.length === 0) return;
+    const light = new HemisphericLight(FACADE_LIGHT, new Vector3(...moon.direction), scene);
+    light.diffuse = PaletteColor.color3(moon.color);
+    light.groundColor = PaletteColor.color3(moon.ground);
+    light.specular = Color3.Black();
+    light.intensity = moon.intensity;
+    light.includedOnlyMeshes = [...skin];
   }
 
   /** Rubble boxes standing on the room floor (collapsed-ceiling chunks the same until phase 19 details them). */

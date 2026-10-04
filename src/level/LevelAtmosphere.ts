@@ -1,3 +1,4 @@
+import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
 import type { PointLight } from "@babylonjs/core/Lights/pointLight";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
@@ -11,6 +12,7 @@ import type { EnemyManager } from "../enemies/EnemyManager";
 import type { Player } from "../player/Player";
 import type { QuizSystem } from "../quiz/QuizSystem";
 import { NightEnvironment } from "../rendering/NightEnvironment";
+import { PaletteColor } from "../rendering/PaletteColor";
 import { PointShadows, type ShadowCandidate } from "../rendering/PointShadows";
 import type { QualityPresetData } from "../rendering/QualityConfig";
 import { QualityManager, type QualityTarget } from "../rendering/QualityManager";
@@ -20,6 +22,7 @@ import { DamageSparks } from "./DamageSparks";
 import { DetailsConfig } from "./DetailsConfig";
 import { FireEffects } from "./FireEffects";
 import type { Level } from "./Level";
+import { FACADE_LIGHT } from "./LevelBuilder";
 import { LightAnimator } from "./LightAnimator";
 import { LooseDebris } from "./LooseDebris";
 import type { RoomLighting } from "./RoomLighting";
@@ -101,9 +104,16 @@ export class LevelAtmosphere implements QualityTarget {
   constructor(game: Game, level: Level, lighting: RoomLighting, player: Player, enemies: EnemyManager | null, parts: AtmosphereGameParts | null) {
     const data = AtmosphereConfig.load();
     const scene = game.scene;
-    // Quake 1 dark: the level is lit by its lamps and fires, the shared ambient only keeps black from being pitch black.
+    // Night mood: the level is lit by its lamps and fires; the ambient is a dim cool moonlight fill, so unlit corners
+    // stay dark but readable (FEEDBACK „světelnost“), with a darker ground colour that keeps ceilings in the dark.
     const ambient = scene.getLightByName(AMBIENT_LIGHT);
-    if (ambient !== null) ambient.intensity *= data.ambientScale;
+    if (ambient !== null) {
+      ambient.intensity *= data.ambientScale;
+      if (ambient instanceof HemisphericLight) {
+        ambient.diffuse = PaletteColor.color3(data.ambientSky);
+        ambient.groundColor = PaletteColor.color3(data.ambientGround);
+      }
+    }
     const eye = (): Vector3 => player.eyePosition;
     this.sparks = new DamageSparks(scene, data.sparks, () => enemies?.enemies ?? [], data.seed + SPARK_SEED);
     this.lights = new LightAnimator(level, data.flicker, data.seed, (at) => this.sparks.burst(at));
@@ -161,7 +171,7 @@ export class LevelAtmosphere implements QualityTarget {
    */
   static unlit(scene: Scene): string[] {
     const reached = new Set<AbstractMesh>();
-    for (const light of scene.lights) if (light.getClassName() === "PointLight") for (const mesh of light.includedOnlyMeshes) reached.add(mesh);
+    for (const light of scene.lights) if (light.getClassName() === "PointLight" || light.name === FACADE_LIGHT) for (const mesh of light.includedOnlyMeshes) reached.add(mesh);
     return scene.meshes
       .filter((mesh) => mesh.isEnabled() && mesh.isVisible && mesh.renderingGroupId === 0 && mesh.getTotalVertices() > 0 && mesh.material !== null)
       .filter((mesh) => (mesh.material as { disableLighting?: boolean }).disableLighting !== true && !reached.has(mesh))

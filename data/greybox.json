@@ -6,7 +6,9 @@
     "exteriorThickness": 0.6,
     "maxNeighbourGap": 1.5,
     "touchEpsilon": 0.03,
-    "exteriorRoomWallHeight": 9
+    "exteriorRoomWallHeight": 9,
+    "//facade": "Vnější slupka obvodových zdí (FEEDBACK „světelnost“): tenký kvádr vně každého kusu obvodové zdi, sloučený pod vlastním vlastníkem a osvětlený jen měsícem (lights.moon), takže fasáda druhého křídla je z okna vidět jako tmavě modrá omítka, ne černý blok.",
+    "facade": { "material": "wall-plaster", "thickness": 0.02, "owner": "facade" }
   },
   "slabs": {
     "floorThickness": 0.3,
@@ -50,8 +52,10 @@
   "lights": {
     "//": "Bodová světla z level.json → lights (barva = klíč palety, bez spekuláru). intensityScale/rangeScale násobí hodnoty z level.json (jas greyboxu, fáze 19 doladí). dynamicFloorTolerance (fáze 10, RoomLighting): dveře, pickupy, roboti a zbraň v ruce svítí světly místnosti, ve které jsou; místnost = obdélník s nejvyšší podlahou nejvýš tolik m nad bodem. Svítidlo je samosvítící kvádr pod stropem; nulová velikost = bez svítidla (oheň dodá fáze 19).",
     "intensityScale": 1.9,
-    "rangeScale": 1.3,
+    "rangeScale": 1.5,
     "dynamicFloorTolerance": 0.6,
+    "//moon": "Měsíc na fasádě (walls.facade): polokulové světlo jen na vnější slupce obvodových zdí; color shora ze směru direction, ground zespodu. Dovnitř místností nesvítí.",
+    "moon": { "color": "light.moon", "ground": "light.facadeGround", "intensity": 0.6, "direction": [0.35, 1, -0.25] },
     "fixtures": {
       "fluorescent": { "size": [1.2, 0.06, 0.2], "emissive": 2.2 },
       "emergency": { "size": [0.3, 0.12, 0.08], "emissive": 3.0 },

@@ -90,7 +90,10 @@
     "fluorescent": "#d6e6ff",
     "exitSign": "#3dff7a",
     "ambientSky": "#2a3242",
-    "ambientGround": "#0e0c0b"
+    "ambientGround": "#0e0c0b",
+    "moonFill": "#3a4864",
+    "moonGround": "#2a2c36",
+    "facadeGround": "#1c2436"
   },
   "fog": {
     "night": "#10141c",

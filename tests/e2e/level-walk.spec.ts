@@ -44,8 +44,12 @@ const PATH_DETOUR_SLACK_M = 4;
 /** Phase 19: sample the animated lights this often for this long (12 s covers the longest `onTime` twice). */
 const FLICKER_STEP_MS = 100;
 const FLICKER_SAMPLES = 120;
-/** A tube that dropped out is below this share of its intensity; a fire wavers by more than this. */
-const FLICKER_DARK = 0.1;
+/**
+ * A tube that dropped out is below this share of its intensity: halfway between its off level and the dim level of a
+ * stutter (data/atmosphere.json → flicker; the off level is not 0, so a dark room stays readable — FEEDBACK „světelnost“).
+ */
+const flicker = (JSON.parse(readFileSync("data/atmosphere.json", "utf8")) as { flicker: { offLevel: number; dimLevel: number } }).flicker;
+const FLICKER_DARK = (flicker.offLevel + flicker.dimLevel) / 2;
 const FIRE_WAVER = 0.1;
 
 const world = (p: PlanPoint, y = 0): Vec => ({ x: p.x, y, z: -p.z });

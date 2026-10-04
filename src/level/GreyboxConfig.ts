@@ -28,6 +28,12 @@ export interface GreyboxData {
     maxNeighbourGap: number;
     touchEpsilon: number;
     exteriorRoomWallHeight: number;
+    /**
+     * Outer skin of the perimeter walls (seen from the windows across the courtyard): a thin box outside every
+     * exterior wall piece, merged under its own `owner` and lit only by `lights.moon`, so the façade is moonlit while
+     * the room side of the wall keeps its lamps.
+     */
+    facade: { material: string; thickness: number; owner: string };
   };
   slabs: { floorThickness: number; ceilingThickness: number; ceilingMaterial: string };
   stairs: { material: string; targetRise: number; soffit: number; landingThickness: number; colliderThickness: number; boundsEpsilon: number };
@@ -56,6 +62,8 @@ export interface GreyboxData {
     /** A moving mesh belongs to the room whose floor is the highest at most this many m above it (`RoomLighting`). */
     dynamicFloorTolerance: number;
     fixtures: Record<LightKind, FixtureData>;
+    /** Hemispheric moonlight on the façade skin only (`walls.facade`): sky colour from `direction`, ground from below. */
+    moon: { color: string; ground: string; intensity: number; direction: [number, number, number] };
   };
   teleport: { wallMargin: number; obstacleMargin: number; gridStep: number };
   /**
@@ -81,6 +89,7 @@ export class GreyboxConfig {
       maxNeighbourGap: POSITIVE,
       touchEpsilon: LENGTH,
       exteriorRoomWallHeight: POSITIVE,
+      facade: Schema.object({ material: Schema.string(), thickness: POSITIVE, owner: Schema.string() }),
     }),
     slabs: Schema.object({ floorThickness: POSITIVE, ceilingThickness: POSITIVE, ceilingMaterial: Schema.string() }),
     stairs: Schema.object({
@@ -108,7 +117,13 @@ export class GreyboxConfig {
     }),
     blockers: Schema.object({ materials: Schema.object({ rubble: Schema.string(), "collapsed-ceiling": Schema.string() }) }),
     decals: Schema.array(Schema.object({ texture: Schema.string(), material: Schema.string(), room: Schema.string(), lift: LENGTH })),
-    lights: Schema.object({ intensityScale: POSITIVE, rangeScale: POSITIVE, dynamicFloorTolerance: POSITIVE, fixtures: Schema.object({ fluorescent: FIXTURE, emergency: FIXTURE, fire: FIXTURE }) }),
+    lights: Schema.object({
+      intensityScale: POSITIVE,
+      rangeScale: POSITIVE,
+      dynamicFloorTolerance: POSITIVE,
+      fixtures: Schema.object({ fluorescent: FIXTURE, emergency: FIXTURE, fire: FIXTURE }),
+      moon: Schema.object({ color: Schema.paletteRef(), ground: Schema.paletteRef(), intensity: LENGTH, direction: Schema.vec3() }),
+    }),
     teleport: Schema.object({ wallMargin: LENGTH, obstacleMargin: LENGTH, gridStep: POSITIVE }),
     audit: Schema.object({ minPiece: Schema.number({ min: 0.0001 }), planeTolerance: Schema.number({ min: 0.0001 }), minOverlapArea: Schema.number({ min: 0.000001 }) }),
   });
