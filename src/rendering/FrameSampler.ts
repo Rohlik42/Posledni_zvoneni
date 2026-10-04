@@ -137,6 +137,9 @@ export class FrameSampler {
     const counter = this.gpuCounter;
     if (counter === null || counter.count === this.gpuCount) return;
     this.gpuCount = counter.count;
+    // Babylon records exactly 0 when the browser has no `GPUCommandEncoder.writeTimestamp` (plain Chrome without
+    // `--enable-unsafe-webgpu`): that is no measurement, not a free frame, so it is left out.
+    if (counter.current <= 0) return;
     const gpuMs = counter.current / NS_PER_MS;
     if (this.gpuTimes.length < this.samples) this.gpuTimes.push(gpuMs);
     else this.gpuTimes[this.gpuIndex] = gpuMs;

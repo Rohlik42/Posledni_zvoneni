@@ -139,3 +139,5 @@ naměřené hodnoty a ze 16,7 ms snímku zůstane 11,7 ms volných. Hodnoty jsou
   nezkoumala, protože test 6 hlídá jen GPU čas. Mez CPU času (12 ms) hlídá test 3 bez parametru.
 - Vsync strop `fps ≥ 57` zůstává jako kontrola. GPU regresi (stíny, SSAO, bloom) teď zachytí i mez 5 ms, dřív jen pokles
   fps pod strop.
+- Měří to jen Chromium s `--enable-unsafe-webgpu` (perf test). Běžný Chrome 153 nemá `GPUCommandEncoder.writeTimestamp`,
+  Babylon pak hlásí 0 a `stats().gpuFrameMs` zůstane `null`. Ověřeno ve vizuální kontrole fáze 27.
