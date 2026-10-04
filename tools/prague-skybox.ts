@@ -376,18 +376,20 @@ function gradeSide(k: number, photo: Buffer, cls: Buffer, fine: Buffer, coarse: 
       const p: Rgb = [toLin(photo[i]! / BYTE), toLin(photo[i + 1]! / BYTE), toLin(photo[i + 2]! / BYTE)];
       const pl = lumaOf(p);
       const photoLuma = measures(photo, i).luma;
-      // The coarse blur keeps the mask smooth inside clouds (no speckles where cloud luma crosses the thresholds).
-      const sky = skyLikelihood(measures(coarse, i), el);
+      // Sky mask from the class blur: soft but tight around domes and towers (the coarse one left halos around them).
+      const sky = skyLikelihood(measures(cls, i), el);
 
       // Buildings: the photo exposed down, desaturated, moonlit, lit a little by the fires.
       const glow = glowAt(az, el) * fire.onBuildings;
       const f = fireColour(el);
-      // Lit windows: dark spots in bright warm façades, a few chosen by smooth angular noise.
-      const dark = measures(coarse, i).luma - measures(fine, i).luma;
-      const facade = smoothstep(windows.facadeLuma[0], windows.facadeLuma[1], measures(coarse, i).luma) * smoothstep(windows.facadeWarm[0], windows.facadeWarm[1], measures(coarse, i).warm);
+      // Lit windows: dark spots in bright warm façades, a few chosen by smooth angular noise. A window stays dark at the
+      // class blur too (coarse − class), a thin cornice shadow does not; the fine blur gives the window its sharp shape.
+      const coarseM = measures(coarse, i);
+      const windowShape = smoothstep(windows.darkLo, windows.darkHi, coarseM.luma - measures(cls, i).luma) * smoothstep(windows.darkLo, windows.darkHi, coarseM.luma - measures(fine, i).luma);
+      const facade = smoothstep(windows.facadeLuma[0], windows.facadeLuma[1], coarseM.luma) * smoothstep(windows.facadeWarm[0], windows.facadeWarm[1], coarseM.warm);
       const chosen = smoothstep(windows.selectLo, windows.selectHi, valueNoise(az, el));
       const inBand = smoothstep(windows.elDeg[0], windows.elDeg[0] + 0.5, el) * smoothstep(windows.elDeg[1], windows.elDeg[1] - 1, el);
-      const lit = smoothstep(windows.darkLo, windows.darkHi, dark) * facade * chosen * inBand * (1 - sky) * windows.strength;
+      const lit = windowShape * facade * chosen * inBand * (1 - sky) * windows.strength;
       const skyColour = skyAt(az, el, photoLuma);
 
       // Below the parapet curve: the terrace fades into the night haze.

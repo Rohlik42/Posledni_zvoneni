@@ -16,7 +16,7 @@
     "py": { "file": "up", "rotate": 90 },
     "ny": { "file": "down" }
   },
-  "//blur": "Rozmazání (σ v px stěny 2048) celého pásu d|a|b|c|d|a, takže masky navazují přes hrany krychle. 'class' = linie atiky, 'coarse' = maska oblohy a světlé fasády, 'fine' vs 'coarse' = tmavá okna ve fasádách (coarse − fine).",
+  "//blur": "Rozmazání (σ v px stěny 2048) celého pásu d|a|b|c|d|a, takže masky navazují přes hrany krychle. 'class' = linie atiky a maska oblohy, 'coarse' = světlé fasády, 'fine' a 'class' vs 'coarse' = tmavá okna ve fasádách (coarse − fine).",
   "blur": { "padPx": 96, "class": 2.5, "fine": 0.8, "coarse": 6 },
   "//sky": "Obloha = šedé mraky (sytost < satMax, teplota r − b < warmMax, luma > lumaMin, s elevací klesá k lumaMinHigh v pásu lumaMinDeg) nebo modrá (b − max(r, g) > blueMin, plně od blueMin + blueSoft; zelené měděné kopule mají g > b), vše měkce (soft); jen nad obzorem (aboveDeg) a nad priorDeg vždy obloha.",
   "sky": {
@@ -84,17 +84,17 @@
       { "azDeg": 300, "widthDeg": 11, "strength": 0.6 }
     ]
   },
-  "//windows": "Rozsvícená okna: tmavá místa ve světlých fasádách (coarse − fine luma v darkLo..darkHi, fasáda luma ≥ facadeLuma, teplota ≥ facadeWarm), vybraná deterministickým hladkým šumem v úhlech (buňka cellDeg, práh selectLo..selectHi, seed), jen v elevaci elDeg. Barva colour × strength (lineárně).",
+  "//windows": "Rozsvícená okna: tmavá místa ve světlých fasádách (coarse − class i coarse − fine luma v darkLo..darkHi: tenký stín pod římsou zmizí už v class, fasáda luma ≥ facadeLuma, teplota ≥ facadeWarm), vybraná deterministickým hladkým šumem v úhlech (buňka cellDeg, práh selectLo..selectHi, seed), jen v elevaci elDeg. Barva colour × strength (lineárně).",
   "windows": {
     "colour": "light.lamp",
-    "strength": 0.55,
-    "darkLo": 0.14,
-    "darkHi": 0.24,
+    "strength": 1.0,
+    "darkLo": 0.1,
+    "darkHi": 0.2,
     "facadeLuma": [0.42, 0.55],
     "facadeWarm": [0.02, 0.06],
     "cellDeg": 0.7,
-    "selectLo": 0.8,
-    "selectHi": 0.86,
+    "selectLo": 0.7,
+    "selectHi": 0.76,
     "seed": 2066,
     "elDeg": [-0.3, 10]
   }

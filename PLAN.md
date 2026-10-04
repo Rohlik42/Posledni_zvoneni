@@ -613,6 +613,8 @@ Quick gate: `tests/e2e/level-walk.spec.ts`. Náhled `screenshots/F2-skybox-cross
 **Do not**
 Silueta, posterizace oblohy, kreslení po sloupcích, jiný zdroj obrázku, ruční úprava obrázků mimo skript.
 
+**Done 2026-10-04** (handoff `handoff/phase-F2.md`). `tools/prague-skybox.ts` přepsaný: fotka terasy převedená den → noc (budovy = fotka × expozice, měsíční tón, 40 % sytosti; obloha = gradient + mraky z fotky; maska oblohy spojitá z rozmazané barvy a elevace; pár rozsvícených oken; zář požárů jako gaussovky v azimutu), popředí terasy pod jednou hladkou křivkou atiky (medián ±10°, průměr ±3°, −1,8…−0,2°) přechází do oparu; masky na pásu d|a|b|c|d|a rozmazaném najednou (švy ≤ 0,55/255). Výstup 2048² + `prague-1k_*`, q88, stejné mapování jako F1, idempotentní. Nový `tests/e2e/window-view.spec.ts` (sloupcové |Δ| 0,28 / 0,41 < 1,0, F1 by dal 2,27; jas oblohy 38 / 33 ≥ 8). Snímky `screenshots/F2-*.png` prohlédnuté. Odchylky od litery: (1) křivka atiky se nehledá z „světlé dlažby/atiky“, ale z „všeho, co není červená taška“ (stříška atiky je místy 4,5° cihel, světlá atika začíná až pod ní); (2) místo nového `skyExposure` se použil stávající `data/sky.json → level` (1,5 → 2,0), protože je to přesně expozice skyboxu před tone mappingem; (3) stěny mají 88–130 kB, ne 300–700 kB (polovina stěny je hladký opar, viz DECISIONS „Fáze F2“); (4) `F2-window-hrad.png` je ze severního okna učebny 30 (Hrad leží 53° od západu a hluboké ostění západních oken chodby ho ukáže jen na okraji); (5) test běží ze dvou pohledů (start v učebně 30, kde byly pruhy F1, a západní okno chodby), ne z jednoho. „Zapracováno“ do FEEDBACK.md připíše merge (STEER 9).
+
 ## Backlog — needs a human
 
 - Zahrát krabicovou místnost po fázi Weapon feel a zapsat zpětnou vazbu do FEEDBACK.md
