@@ -56,10 +56,10 @@
     "left": "{name} čeká v kabinetu. Vrať se, až budeš připravený."
   },
   "quiz": {
-    "//": "Fáze 11: texty kvízového overlaye (src/quiz/QuizUI.ts). letters = popisky odpovědí A–D (klávesy 1–4).",
+    "//": "Fáze 11: texty kvízového overlaye (src/quiz/QuizUI.ts). letters = popisky odpovědí na tlačítkách (klávesy 1–4; FEEDBACK 2026-10-04: jen čísla, písmena A–D mátla).",
     "kicker": "ZAJATÝ UČITEL · ROBOTÍ PAST",
     "prompt": "Odpověz správně a past se odjistí. Špatná odpověď = výbuch.",
-    "letters": ["A", "B", "C", "D"],
+    "letters": ["1", "2", "3", "4"],
     "controls": "1–4 nebo klik — odpovědět · Esc — odejít",
     "wrong": "ŠPATNĚ! Past vybuchla: −{damage} zdraví.",
     "nextQuestion": "Další otázka:",

@@ -24,7 +24,7 @@ const PANEL_BORDER_PX = 4;
 const BUTTON_RADIUS_PX = 3;
 const BUTTON_SHADOW_PX = 4;
 const GAP_PX = 10;
-const LETTER_WIDTH_PX = 34;
+const LETTER_WIDTH_PX = 18;
 const KICKER_SPACING_EM = 0.18;
 /** Panel background opacity as a hex alpha (LEGACY §4 panels `…df`). */
 const PANEL_ALPHA_HEX = "df";
@@ -58,7 +58,7 @@ export interface QuizUiHandlers {
 /**
  * The quiz overlay (DESIGN §3, §8 „Kvíz UI“): a DOM layer over the whole screen like the HUD (DECISIONS „Fáze 5“,
  * „Fáze 11“), in the LEGACY §4 style — dark gradient with blur, a panel with the teacher's name and subject, their line,
- * the question and four lime buttons A–D. Keys 1–4 answer, Esc leaves, Enter / Space / E continue after the right
+ * the question and four lime buttons labelled 1–4. Keys 1–4 answer, Esc leaves, Enter / Space / E continue after the right
  * answer. While it is open it swallows key events, so the game's `Input` does not switch weapons on 1–4.
  */
 export class QuizUI {
@@ -131,7 +131,7 @@ export class QuizUI {
       Object.assign(button.style, { display: "flex", alignItems: "center", gap: `${GAP_PX}px`, textAlign: "left", fontSize: `${data.optionSize}px` });
       button.dataset.answer = String(index);
       const badge = this.element("span", { width: `${LETTER_WIDTH_PX}px`, flex: "none", fontFamily: data.fontFamily, fontWeight: "800", fontSize: `${data.optionSize + 4}px` });
-      badge.textContent = `${index + 1} ${letter}`;
+      badge.textContent = letter;
       const text = this.element("span", {});
       button.append(badge, text);
       button.addEventListener("click", (event) => this.onAnswer(index, event.isTrusted));

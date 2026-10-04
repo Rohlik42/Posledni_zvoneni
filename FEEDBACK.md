@@ -105,3 +105,4 @@ Zapracováno 2026-10-04 (na startovním 2. patře je jediná extra zbraň vodní
 - „Prohodíme balónky a hasičák, balónky jsou zbraň 2. Zároveň když poprvé sebereš novou zbraň, ať se to na ni přepne.“ Zapracováno 2026-10-04.
 - „A Raubíř je ‚Nevyluzujte!‘ jako nevyluzujte zvuky.“ Zapracováno 2026-10-04.
 - „Fyzikář se bude jmenovat Jungwirth.“ Zapracováno 2026-10-04.
+- „Předěláme ty testy, dáme tam jenom 1 2 3 4, písmenka pryč, je to matoucí.“ Zapracováno 2026-10-04 (tlačítka kvízu jen s čísly 1–4).
