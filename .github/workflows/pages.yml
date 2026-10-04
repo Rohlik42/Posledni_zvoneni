@@ -1,0 +1,75 @@
+# MALGYM 2066 → GitHub Pages (fáze 23).
+# Na push do main: npm ci, build s absolutní base podle Pages (např. /Posledni_zvoneni/), stará hra legacy/ do
+# dist/legacy/ a nasazení přes actions/deploy-pages. Dev scény jdou s buildem pod /dev/ (DECISIONS „Fáze 23“).
+# V Settings → Pages musí být zdroj „GitHub Actions“ (udělá člověk, PLAN.md → Backlog).
+name: Deploy na GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Jen jedno nasazení najednou; běžící nasazení se nepřerušuje, čekající nahradí novější push.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Pages – base cesta
+        id: pages
+        uses: actions/configure-pages@v5
+
+      - name: Závislosti
+        run: npm ci
+
+      - name: Build (typecheck + vite)
+        # base_path je "/Posledni_zvoneni" (projektová stránka) nebo "" (vlastní doména). Absolutní base platí i pro
+        # stránky v podsložce (dev/); relativní "./" z vite.config.ts by tam textury hledala v dev/textures/.
+        run: npm run build -- --base "${{ steps.pages.outputs.base_path }}/"
+
+      - name: Stará hra do dist/legacy/
+        # Jen soubory, které prohlížeč načte; server.cjs, update-assets.cjs a git hooky jsou nástroje staré hry.
+        run: |
+          mkdir -p dist/legacy
+          cp legacy/index.html legacy/game.js legacy/style.css legacy/prototyp-babylon.jpg dist/legacy/
+          cp -R legacy/vendor dist/legacy/vendor
+          test -f dist/legacy/index.html
+          test -f dist/legacy/vendor/babylon.js
+
+      - name: Bez Jekyllu
+        run: touch dist/.nojekyll
+
+      - name: Upload artefaktu
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Nasazení
+        id: deployment
+        uses: actions/deploy-pages@v4
