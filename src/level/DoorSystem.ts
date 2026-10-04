@@ -1,6 +1,7 @@
 import type { Material } from "@babylonjs/core/Materials/material";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { Observable } from "@babylonjs/core/Misc/observable";
+import { AudioService } from "../audio/AudioService";
 import { SynthSounds } from "../audio/SynthSounds";
 import type { Game } from "../core/Game";
 import type { Physics } from "../core/Physics";
@@ -109,6 +110,8 @@ export class DoorSystem {
         lighting.attach(door.meshes, rooms);
       }
     }
+    // Closed doors muffle sounds behind them (phase 20).
+    AudioService.for(game).attachDoors(this.doors);
     this.removeSystem = game.addSystem({ update: (dt) => this.update(dt) });
     this.registerTestHooks();
   }

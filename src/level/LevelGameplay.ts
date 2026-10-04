@@ -1,3 +1,4 @@
+import { AudioService } from "../audio/AudioService";
 import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import type { TransformNode } from "@babylonjs/core/Meshes/transformNode";
 import { Difficulty } from "../core/Difficulty";
@@ -165,6 +166,11 @@ export class LevelGameplay {
     const player = Player.create(game, physics, spawn);
     player.health.reset(difficulty.playerMaxHealth(player.health.max));
     level.attachPlayer(player);
+    // Footsteps sound like the floor of the room underfoot (phase 20).
+    AudioService.for(game).setFloorResolver((at, tolerance) => {
+      const room = level.roomAt(at, tolerance);
+      return room === null ? null : level.layout.room(room).floorMaterial;
+    });
     const weapons = WeaponInventory.create(game, player);
     const inventory = Inventory.create(game, player, weapons, level.layout.level.keys);
     inventory.setAmountScale((kind, amount) => difficulty.pickupAmount(kind, amount));

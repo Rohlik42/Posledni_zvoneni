@@ -55,6 +55,8 @@ export interface DevScenesData {
   doors: { door: DevDoor; encounter: string; pickups: DevPickup[] };
   /** One captive teacher in the box room (phase 11). */
   teacher: { teacher: string; position: Vec3Tuple; yawDeg: number; spawn: { position: Vec3Tuple; yawDeg: number } };
+  /** Audio pass (phase 20): the doors room plus a fire loop at `fire` with `fireIntensity`, music on. */
+  audio: { fire: Vec3Tuple; fireIntensity: number };
 }
 
 const box = Schema.object(
@@ -105,6 +107,7 @@ export class DevSceneData {
       yawDeg: Schema.number(),
       spawn: Schema.object({ position: Schema.vec3(), yawDeg: Schema.number() }),
     }),
+    audio: Schema.object({ fire: Schema.vec3(), fireIntensity: Schema.number({ min: 0, max: 1 }) }),
   });
 
   static load(): DevScenesData {

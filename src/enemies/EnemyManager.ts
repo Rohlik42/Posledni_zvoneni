@@ -3,6 +3,7 @@ import { Observable } from "@babylonjs/core/Misc/observable";
 import type { DamageType } from "../core/DamageTypes";
 import type { Game } from "../core/Game";
 import { NoiseEvents } from "../core/NoiseEvents";
+import { AudioService } from "../audio/AudioService";
 import { SynthSounds } from "../audio/SynthSounds";
 import { TestHooks } from "../core/TestHooks";
 import type { NavMeshService } from "../level/NavMeshService";
@@ -174,6 +175,7 @@ export class EnemyManager {
       enemy.onDeath.add(() => this.onEnemyDeath.notifyObservers(enemy));
       this.enemies.push(enemy);
     });
+    AudioService.for(game).attachEnemies(this.enemies);
     this.removeSystem = game.addSystem({ update: (dt) => this.update(dt) });
     game.input.onAction.add(({ action, pressed }) => {
       if (action === "debugNavmesh" && pressed) navmesh.setDebugVisible(!navmesh.debugVisible);

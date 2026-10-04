@@ -1,10 +1,12 @@
 {
-  "//": "Fáze 18: hlavní menu, pauza, obrazovka smrti, nastavení (src/core/GameFlow.ts, src/ui/MenuOverlay.ts, src/ui/MenuPages.ts, src/core/Settings.ts). Vzhled panelu bere progression.json → screen (písma, barvy, blur) a doplňuje ho 'layout' (px). settings = rozsahy a výchozí hodnoty nastavení (localStorage pod settings.storageKey): mouseSensitivity = násobič player.json → camera.mouseSensitivity, volume = násobič sounds.json → masterVolume (0–1), quality = předvolba z qualityOptions (auto = automatická volba; předvolby zapíná fáze 21). legacyUrl = odkaz na starou hru (na GitHub Pages leží pod /legacy/). texts = všechny texty menu; {value}, {label} a {count} jsou zástupné hodnoty.",
+  "//": "Fáze 18: hlavní menu, pauza, obrazovka smrti, nastavení (src/core/GameFlow.ts, src/ui/MenuOverlay.ts, src/ui/MenuPages.ts, src/core/Settings.ts). Vzhled panelu bere progression.json → screen (písma, barvy, blur) a doplňuje ho 'layout' (px). settings = rozsahy a výchozí hodnoty nastavení (localStorage pod settings.storageKey): mouseSensitivity = násobič player.json → camera.mouseSensitivity, volume = násobič sounds.json → masterVolume (0–1), musicVolume / effectsVolume = násobiče data/audio.json → buses.music / buses.effects a buses.world (fáze 20), quality = předvolba z qualityOptions (auto = automatická volba; předvolby zapíná fáze 21). legacyUrl = odkaz na starou hru (na GitHub Pages leží pod /legacy/). texts = všechny texty menu; {value}, {label} a {count} jsou zástupné hodnoty.",
   "settings": {
     "storageKey": "malgym2066.settings",
     "version": 1,
     "mouseSensitivity": { "default": 1, "min": 0.25, "max": 3, "step": 0.05 },
     "volume": { "default": 0.8, "min": 0, "max": 1, "step": 0.05 },
+    "musicVolume": { "default": 0.7, "min": 0, "max": 1, "step": 0.05 },
+    "effectsVolume": { "default": 1, "min": 0, "max": 1, "step": 0.05 },
     "invertY": false,
     "quality": "auto"
   },
@@ -67,7 +69,7 @@
       "kicker": "MYŠ A ZVUK",
       "title": "Nastavení",
       "lead": "Ukládá se v tomto prohlížeči a platí hned.",
-      "labels": { "mouseSensitivity": "Citlivost myši", "volume": "Hlasitost", "invertY": "Obrácená osa Y" },
+      "labels": { "mouseSensitivity": "Citlivost myši", "volume": "Hlasitost", "musicVolume": "Hudba", "effectsVolume": "Efekty", "invertY": "Obrácená osa Y" },
       "sensitivityValue": "{value}×",
       "volumeValue": "{value} %",
       "on": "ZAPNUTO",

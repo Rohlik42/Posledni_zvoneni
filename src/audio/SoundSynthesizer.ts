@@ -2,11 +2,14 @@ import { Random } from "../utils/Random";
 import type { SoundLayer, SoundWave } from "./SoundConfig";
 
 const TWO_PI = Math.PI * 2;
+const HALF = 0.5;
 /** Exponential envelopes and sweeps end at this level (LEGACY §5: "exponenciálně na 0,001"). */
 const SILENCE = 0.001;
 /** Band-pass coefficients are recomputed this often while the centre sweeps (samples). */
 const FILTER_UPDATE_SAMPLES = 32;
 const NYQUIST_GUARD = 0.45;
+/** A flat noise layer runs its band-pass this long before the first written sample, so a loop starts settled (s). */
+const FILTER_WARMUP_SECONDS = 0.05;
 
 /**
  * Renders a sound recipe (layers from `data/sounds.json`) into mono samples, in plain JavaScript: no AudioContext is
@@ -53,9 +56,10 @@ export class SoundSynthesizer {
     let b2 = 0;
     let a1 = 0;
     let a2 = 0;
-    for (let n = 0; n < count && first + n < out.length; n++) {
-      const t = n / this.sampleRate;
-      if (n % FILTER_UPDATE_SAMPLES === 0) {
+    const warmup = layer.envelope === "flat" ? Math.round(FILTER_WARMUP_SECONDS * this.sampleRate) : 0;
+    for (let n = -warmup; n < count && first + n < out.length; n++) {
+      const t = Math.max(0, n) / this.sampleRate;
+      if ((n + warmup) % FILTER_UPDATE_SAMPLES === 0) {
         const centre = Math.min(SoundSynthesizer.sweep(layer, t), this.sampleRate * NYQUIST_GUARD);
         const w = (TWO_PI * centre) / this.sampleRate;
         const alpha = Math.sin(w) / (2 * (layer.q ?? 1));
@@ -71,12 +75,20 @@ export class SoundSynthesizer {
       x1 = x0;
       y2 = y1;
       y1 = y0;
-      out[first + n] = (out[first + n] ?? 0) + y0 * this.envelope(layer, t);
+      if (n >= 0) out[first + n] = (out[first + n] ?? 0) + y0 * this.envelope(layer, t);
     }
   }
 
-  /** Linear attack to `volume`, then exponential decay to SILENCE at the end of the layer. */
+  /**
+   * `decay`: linear attack to `volume`, then exponential decay to SILENCE at the end of the layer. `flat`: `volume`
+   * throughout, optionally modulated by the tremolo (a loop restarts at the same level, so it does not click).
+   */
   private envelope(layer: SoundLayer, t: number): number {
+    if (layer.envelope === "flat") {
+      const depth = layer.tremoloDepth ?? 0;
+      const tremolo = layer.tremoloHz === undefined ? 1 : 1 - depth * HALF * (1 - Math.cos(TWO_PI * layer.tremoloHz * t));
+      return layer.volume * tremolo;
+    }
     if (t < layer.attack) return (layer.volume * t) / layer.attack;
     const progress = (t - layer.attack) / (layer.duration - layer.attack);
     return layer.volume * Math.pow(SILENCE / layer.volume, Math.min(1, progress));

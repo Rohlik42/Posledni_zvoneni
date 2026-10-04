@@ -19,6 +19,8 @@ export interface SettingsData {
   version: number;
   mouseSensitivity: RangeSetting;
   volume: RangeSetting;
+  musicVolume: RangeSetting;
+  effectsVolume: RangeSetting;
   invertY: boolean;
   quality: QualityOption;
 }
@@ -43,7 +45,7 @@ export interface MenuTexts {
   pause: PageTexts & { items: { resume: string; settings: string; controls: string; mainMenu: string }; note: string };
   death: PageTexts & { lead: string; labels: { checkpoint: string; time: string; deaths: string }; button: string };
   settings: PageTexts & {
-    labels: { mouseSensitivity: string; volume: string; invertY: string };
+    labels: { mouseSensitivity: string; volume: string; musicVolume: string; effectsVolume: string; invertY: string };
     sensitivityValue: string;
     volumeValue: string;
     on: string;
@@ -102,6 +104,8 @@ export class MenuConfig {
       version: Schema.integer({ min: 1 }),
       mouseSensitivity: range(),
       volume: range(),
+      musicVolume: range(),
+      effectsVolume: range(),
       invertY: Schema.boolean(),
       quality: Schema.enumOf(QUALITY_OPTIONS),
     }),
@@ -148,7 +152,13 @@ export class MenuConfig {
         ["titleAccent"],
       ),
       settings: page({
-        labels: Schema.object({ mouseSensitivity: Schema.string(), volume: Schema.string(), invertY: Schema.string() }),
+        labels: Schema.object({
+          mouseSensitivity: Schema.string(),
+          volume: Schema.string(),
+          musicVolume: Schema.string(),
+          effectsVolume: Schema.string(),
+          invertY: Schema.string(),
+        }),
         sensitivityValue: Schema.string(),
         volumeValue: Schema.string(),
         on: Schema.string(),
@@ -173,7 +183,7 @@ export class MenuConfig {
   static load(): MenuData {
     if (MenuConfig.cached === null) {
       const data = DataLoader.parse<MenuData>(MenuConfig.file, menuJson, MenuConfig.schema);
-      for (const name of ["mouseSensitivity", "volume"] as const) {
+      for (const name of ["mouseSensitivity", "volume", "musicVolume", "effectsVolume"] as const) {
         const r = data.settings[name];
         if (!(r.min < r.max && r.default >= r.min && r.default <= r.max)) {
           throw new DataError(MenuConfig.file, `settings.${name}`, "needs min < max and the default inside");

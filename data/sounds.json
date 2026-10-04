@@ -1,15 +1,16 @@
 {
-  "//": "Syntetické zvuky (src/audio/SoundSynthesizer.ts → AudioBuffer, přehrává src/audio/SynthSounds.ts). Recepty ve stylu LEGACY §5: zvuk = vrstvy. 'tone' = oscilátor (wave sine/triangle/square/sawtooth), frekvence exponenciálně from → to Hz za duration s. 'noise' = bílý šum přes pásmovou propust se středem exponenciálně from → to Hz a činitelem jakosti q. Obálka: náběh lineárně za attack s na volume, pak exponenciálně k 0,001 na konci duration. start = zpoždění vrstvy v s. masterVolume 0,32 jako stará hra.",
+  "//": "Syntetické zvuky (src/audio/SoundSynthesizer.ts → AudioBuffer, přehrává src/audio/SynthSounds.ts). Recepty ve stylu LEGACY §5: zvuk = vrstvy. 'tone' = oscilátor (wave sine/triangle/square/sawtooth), frekvence exponenciálně from → to Hz za duration s. 'noise' = bílý šum přes pásmovou propust se středem exponenciálně from → to Hz a činitelem jakosti q. Obálka: náběh lineárně za attack s na volume, pak exponenciálně k 0,001 na konci duration. start = zpoždění vrstvy v s. masterVolume 0,32 jako stará hra. Fáze 20: vrstva s envelope 'flat' má stálou hlasitost po celou délku (volitelně tremolo tremoloHz / tremoloDepth); zvuk s loop: true je bezešvá smyčka (jen flat vrstvy od 0 po celou délku, tóny bez sweepu a s celým počtem period, celý počet period tremola) pro prostorové zvuky (data/audio.json → emitters).",
   "sampleRate": 44100,
   "masterVolume": 0.32,
   "noiseSeed": 7,
   "sounds": {
     "droneBuzz": {
-      "//": "Bzučení dronu (fáze 14, LEGACY §5 tone): nízká pila 118 → 124 Hz s oktávou (čtverec) a úzkým šumem vrtulí; přehrává se dokola po buzz.interval, takže pomalý náběh a doznění dělají pulzující bzukot.",
+      "//": "Bzučení dronu (fáze 14, smyčka od fáze 20): nízká pila 120 Hz s oktávou (čtverec) a úzkým šumem vrtulí, vrtule tepou 16× za s (tremolo). Hraje dokola jako prostorový zvuk dronu (AudioService, data/audio.json → emitters.drone).",
+      "loop": true,
       "layers": [
-        {"kind": "tone", "wave": "sawtooth", "start": 0, "duration": 0.5, "volume": 0.11, "attack": 0.12, "from": 118, "to": 124},
-        {"kind": "tone", "wave": "square", "start": 0, "duration": 0.5, "volume": 0.035, "attack": 0.12, "from": 236, "to": 248},
-        {"kind": "noise", "start": 0, "duration": 0.5, "volume": 0.05, "attack": 0.12, "from": 900, "to": 980, "q": 6}
+        {"kind": "tone", "wave": "sawtooth", "start": 0, "duration": 0.5, "volume": 0.11, "attack": 0.01, "from": 120, "to": 120, "envelope": "flat", "tremoloHz": 16, "tremoloDepth": 0.45},
+        {"kind": "tone", "wave": "square", "start": 0, "duration": 0.5, "volume": 0.035, "attack": 0.01, "from": 240, "to": 240, "envelope": "flat", "tremoloHz": 16, "tremoloDepth": 0.45},
+        {"kind": "noise", "start": 0, "duration": 0.5, "volume": 0.06, "attack": 0.01, "from": 940, "to": 940, "q": 6, "envelope": "flat", "tremoloHz": 32, "tremoloDepth": 0.6}
       ]
     },
     "droneZap": {
@@ -234,6 +235,133 @@
         { "kind": "noise", "start": 0.13, "duration": 0.025, "volume": 0.16, "attack": 0.002, "from": 2600, "to": 1200, "q": 2.5 },
         { "kind": "noise", "start": 0.21, "duration": 0.035, "volume": 0.2, "attack": 0.002, "from": 3600, "to": 1600, "q": 2.5 },
         { "kind": "noise", "start": 0.33, "duration": 0.02, "volume": 0.12, "attack": 0.002, "from": 2900, "to": 1500, "q": 2.5 }
+      ]
+    },
+    "fireRoar": {
+      "//": "Hučení ohně (fáze 20, smyčka): hluboký šum plamene 380 Hz se zvlněním 3× za s a světlejší šum 1,5 kHz, prostorový zvuk každého ohně (data/audio.json → emitters.fire); praskání fireCrackle hraje navrch.",
+      "loop": true,
+      "layers": [
+        { "kind": "noise", "start": 0, "duration": 1, "volume": 0.3, "attack": 0.01, "from": 380, "to": 380, "q": 0.5, "envelope": "flat", "tremoloHz": 3, "tremoloDepth": 0.3 },
+        { "kind": "noise", "start": 0, "duration": 1, "volume": 0.08, "attack": 0.01, "from": 1500, "to": 1500, "q": 0.7, "envelope": "flat", "tremoloHz": 5, "tremoloDepth": 0.5 }
+      ]
+    },
+    "servoLoop": {
+      "//": "Servomotory robota (fáze 20, smyčka): kvílivá pila 220 Hz s oktávou a úzkým šumem převodovky, tepe 8× za s. Hlasitost podle rychlosti chůze robota, čtyřnožec ji hraje výš (data/audio.json → emitters.servo).",
+      "loop": true,
+      "layers": [
+        { "kind": "tone", "wave": "sawtooth", "start": 0, "duration": 0.5, "volume": 0.06, "attack": 0.01, "from": 220, "to": 220, "envelope": "flat", "tremoloHz": 8, "tremoloDepth": 0.55 },
+        { "kind": "tone", "wave": "square", "start": 0, "duration": 0.5, "volume": 0.018, "attack": 0.01, "from": 440, "to": 440, "envelope": "flat", "tremoloHz": 8, "tremoloDepth": 0.55 },
+        { "kind": "noise", "start": 0, "duration": 0.5, "volume": 0.05, "attack": 0.01, "from": 2600, "to": 2600, "q": 8, "envelope": "flat", "tremoloHz": 4, "tremoloDepth": 0.4 }
+      ]
+    },
+    "humanoidCharge": {
+      "//": "Nápřah humanoida (fáze 20): stoupající elektrické kvílení (sinus 300 → 1400 Hz) a sílící syčení během 0,4 s nápřahu.",
+      "layers": [
+        { "kind": "tone", "wave": "sine", "start": 0, "duration": 0.42, "volume": 0.12, "attack": 0.36, "from": 300, "to": 1400 },
+        { "kind": "noise", "start": 0, "duration": 0.42, "volume": 0.06, "attack": 0.34, "from": 3000, "to": 6000, "q": 3 }
+      ]
+    },
+    "humanoidShot": {
+      "//": "Výstřel humanoida (fáze 20): elektrický výboj, ostré lusknutí (čtverec 900 → 150 Hz), prskání (šum 6 → 2 kHz) a nízké dunění pily.",
+      "layers": [
+        { "kind": "tone", "wave": "square", "start": 0, "duration": 0.16, "volume": 0.13, "attack": 0.003, "from": 900, "to": 150 },
+        { "kind": "noise", "start": 0, "duration": 0.12, "volume": 0.26, "attack": 0.003, "from": 6000, "to": 2000, "q": 1.5 },
+        { "kind": "tone", "wave": "sawtooth", "start": 0, "duration": 0.22, "volume": 0.1, "attack": 0.004, "from": 120, "to": 60 }
+      ]
+    },
+    "sparkBurst": {
+      "//": "Jiskry z poškozeného robota nebo vypadávající zářivky (fáze 20): dvě suchá prasknutí a cvrknutí.",
+      "layers": [
+        { "kind": "noise", "start": 0, "duration": 0.1, "volume": 0.22, "attack": 0.002, "from": 7400, "to": 4200, "q": 2 },
+        { "kind": "noise", "start": 0.07, "duration": 0.08, "volume": 0.16, "attack": 0.002, "from": 6400, "to": 3600, "q": 2 },
+        { "kind": "tone", "wave": "square", "start": 0, "duration": 0.03, "volume": 0.04, "attack": 0.002, "from": 2600, "to": 1900 }
+      ]
+    },
+    "debrisImpact": {
+      "//": "Dopad padajícího předmětu (fáze 20, LEGACY §5 impact): tupé ťuknutí (trojúhelník 160 → 70 Hz) a křupnutí (crunch: šum 1,6 → 0,5 kHz).",
+      "layers": [
+        { "kind": "tone", "wave": "triangle", "start": 0, "duration": 0.12, "volume": 0.25, "attack": 0.002, "from": 160, "to": 70 },
+        { "kind": "noise", "start": 0, "duration": 0.14, "volume": 0.4, "attack": 0.003, "from": 1600, "to": 500, "q": 0.8 }
+      ]
+    },
+    "stepTile": {
+      "//": "Krok na dlažbě chodby (fáze 20): tvrdé cvaknutí podpatku (šum 3 → 1,5 kHz) a krátké ťuk.",
+      "layers": [
+        { "kind": "noise", "start": 0, "duration": 0.05, "volume": 0.2, "attack": 0.002, "from": 3000, "to": 1500, "q": 1.2 },
+        { "kind": "tone", "wave": "triangle", "start": 0, "duration": 0.04, "volume": 0.1, "attack": 0.002, "from": 180, "to": 90 }
+      ]
+    },
+    "stepLino": {
+      "//": "Krok na linoleu učebny (fáze 20): měkké plesknutí (šum 1,4 → 0,7 kHz) a tlumené ťuk.",
+      "layers": [
+        { "kind": "noise", "start": 0, "duration": 0.06, "volume": 0.16, "attack": 0.004, "from": 1400, "to": 700, "q": 0.8 },
+        { "kind": "tone", "wave": "triangle", "start": 0, "duration": 0.05, "volume": 0.08, "attack": 0.003, "from": 130, "to": 70 }
+      ]
+    },
+    "stepWood": {
+      "//": "Krok na parketách tělocvičny (fáze 20): dutý dřevěný tón (trojúhelník 220 → 140 Hz) a šum.",
+      "layers": [
+        { "kind": "tone", "wave": "triangle", "start": 0, "duration": 0.07, "volume": 0.16, "attack": 0.002, "from": 220, "to": 140 },
+        { "kind": "noise", "start": 0, "duration": 0.05, "volume": 0.12, "attack": 0.003, "from": 1800, "to": 900, "q": 1 }
+      ]
+    },
+    "stepStone": {
+      "//": "Krok na kamenných schodech a dlažbě dvora (fáze 20): zrnitý šum (2,4 → 1,2 kHz) se skřípnutím drobné suti.",
+      "layers": [
+        { "kind": "noise", "start": 0, "duration": 0.07, "volume": 0.2, "attack": 0.003, "from": 2400, "to": 1200, "q": 0.6 },
+        { "kind": "noise", "start": 0.02, "duration": 0.03, "volume": 0.07, "attack": 0.002, "from": 5000, "to": 3000, "q": 1.5 }
+      ]
+    },
+    "stepConcrete": {
+      "//": "Krok na betonu (fáze 20, výchozí podlaha, např. krabicová místnost): tupé plesknutí a nízké ťuk.",
+      "layers": [
+        { "kind": "noise", "start": 0, "duration": 0.06, "volume": 0.18, "attack": 0.003, "from": 1200, "to": 600, "q": 0.9 },
+        { "kind": "tone", "wave": "triangle", "start": 0, "duration": 0.05, "volume": 0.1, "attack": 0.002, "from": 140, "to": 80 }
+      ]
+    },
+    "land": {
+      "//": "Doskok (fáze 20): tupé žuchnutí (trojúhelník 110 → 50 Hz) a šum podrážek.",
+      "layers": [
+        { "kind": "tone", "wave": "triangle", "start": 0, "duration": 0.14, "volume": 0.3, "attack": 0.003, "from": 110, "to": 50 },
+        { "kind": "noise", "start": 0, "duration": 0.12, "volume": 0.22, "attack": 0.003, "from": 900, "to": 300, "q": 0.7 }
+      ]
+    },
+    "uiMove": {
+      "//": "UI (fáze 20): posun výběru v menu, krátké pípnutí.",
+      "layers": [
+        { "kind": "tone", "wave": "square", "start": 0, "duration": 0.035, "volume": 0.05, "attack": 0.002, "from": 880, "to": 990 }
+      ]
+    },
+    "uiClick": {
+      "//": "UI (fáze 20): potvrzení tlačítka, dvě pípnutí nahoru.",
+      "layers": [
+        { "kind": "tone", "wave": "square", "start": 0, "duration": 0.04, "volume": 0.06, "attack": 0.002, "from": 660, "to": 660 },
+        { "kind": "tone", "wave": "square", "start": 0.045, "duration": 0.06, "volume": 0.06, "attack": 0.002, "from": 990, "to": 990 }
+      ]
+    },
+    "uiBack": {
+      "//": "UI (fáze 20): zpět / zavření, sestupné pípnutí.",
+      "layers": [
+        { "kind": "tone", "wave": "triangle", "start": 0, "duration": 0.08, "volume": 0.1, "attack": 0.002, "from": 700, "to": 420 }
+      ]
+    },
+    "musicKick": {
+      "//": "Hudba (fáze 20): kopák chiptune smyčky, sinus 150 → 45 Hz.",
+      "layers": [
+        { "kind": "tone", "wave": "sine", "start": 0, "duration": 0.22, "volume": 0.6, "attack": 0.002, "from": 150, "to": 45 }
+      ]
+    },
+    "musicSnare": {
+      "//": "Hudba (fáze 20): virbl, šum 2 → 1,2 kHz a krátký tón.",
+      "layers": [
+        { "kind": "noise", "start": 0, "duration": 0.16, "volume": 0.35, "attack": 0.002, "from": 2000, "to": 1200, "q": 0.6 },
+        { "kind": "tone", "wave": "triangle", "start": 0, "duration": 0.08, "volume": 0.12, "attack": 0.002, "from": 220, "to": 160 }
+      ]
+    },
+    "musicHat": {
+      "//": "Hudba (fáze 20): hi-hat, krátký vysoký šum.",
+      "layers": [
+        { "kind": "noise", "start": 0, "duration": 0.04, "volume": 0.14, "attack": 0.001, "from": 9000, "to": 8000, "q": 1.5 }
       ]
     }
   }

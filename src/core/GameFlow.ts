@@ -1,4 +1,4 @@
-import { SynthSounds } from "../audio/SynthSounds";
+import { AudioService } from "../audio/AudioService";
 import type { LevelGameplay } from "../level/LevelGameplay";
 import type { LevelProgress } from "../level/LevelProgress";
 import { ProgressionConfig } from "../level/ProgressionConfig";
@@ -101,8 +101,11 @@ export class GameFlow implements MenuActions {
     this.overlay = new MenuOverlay(parent, screen, this.data.layout);
     this.pages = new MenuPages(this.overlay, this, this.settings, this.data, screen);
     this.deathScreen = new ScreenOverlay(parent, "death", screen, (trusted) => this.retry(trusted));
-    // The volume applies from the first gesture on, even before the level exists.
-    SynthSounds.for(game);
+    // The volume applies from the first gesture on, even before the level exists. The music plays from the menu on,
+    // quieter while the menu or the pause page is open (phase 20).
+    const audio = AudioService.for(game);
+    audio.addDucker("menu", () => this.overlay.visible);
+    audio.startMusic();
     game.input.onAction.add(({ action, pressed }) => {
       if (action === "pause" && pressed) this.pause();
     });

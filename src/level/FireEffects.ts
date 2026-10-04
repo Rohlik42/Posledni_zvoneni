@@ -32,8 +32,8 @@ interface Burning {
  * The fires of `level.json → fires` (phase 19, DESIGN §7 „hořící místa = bodové světlo + částice + prostorový zvuk“):
  * additive flames, smoke rising to the ceiling and embers per fire, sized by its radius and intensity
  * (`data/atmosphere.json → fire`). The flickering light is the level light of kind `fire` (`LightAnimator`). The
- * crackle is a synthesized sound repeated at random intervals, quieter with the distance to the listener (the same
- * approach as the drone's buzz; phase 20 may make it truly spatial).
+ * crackle is a synthesized sound repeated at random intervals, played at the fire (positional since phase 20, which
+ * also gives every fire a spatial roar loop through `AudioService`).
  */
 export class FireEffects {
   private readonly burning: Burning[] = [];
@@ -72,6 +72,11 @@ export class FireEffects {
     return this.burning.reduce((sum, b) => sum + b.systems.reduce((s, system) => s + system.getActiveCount(), 0), 0);
   }
 
+  /** Each fire's id, floor point and intensity (phase 20: `AudioService` gives every fire a spatial roar). */
+  sources(): { id: string; position: Vector3; intensity: number }[] {
+    return this.burning.map((b) => ({ id: b.fire.id, position: b.position.clone(), intensity: b.fire.intensity }));
+  }
+
   /** Crackle sounds played so far (heard within `sound.maxDistance`). */
   get crackleCount(): number {
     return this.crackles;
@@ -87,8 +92,8 @@ export class FireEffects {
       b.timer = this.random.range(s.interval[0], s.interval[1]);
       const distance = Vector3.Distance(ear, b.position);
       if (distance >= s.maxDistance) continue;
-      const falloff = 1 - distance / s.maxDistance;
-      this.sounds.play(s.name, s.volume * falloff * falloff * Math.min(1, b.fire.intensity));
+      // Positional since phase 20: the panner attenuates with distance and a closed door muffles it.
+      this.sounds.playAt(s.name, b.position, s.volume * Math.min(1, b.fire.intensity));
       this.crackles += 1;
     }
   }
