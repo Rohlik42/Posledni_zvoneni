@@ -587,3 +587,26 @@ Fáze 24, 2026-10-04, main @ 5c8c4ca + větev fáze 24. DESIGN §15 bod po bodu 
 - (Groom 2026-10-04) Rezerva Nízké + CPU 4× (38,5–40,1 vs 30) „pod paralelní zátěží“: šum, Playwright má `workers: 1` a fps fáze běží v rozvrhu samy; meze nesnižovat
 - (Groom 2026-10-04) Neprovedené optimalizace (merge statiky, `freezeActiveMeshes`, pooling, code-splitting, CSM okenního světla): zdokumentované rozhodnutí (DECISIONS „Fáze 21“, #11), cíle presetů splněné
 - (Groom 2026-10-04) Drobné flagy handoffů: `layout.freeSpot` ignoruje rekvizity (jen dev `?room=`, fáze 15/16/19), volné trosky nejsou v checkpointu (fáze 19, kosmetické): vědomě ponechané, bez akce
+
+## Run — směna 7 (2026-10-04)
+
+Fáze 26 a 25 (serial podle Rozvrhu, řádek 7), obě mergnuté na main: `9633423` Merge Phase 26, `fd1a63e` Merge Phase 25. Nic nepushnuto. `handoff/CONTROL.json` neexistuje (bez wind-down), STEER.md pro tuto směnu nic dalšího neukládá.
+
+**Shift gate** (`npm run test:full` na main @ `fd1a63e`, jediný skutečný běh směny; první pokus skončil exit 127 dřív, než testy začaly, protože macOS nemá `timeout`): **zelená**. Build: 1216 modulů, 0 varování, 0 chyb. test:data **131/131** (0 fail, 0 skip). Playwright **119/119** (113 e2e + 6 smoke), 1 worker, 2,4 min, 0 flaky, 0 skip. Před i po běhu čistý strom; port 5717 si spustil sám `playwright.config.ts` a po běhu ho ukončil. Tento záznam běh nespouštěl znovu a nespouštěl ani žádnou jednotlivou sadu, protože nebyl rozpor k vyřešení.
+
+| Fáze | Merged | Quick gate | Flagy |
+| --- | --- | --- | --- |
+| 26 — Stabilní průchod, cache LineOfSight, trvalé důkazy | ano (`9633423`) | typecheck 0; data 131/131 (nový `line-of-sight.test.ts` 3/3, bez opravy 2 ze 3 padají); Playwright 27/27 (smoke + `playthrough` + `menu` + `enemies-all`), 41,2 s; všech 16 `walkRoute` čisté, 424 m, 4 teleporty, 22/22 robotů; vizuální kontrola menu/obtížnost/příběh/HUD v pořádku | příčina zaseknutí `e06` je odvozená z dat, ne naměřená; `SAVE_SCREENSHOTS=1` přepsal i `screenshots/18-*.png` (vráceno, commitnut jen `16-level-end.png`); změna LOS běží i v `humanoid`/`arena`/`weapons-all` mimo quick gate; dev server :5200 neběžel (vizuální kontrola na dočasném :5299/:5301) |
+| 25 — Perf test s rezervou pod vsync, poctivé PERF.md | ano (`fd1a63e`) | 2× za sebou: typecheck 0; data 131/131; Playwright 11/11 (6 smoke + 5 `perf`); Vysoké 60,0 fps, CPU čas snímku 7,79 / 7,80 ms (mez 12 ms); Nízké + CPU 4× 39,9 / 40,1 fps; autodetekce dolů Střední 8,3 / 9,1 fps → Nízké; draw cally 879–1075 (průměr 965); vizuální kontrola učebny 30 a HUD v pořádku | `captureFrameTime` je teď zapnuté ve hře (2× `performance.now()` na snímek); `perf.spec` trvá ~35 s; údajné duplikáty „Fáze 21/24“ v DECISIONS; dev server :5200 neběžel |
+
+**Otevřené body a jejich vyřízení**
+- *e06: příčina odvozená, ne naměřená* (26): přijato. Chyba se v quick gate 26, 25 ani v shift gate nezopakovala (playthrough zelený). Když se objeví znovu, nový log `walkRoute` (`cleared`/`stuck` s `room`, `seesPlayer`, `skipped`, stavem AI) ji zachytí a `clearBlockers` průchod dokončí. Žádná akce.
+- *`SAVE_SCREENSHOTS=1` přepisuje všechny verzované snímky* (26): řešeno v rámci fáze (vrácené `18-*.png`), zapsáno v handoffu jako postup pro další fáze. Žádná akce.
+- *LOS mimo quick gate (`humanoid`, `arena`, `weapons-all`)* (26): **vyřešeno shift gate**, Playwright 119/119 je zelený, takže sady prošly i s kontrolou podpisu.
+- *Vložit log `walkRoute` z review a merge do `handoff/phase-26.md`* (26): log merge běhu se do handoffu nedostal. Shift gate prošel zeleně, takže `stuck` nenastalo. Řádky `cleared` z merge a shift gate nikdo nečetl, protože výstup běhu se neukládá. Nízká priorita, žádná akce: při dalším červeném playthrough je log součástí chybové hlášky.
+- *`captureFrameTime` zapnuté ve hře* (25): přijato. Je to vědomá cena metriky (DECISIONS „Fáze 25“) a CPU čas snímku 7,8 ms ji už obsahuje. Žádná akce.
+- *`perf.spec` ~35 s* (25): přijato. Patří jen do shift gate a quick gate fází, které měří fps. Shift gate trvá 2,4 min. Žádná akce.
+- *Duplikáty „Fáze 21“/„Fáze 24“ v sekci „Fáze 26“ v DECISIONS.md* (25): **na main nejsou**. `sort | uniq -d` přes neprázdné řádky DECISIONS.md @ `fd1a63e` nenašel žádný duplikát a sekce „Fáze 26“ má jeden záznam. Šlo o artefakt v pohledu worktree před merge. Žádná akce.
+- *Dev server http://localhost:5200 neběží* (26, 25): neblokuje. Fáze použily dočasný server, shift gate si spouští vlastní (`playwright.config.ts`, `reuseExistingServer: false`). Operátor ho spustí, pokud ho chce.
+- *Backlog — needs a human* (beze změny, viz výše): doba hraní 15–25 min člověkem, fps na Ryzen AI a slabém notebooku, poslech zvuků, push + GitHub Pages + první `npm ci`, kontrola kvízu a jmen učitelů, Tauri. Všechno zůstává na člověku.
+- *Rozvrh*: všechny řádky 1–7 mají fáze s blokem `**Done`. Podle STEER bod 4 je dalším krokem groom.
