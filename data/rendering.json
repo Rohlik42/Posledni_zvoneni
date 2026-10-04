@@ -12,5 +12,5 @@
   "vignette": { "enabled": true, "weight": 1.6, "stretch": 0.2, "color": "base.black" },
   "ssao": { "enabled": true, "ratio": 0.5, "blurRatio": 0.5, "totalStrength": 1.0, "radius": 0.5, "samples": 16, "maxZ": 60, "base": 0 },
   "fog": { "enabled": true, "mode": "linear", "density": 0.06, "start": 5, "end": 30, "color": "fog.night" },
-  "shadows": { "enabled": true, "maxLights": 2, "mapSize": 512, "maxDistance": 12, "interval": 0.25, "bias": 0.004, "darkness": 0.25, "refreshRate": 1 }
+  "shadows": { "enabled": true, "maxLights": 2, "mapSize": 512, "maxDistance": 12, "interval": 0.25, "bias": 0.004, "darkness": 0.25, "refreshRate": 2 }
 }
