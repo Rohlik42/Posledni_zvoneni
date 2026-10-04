@@ -5,6 +5,8 @@
   "outPrefix": "prague",
   "size": 2048,
   "jpegQuality": 82,
+  "//variants": "Zmenšené kopie týchž stěn (fáze 21): preset Nízké načte prague-1k_*.jpg (data/quality.json → skyboxSize, data/sky.json → variants).",
+  "variants": [{ "suffix": "-1k", "size": 1024 }],
   "//faces": "Stěny Babylon CubeTexture (px…nz) ← soubory panoramatu. Svět: +Z = západ (horní okraj půdorysu, okna ke dvoru), +X = sever; b se dívá na Mikuláše (západ), c na Hrad a sv. Tomáše (sever). up.jpg přiléhá spodní hranou ke stěně a; rotate = otočení po směru hodinových ručiček, aby přiléhal k pz.",
   "faces": {
     "px": { "file": "c" },
