@@ -39,7 +39,10 @@
     "facadeDark": "#c4a372",
     "facadeTrim": "#efe4c8",
     "facadePlinth": "#a89478",
-    "roof": "#6a6660"
+    "roof": "#6a6660",
+    "bone": "#e8e5dc",
+    "boneShade": "#c2beb4",
+    "ribGreen": "#203a2a"
   },
   "accent": {
     "red": "#ed5564",
@@ -67,7 +70,8 @@
     "toxic": "#8dff3a",
     "plasma": "#3dffc8",
     "plasmaDeep": "#12b48a",
-    "warning": "#ffd21f"
+    "warning": "#ffd21f",
+    "charge": "#3cff4e"
   },
   "keys": {
     "red": "#ff3348",

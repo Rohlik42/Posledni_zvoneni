@@ -90,6 +90,8 @@ export interface StreamData {
 export interface EffectData {
   color: string;
   colorEnd: string;
+  /** Colour of the weapon's own glowing parts (the BFG's ribs, core and vents); `color` when omitted. */
+  partColor?: string;
   /** Colour multiplier of the particles (above 1 reaches the bloom threshold). */
   glow: number;
   /** Particles per shot (drops off the water jet, impact sparks, sparks along the beam). */
@@ -261,6 +263,7 @@ export class WeaponConfig {
             {
               color: Schema.paletteRef(),
               colorEnd: Schema.paletteRef(),
+              partColor: Schema.paletteRef(),
               glow: positive(),
               particles: Schema.integer({ min: 0 }),
               size: range2(),
@@ -274,7 +277,7 @@ export class WeaponConfig {
               width: Schema.number({ min: 0.001 }),
               glowWidth: Schema.number({ min: 1 }),
             },
-            ["time", "segment", "jitter", "forks", "width", "glowWidth"],
+            ["partColor", "time", "segment", "jitter", "forks", "width", "glowWidth"],
           ),
           params: Schema.record(Schema.number()),
         },

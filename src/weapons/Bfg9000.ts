@@ -72,6 +72,8 @@ export class Bfg9000 extends Weapon {
   private readonly balls: PlasmaBalls;
   private readonly blast: EmpBlast;
   private readonly effect: EffectData;
+  /** Glow colour of the ribs, core and vents (`effect.partColor`, else the ball's colour). */
+  private readonly partColor: string;
   private readonly core: Glowing;
   private readonly ribs: Glowing[];
   private readonly vents: Glowing[];
@@ -115,6 +117,7 @@ export class Bfg9000 extends Weapon {
     super(context, data);
     const param = (name: string): number => WeaponConfig.param(data, name);
     this.effect = WeaponConfig.effect(data);
+    this.partColor = this.effect.partColor ?? this.effect.color;
     this.stageTime = param("stageTime");
     this.maxStages = param("maxStages");
     this.stages = Array.from({ length: this.maxStages }, (_, i) => ({
@@ -470,7 +473,7 @@ export class Bfg9000 extends Weapon {
     const waiting = this.charging && this.completed >= this.cap;
     const pulse = waiting ? 1 + this.fullPulse * Math.sin(t * FULL_PULSE_RATE) : 1;
     const apply = ({ material, base }: Glowing, level: number, full: number): void => {
-      material.emissiveColor = level > 0 ? base.add(PaletteColor.emissive(this.effect.color, full * level * pulse)) : base;
+      material.emissiveColor = level > 0 ? base.add(PaletteColor.emissive(this.partColor, full * level * pulse)) : base;
     };
     apply(this.core, this.coreLevel, this.coreGlow);
     for (const vent of this.vents) apply(vent, this.coreLevel, this.ventGlow);

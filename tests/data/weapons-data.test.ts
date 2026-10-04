@@ -126,7 +126,7 @@ test("weapons.json: the BFG 9000 (FEEDBACK 2026-10-04) — Doom-like plasma ball
   const p = bfg.params;
   assert.equal(p.stageTime, 1, "each stage takes 1 s");
   assert.equal(p.maxStages, 4, "four stages, one rib each");
-  assert.equal(1 / bfg.fireRate, 2, "a short 2 s cooldown after a shot");
+  assert.equal(1 / bfg.fireRate, 5, "a 5 s cooldown after a shot (FEEDBACK 2026-10-04: 2 s was too short)");
   assert.deepEqual([1, 2, 3, 4].map((n) => p[`empRadius${n}`]), [6, 9, 12, 15], "EMP radius per stage");
   for (let n = 1; n <= 4; n++) {
     assert.ok(p[`stunRadius${n}`]! > p[`empRadius${n}`]!, `stage ${n} stuns a little farther out`);

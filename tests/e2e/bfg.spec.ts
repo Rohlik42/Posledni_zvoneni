@@ -9,7 +9,7 @@ import { WeaponBench } from "../support/WeaponBench";
 // per second), the full-charge ball in flight and its EMP burst; then the charge mechanics in the long hall
 // `weapons-long` (paused, deterministic `__game.step`): 1 s per stage, n capacitors spent, the EMP radius per stage
 // measured with robots 5 / 8 / 11 / 14 m from the impact, a release before the first stage spends nothing, the reserve
-// caps the stages, the 2 s cooldown, a weapon switch cancels; finally the first full-charge shot in real time with the
+// caps the stages, the 5 s cooldown, a weapon switch cancels; finally the first full-charge shot in real time with the
 // game's own settings (Střední, 1280×720 on a Retina ×2 display like hitches.spec.ts): no frame over 50 ms from the
 // press to the end of the blast, because the ball, the trail, the shell, the flash and the arcs are pooled and drawn in
 // the load-time warm-up (the BFG is `preload`) and the charge only changes uniforms.
@@ -444,7 +444,7 @@ test.describe("charge mechanics in the long hall", () => {
     expect(await plays(bfg.sounds.empty!)).toBe(clicks + 1);
   });
 
-  test("after a shot a 2 s cooldown (HUD bar) blocks a new charge, then the chime; a weapon switch cancels a charge and spends nothing", async () => {
+  test("after a shot a 5 s cooldown (HUD bar) blocks a new charge, then the chime; a weapon switch cancels a charge and spends nothing", async () => {
     await setup(POOL_MAX, false);
     const chimes = await plays(bfg.sounds.ready!);
     await page.evaluate((ms) => window.__game!.input!.simulate("fire", ms), STAGE_MS);
