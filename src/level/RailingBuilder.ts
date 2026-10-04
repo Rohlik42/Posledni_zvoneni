@@ -6,7 +6,13 @@ const MIN_RAILING_LENGTH = 0.05;
 
 /**
  * Railings (world space) along a base line on the walking surface, flat (shaft edge) or sloped (stair flight): posts,
- * a top rail and one invisible collider slab taller than a jump, so the player cannot fall into a stair well.
+ * a top rail and one invisible collider taller than a jump, so the player cannot fall into a stair well.
+ *
+ * The collider is one upright box from the lower end of the base line to `colliderHeight` above its higher end, never
+ * a slab tilted with the flight: a tilted slab leans its end over the landing or floor at the foot of the flight by
+ * `colliderHeight × sin(slope)` (≈ 1.2 m) — an invisible blade across the walkway that pinned the player on stair
+ * landings (FEEDBACK 2026-10-04). One box rather than a staircase of boxes: the character controller catches on the
+ * seams between boxes along a wall it slides on. The extra height reaches only into the stair well and the air above.
  */
 export class RailingBuilder {
   constructor(
@@ -29,17 +35,17 @@ export class RailingBuilder {
     const offset = (p: Vec3, by: number): Vec3 => ({ x: p.x + up.x * by, y: p.y + up.y * by, z: p.z + up.z * by });
     const { material, height, colliderHeight, colliderThickness, railSize, postSize, postSpacing } = this.data;
 
+    const bottom = Math.min(from.y, to.y);
+    const colliderTop = Math.max(from.y, to.y) + colliderHeight;
     this.sink.box({
       owner,
       material,
-      center: offset(mid, colliderHeight / 2),
-      size: { x: colliderThickness, y: colliderHeight, z: length },
-      pitch: -angle,
+      center: { x: mid.x, y: (bottom + colliderTop) / 2, z: mid.z },
+      size: { x: colliderThickness, y: colliderTop - bottom, z: horizontal },
       yaw,
       visible: false,
       collide: true,
-      // The navmesh ends at the flight's or shaft's edge by itself (a drop deeper than the agent climbs); the tilted
-      // slab would lean over the landing at the foot of a flight and pinch the walkway there (phase 10).
+      // The navmesh ends at the flight's or shaft's edge by itself (a drop deeper than the agent climbs).
       navigable: false,
     });
     this.sink.box({

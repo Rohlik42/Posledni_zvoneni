@@ -35,6 +35,7 @@
     "key-blue": "Máš modrý klíč!"
   },
   "fullHealth": "Máš plné zdraví. Lékárničku si nech na potom.",
+  "fullAmmo": "{weapon}: plná zásoba, víc neuneseš. Nech to tu na potom.",
   "hud": {
     "keys": "KLÍČE",
     "seconds": "{seconds} s",

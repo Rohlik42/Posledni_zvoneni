@@ -202,6 +202,17 @@ export class Teacher {
     return plane;
   }
 
+  /**
+   * World-space bounds of the chair collider (null without physics): the level cuts them out of the navmesh, so robots
+   * and navmesh paths go around a captive teacher instead of into the collider (FEEDBACK 2026-10-04).
+   */
+  colliderBounds(): { min: Vector3; max: Vector3 } | null {
+    if (this.collider === null) return null;
+    this.collider.computeWorldMatrix(true);
+    const box = this.collider.getBoundingInfo().boundingBox;
+    return { min: box.minimumWorld.clone(), max: box.maximumWorld.clone() };
+  }
+
   /** Invisible static box over the chair (rotated with the teacher). */
   private createCollider(scene: Scene, physics: Physics): Mesh {
     const { size, center } = this.config.collider;

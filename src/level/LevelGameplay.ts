@@ -12,6 +12,7 @@ import { EnemyManager } from "../enemies/EnemyManager";
 import { DEFAULT_COUNT_DELTA, LevelEnemySpawns } from "../enemies/LevelEnemySpawns";
 import { Inventory } from "../player/Inventory";
 import { Player, type PlayerSpawn } from "../player/Player";
+import { PlayerUnstuck } from "../player/PlayerUnstuck";
 import { QuizSystem } from "../quiz/QuizSystem";
 import { Hud } from "../ui/Hud";
 import { WeaponInventory } from "../weapons/WeaponInventory";
@@ -36,6 +37,7 @@ import { RoomLighting } from "./RoomLighting";
 import { TeacherSystem } from "./TeacherSystem";
 
 const DEGREES_TO_RADIANS = Math.PI / 180;
+const HALF = 0.5;
 
 export interface LevelGameplayOptions {
   /** Start at this room's free spot instead of `spawns.player`. */
@@ -190,6 +192,7 @@ export class LevelGameplay {
     hud.setHintSource(() => doors.hint);
     const pickups = PickupField.create(game, player, inventory, lighting);
     pickups.spawnLevel(level.layout);
+    hud.showMessages(pickups.onMessage);
     // Props are lit by their room's lamps.
     for (const [room, meshes] of props?.meshesByRoom ?? []) lighting.attach(meshes, [room]);
     const countDelta = options.countDelta ?? difficulty.enemyCountDelta;
@@ -200,6 +203,8 @@ export class LevelGameplay {
       pickups.attachDrops(enemies.enemies);
       for (const enemy of enemies.enemies) lighting.track(() => LevelGameplay.robotMeshes(enemy), () => enemy.position);
     }
+    // Safety net: a player held in place by colliders while the navmesh sees free way is slid out (FEEDBACK 2026-10-04).
+    PlayerUnstuck.create(game, player, physics, navmesh, () => enemies?.enemies ?? []);
     const furniture = props !== null && colliders !== null ? { props, colliders } : null;
     const parts =
       furniture !== null
@@ -264,6 +269,12 @@ export class LevelGameplay {
     const quiz = QuizSystem.create(game, player, inventory, (item, amount, at) => pickups.spawn(item, at, { amount }));
     quiz.damageMultiplier = difficulty.quizDamageMultiplier;
     const teachers = TeacherSystem.create(game, physics, player, quiz, TeacherSystem.levelSpecs(level.layout), lighting);
+    // Teachers sit on static colliders the navmesh was baked without: cut them out like closed doors.
+    for (const teacher of teachers.teachers) {
+      const bounds = teacher.colliderBounds();
+      if (bounds !== null) navmesh.addBoxObstacle(bounds.min.add(bounds.max).scale(HALF), bounds.max.subtract(bounds.min).scale(HALF), 0, false);
+    }
+    navmesh.flush();
     doors.yieldInteract(() => teachers.takesInteract);
     hud.setHintSource(() => teachers.hint ?? doors.hint);
     hud.showMessages(quiz.onMessage);

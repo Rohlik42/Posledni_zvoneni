@@ -136,3 +136,19 @@ test("no straight collider blocks a door passage", () => {
     assert.deepEqual(blocking.map((b) => `${b.owner}/${b.material}`), [], `door ${door.id} is blocked`);
   }
 });
+
+test("only the stair slabs are tilted colliders: railing colliders stand upright and never lean over a landing (FEEDBACK 2026-10-04)", () => {
+  const tilted = pieces.boxes.filter((b) => b.collide && Math.abs(b.pitch ?? 0) > 1e-9);
+  const { colliderThickness } = greybox.stairs;
+  // A railing used to be one slab pitched with its flight; its end leaned ≈ 1.2 m over the landing below and pinned the
+  // player there. The only pitched colliders left are the slabs under the steps (their thickness is the stair's).
+  for (const box of tilted) {
+    assert.ok(!box.visible, `a visible collider is tilted at ${JSON.stringify(box.center)}`);
+    assert.equal(box.size.y, colliderThickness, `tilted collider at ${JSON.stringify(box.center)} is not a stair slab`);
+  }
+  const flights = level.stairs.reduce((n, s) => n + s.flights.length, 0);
+  assert.equal(tilted.length, flights, "one tilted slab per flight");
+  const railings = pieces.boxes.filter((b) => b.collide && !b.visible && b.material === greybox.railings.material);
+  assert.ok(railings.length > 0);
+  for (const r of railings) assert.ok(Math.abs(r.pitch ?? 0) < 1e-9 && Math.abs(r.roll ?? 0) < 1e-9, `railing collider at ${JSON.stringify(r.center)} is tilted`);
+});

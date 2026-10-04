@@ -60,6 +60,18 @@
   "health": {
     "max": 150
   },
+  "unstuck": {
+    "//": "Záchranná síť proti zaseknutí (src/player/PlayerUnstuck.ts, FEEDBACK 2026-10-04). Kdo drží pohyb déle než stuckSeconds s a nepohne se o víc než minMove m, a navmesh i paprsky ve výškách rayHeights m nad chodidly (délka probeDistance m) tím směrem cestu vidí, toho tiše posune o nudgeDistance m po navmeshi ve směru, kam chce jít. Kdo stojí dál než offNavmesh m vodorovně (nebo offNavmeshVertical m svisle) od navmeshe, toho vrátí na nejbližší bod navmeshe. Nic se nestane u zavřených dveří (paprsek i navmesh je zastaví) ani blíž než enemyClearance m od živého robota. surfaceProbe = jak vysoko nad bodem navmeshe a jak hluboko pod něj hledá paprsek skutečnou podlahu (m).",
+    "stuckSeconds": 3,
+    "minMove": 0.3,
+    "nudgeDistance": 0.5,
+    "probeDistance": 0.6,
+    "rayHeights": [0.6, 1.0, 1.5],
+    "offNavmesh": 0.45,
+    "offNavmeshVertical": 0.8,
+    "enemyClearance": 1.5,
+    "surfaceProbe": [0.5, 0.8]
+  },
   "damageOverlay": {
     "//": "Červené okraje obrazovky (src/ui/DamageOverlay.ts). Záblesk = max(minIntensity, damage / fullAtDamage), slábne o fadePerSecond. Pod lowHealthFraction zůstane trvalý slabý okraj lowHealthIntensity.",
     "color": "ui.damage",

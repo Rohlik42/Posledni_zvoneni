@@ -24,6 +24,8 @@ export interface TextsData {
   /** Toast per item id of data/pickups.json. */
   items: Record<string, string>;
   fullHealth: string;
+  /** A pickup's ammo does not fit any more (`{weapon}` = the weapon's name); the pickup stays on the floor. */
+  fullAmmo: string;
   hud: { keys: string; seconds: string; powerUps: Record<string, string> };
   /** Hints and names around captive teachers (phase 11). */
   teachers: { controls: string; hintFree: string; hintTalk: string; nameWithNickname: string; left: string };
@@ -93,6 +95,7 @@ export class Texts {
     keys: Schema.object({ red: Schema.string(), yellow: Schema.string(), blue: Schema.string() }),
     items: Schema.record(Schema.string()),
     fullHealth: Schema.string(),
+    fullAmmo: Schema.string(),
     hud: Schema.object({ keys: Schema.string(), seconds: Schema.string(), powerUps: Schema.record(Schema.string()) }),
     teachers: Schema.object({
       controls: Schema.string(),

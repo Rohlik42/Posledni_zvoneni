@@ -1,11 +1,13 @@
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
-import type { Observer } from "@babylonjs/core/Misc/observable";
+import { Observable, type Observer } from "@babylonjs/core/Misc/observable";
 import type { Scene } from "@babylonjs/core/scene";
 import type { Game } from "../core/Game";
 import { TestHooks } from "../core/TestHooks";
 import type { DropEvent, Enemy } from "../enemies/Enemy";
 import type { Inventory } from "../player/Inventory";
 import type { Player, Vec3Like } from "../player/Player";
+import { Texts } from "../utils/Texts";
+import { WeaponConfig } from "../weapons/WeaponConfig";
 import { KeyPickup } from "./KeyPickup";
 import { LevelLayout } from "./LevelLayout";
 import { Pickup } from "./Pickup";
@@ -40,6 +42,8 @@ export interface PickupsTestApi {
   readonly collected: number;
   /** Pickups spawned from robot drops (`Enemy.onDrop`). */
   readonly dropped: number;
+  /** Toasts of pickups left lying because they would do nothing (full health, full ammo), oldest first. */
+  refusals: () => string[];
 }
 
 declare module "../core/TestHooks" {
@@ -51,10 +55,14 @@ declare module "../core/TestHooks" {
 /**
  * Every collectable of a scene: level pickups (`data/level.json → pickups`), robot drops (`Enemy.onDrop`, phase 4) and
  * whatever a scene places. In the fixed step it checks whether the player touches one and hands it to the
- * `Inventory`; a pickup the inventory cannot use (full health, full ammo) stays on the floor. Models spin and bob per
- * frame on simulated time. With `RoomLighting` (level) each pickup is lit by its room and a key glows only there.
+ * `Inventory`; a pickup the inventory cannot use (full health, full ammo) stays on the floor and says why once per
+ * touch (`onMessage`, the HUD shows it as a toast — FEEDBACK 2026-10-04: walking over a medkit at full health looked like
+ * a broken pickup). Models spin and bob per frame on simulated time. With `RoomLighting` (level) each pickup is lit by
+ * its room and a key glows only there.
  */
 export class PickupField {
+  /** Why a touched pickup stays on the floor (toast text). */
+  readonly onMessage = new Observable<string>();
   private readonly data: PickupsData;
   private readonly pickups: Pickup[] = [];
   private readonly removeSystem: () => void;
@@ -64,6 +72,9 @@ export class PickupField {
   private serial = 0;
   private layout: LevelLayout | null = null;
   private readonly levelIds = new Set<string>();
+  /** Refused pickups the player still touches (their toast was shown on the first touch). */
+  private readonly refusedTouching = new Set<Pickup>();
+  private readonly refusalLog: string[] = [];
 
   private constructor(
     private readonly game: Game,
@@ -134,6 +145,7 @@ export class PickupField {
     }
     this.pickups.length = 0;
     this.levelIds.clear();
+    this.refusedTouching.clear();
     if (this.layout !== null) this.spawnLevel(this.layout, snapshot.collected);
     for (const extra of snapshot.extras) this.spawn(extra.item, Vector3.FromArray(extra.position), { amount: extra.amount ?? undefined });
   }
@@ -148,6 +160,8 @@ export class PickupField {
     this.game.scene.onBeforeRenderObservable.remove(this.frameObserver);
     for (const pickup of this.pickups) pickup.dispose();
     this.pickups.length = 0;
+    this.refusedTouching.clear();
+    this.onMessage.clear();
   }
 
   private isLying(id: string): boolean {
@@ -164,14 +178,40 @@ export class PickupField {
     if (this.player.health.isDead) return;
     const feet = this.player.controller.position;
     for (const pickup of this.pickups) {
-      if (pickup.collected || !pickup.touches(feet)) continue;
-      if (!this.inventory.canTake(pickup.item, pickup.amount)) continue;
+      if (pickup.collected || !pickup.touches(feet)) {
+        this.refusedTouching.delete(pickup);
+        continue;
+      }
+      if (!this.inventory.canTake(pickup.item, pickup.amount)) {
+        this.refuse(pickup);
+        continue;
+      }
+      this.refusedTouching.delete(pickup);
       this.inventory.give(pickup.item, pickup.amount);
       this.lighting?.detach(pickup.meshes);
       if (pickup instanceof KeyPickup) this.lighting?.removeLight(pickup.light);
       pickup.collect();
       this.collectedCount++;
     }
+  }
+
+  /** Tells the player once per touch why `pickup` stays lying (full health, full ammo). */
+  private refuse(pickup: Pickup): void {
+    if (this.refusedTouching.has(pickup)) return;
+    this.refusedTouching.add(pickup);
+    const message = PickupField.refusalText(pickup.data);
+    if (message === null) return;
+    this.refusalLog.push(message);
+    this.onMessage.notifyObservers(message);
+  }
+
+  /** The toast for an item the inventory refuses, or null when there is nothing to say. */
+  private static refusalText(item: Pickup["data"]): string | null {
+    const texts = Texts.load();
+    if (item.kind === "health") return texts.fullHealth;
+    if (item.kind !== "ammo") return null;
+    const weapon = WeaponConfig.load().weapons.find((w) => w.id === item.weapon);
+    return Texts.format(texts.fullAmmo, { weapon: weapon?.name ?? item.weapon ?? "" });
   }
 
   private animate(): void {
@@ -198,6 +238,7 @@ export class PickupField {
       get dropped() {
         return field.droppedCount;
       },
+      refusals: () => [...field.refusalLog],
     });
   }
 }

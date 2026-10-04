@@ -56,11 +56,26 @@ export interface DamageOverlayData {
   lowHealthIntensity: number;
 }
 
+/** Safety net against getting stuck (`PlayerUnstuck`); metres and seconds. */
+export interface PlayerUnstuckData {
+  stuckSeconds: number;
+  minMove: number;
+  nudgeDistance: number;
+  probeDistance: number;
+  rayHeights: number[];
+  offNavmesh: number;
+  offNavmeshVertical: number;
+  enemyClearance: number;
+  /** How far above and below a navmesh point the floor ray starts and ends. */
+  surfaceProbe: [number, number];
+}
+
 export interface PlayerData {
   body: PlayerBodyData;
   movement: PlayerMovementData;
   camera: PlayerCameraData;
   health: { max: number };
+  unstuck: PlayerUnstuckData;
   damageOverlay: DamageOverlayData;
 }
 
@@ -120,6 +135,17 @@ export class PlayerConfig {
       maxShakeOffset: Schema.number({ min: 0, max: 0.3 }),
     }),
     health: Schema.object({ max: Schema.number({ min: 1 }) }),
+    unstuck: Schema.object({
+      stuckSeconds: Schema.number({ min: 0.5 }),
+      minMove: positive(),
+      nudgeDistance: Schema.number({ min: 0.05, max: 2 }),
+      probeDistance: positive(),
+      rayHeights: Schema.array(positive(), 1),
+      offNavmesh: positive(),
+      offNavmeshVertical: positive(),
+      enemyClearance: positive(),
+      surfaceProbe: Schema.array(positive(), 2, 2),
+    }),
     damageOverlay: Schema.object({
       color: Schema.paletteRef(),
       fullAtDamage: Schema.number({ min: 1 }),
