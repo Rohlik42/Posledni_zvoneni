@@ -1,5 +1,5 @@
 {
-  "//": "Skybox (src/rendering/Skybox.ts): noční panorama Prahy z Matterport terasy, cube map z tools/prague-skybox.ts. Okna nemají vlastní obrázek, je přes ně vidět tahle obloha. 'texture' je cesta pod public/ bez přípony stěny (_px.jpg …). yawDeg doladí orientaci: svět +Z = západ (Mikuláš), +X = sever (Hrad, sv. Tomáš), DECISIONS „Fáze F1“. 'level' = jas (skybox není osvětlený ani v mlze).",
+  "//": "Skybox (src/rendering/Skybox.ts): noční panorama Prahy z Matterport terasy, cube map z tools/prague-skybox.ts. Okna nemají vlastní obrázek, je přes ně vidět tahle obloha. 'texture' je cesta pod public/ bez přípony stěny (_px.jpg …). yawDeg doladí orientaci: svět +Z = západ (Mikuláš), +X = sever (Hrad, sv. Tomáš), DECISIONS „Fáze F1“. 'level' = expozice oblohy (násobí texturu před tone mappingem; skybox není osvětlený, mlha, SSAO ani stíny na něj nepůsobí; fáze F2: 2,0, aby fotka byla vidět i z tmavé učebny přes ACES).",
   "enabled": true,
   "texture": "textures/sky/prague",
   "extension": ".jpg",
@@ -8,5 +8,5 @@
   "variants": { "1024": "textures/sky/prague-1k" },
   "size": 160,
   "yawDeg": 0,
-  "level": 1.5
+  "level": 2.0
 }
