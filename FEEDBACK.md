@@ -21,3 +21,5 @@ Zapracováno 2026-10-03
 
 - **Svislé pruhy ve výhledu z oken jsou problém** (`screenshots/24-game.png`).
 - **Skybox měl být skutečná fotka Prahy**, ne silueta; to se po cestě ztratilo → Phase F2 (fotka z terasy školy s převodem den→noc, bez per-sloupcového zpracování).
+
+Zapracováno 2026-10-04
