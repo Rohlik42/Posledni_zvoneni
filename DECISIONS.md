@@ -584,3 +584,5 @@ Měřeno ve hře, ne spočítáno: `tests/e2e/weapons-balance.spec.ts` v nové d
 - **FEEDBACK 2026-10-04 — Hasičák v ruce natočený −1,6° / −1,9° místo 0° / −18°:** proud jde z hubice na bod pod zaměřovačem, takže osa hubice musí mířit tam; úhly jsou spočtené tak, aby osa z polohy hubice protnula střed obrazu 8 m před hráčem (na 6–10 m se liší pod 1°).
 
 - **FEEDBACK 2026-10-05 — IDKFA dává nekonečnou munici do všech zbraní:** zásobníky a nádržky se nespotřebovávají, BFG neodebírá sdílené kondenzátory, HUD ukazuje ∞ a bonus zůstává aktivní při obnově checkpointu v téže hře.
+
+- **FEEDBACK 2026-10-05 — IDDQD zobrazuje ∞ místo čísla životů:** HUD používá existující infiniteSymbol při aktivním god mode a po vypnutí opět ukáže skutečný počet životů.

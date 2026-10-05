@@ -229,7 +229,7 @@ export class Hud {
     this.hintElement.style.display = hint === null ? "none" : "block";
     const { health } = this.player;
     const fraction = health.max > 0 ? Math.max(0, health.health / health.max) : 0;
-    this.healthValue.textContent = String(Math.ceil(health.health));
+    this.healthValue.textContent = this.game.cheats.isOn("god") ? this.data.infiniteSymbol : String(Math.ceil(health.health));
     this.healthFill.style.width = `${(fraction * PERCENT).toFixed(1)}%`;
     this.healthFill.style.background = Palette.hex(fraction <= this.data.lowHealthFraction ? this.data.colors.hpLow : this.data.colors.hpOk);
 
