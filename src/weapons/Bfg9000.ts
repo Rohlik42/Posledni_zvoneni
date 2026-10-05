@@ -370,7 +370,7 @@ export class Bfg9000 extends Weapon {
       this.cancels++;
       return;
     }
-    this.ammoReserve.take(n);
+    if (!this.infiniteAmmo) this.ammoReserve.take(n);
     this.registerShot();
     this.cooling = true;
     this.launch(n);

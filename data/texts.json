@@ -88,7 +88,7 @@
   "cheats": {
     "//": "Cheaty (src/core/Cheats.ts, kódy v data/input.json → cheats): toasty při zadání a štítky v HUD vlevo nahoře, dokud cheat platí.",
     "god": { "on": "IDDQD — nesmrtelnost zapnutá", "off": "IDDQD — nesmrtelnost vypnutá" },
-    "arsenal": "IDKFA — všechny zbraně, plné náboje a všechny klíče",
+    "arsenal": "IDKFA — všechny zbraně, nekonečno nábojů a všechny klíče",
     "noclip": { "on": "IDCLIP — procházíš zdmi (mezerník nahoru, Shift nebo C dolů)", "off": "IDCLIP — zase pevná zem pod nohama" },
     "badges": { "god": "IDDQD · NESMRTELNOST", "noclip": "IDCLIP · PRŮCHOD ZDMI" }
   },

@@ -136,6 +136,7 @@ export class WeaponInventory {
   /** Switch progress: 0–0.5 lowering the old weapon, 0.5–1 raising the new one; 1 = done. */
   private switchProgress = 1;
   private shotTotal = 0;
+  private infiniteAmmo = false;
   private last: ShotEvent | null = null;
   private readonly removeSystem: () => void;
   private readonly frameObserver: Observer<Scene>;
@@ -212,6 +213,7 @@ export class WeaponInventory {
     const weapon = this.spare.get(id) ?? this.build(data);
     this.spare.delete(id);
     weapon.arm();
+    if (this.infiniteAmmo) weapon.enableInfiniteAmmo();
     this.owned.set(id, weapon);
     if (this.current === null) this.beginSwitch(weapon);
     return true;
@@ -333,11 +335,14 @@ export class WeaponInventory {
     return true;
   }
 
-  /** IDKFA (FEEDBACK 2026-10-04): every enabled weapon, magazine and reserve full (shared reserves too). */
+  /** IDKFA: every enabled weapon, full magazines and permanently unlimited ammunition for this game. */
   giveArsenal(): void {
+    this.infiniteAmmo = true;
     for (const data of this.data.weapons) {
       if (!this.give(data.id)) continue;
-      this.owned.get(data.id)!.setAmmo(data.ammo.capacity, WeaponConfig.reserveMax(data));
+      const weapon = this.owned.get(data.id)!;
+      weapon.setAmmo(data.ammo.capacity, WeaponConfig.reserveMax(data));
+      weapon.enableInfiniteAmmo();
     }
   }
 

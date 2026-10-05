@@ -248,10 +248,10 @@ export class Hud {
     // A shared reserve (capacitors of the railgun and the BFG) is labelled, so both weapons read as one supply.
     const shared = weapon.data.ammoType === undefined ? "" : ` ${WeaponConfig.ammoType(weapon.data.ammoType).hudLabel}`;
     this.ammoName.textContent = `${this.data.labels.ammo} · ${weapon.data.name}`;
-    this.ammoValue.textContent = amount(weapon.magazine);
+    this.ammoValue.textContent = weapon.infiniteAmmo ? this.data.infiniteSymbol : amount(weapon.magazine);
     // Without a magazine the big number is the reserve; a shared one is still labelled (BFG 9000: „12 kond.“).
-    this.ammoRest.textContent = capacity > 0 ? `/ ${capacity} · ${reserve}${shared}` : shared.trim();
-    const low = capacity > 0 && magazine <= capacity * this.data.ammoLowFraction;
+    this.ammoRest.textContent = weapon.infiniteAmmo ? shared.trim() : capacity > 0 ? `/ ${capacity} · ${reserve}${shared}` : shared.trim();
+    const low = !weapon.infiniteAmmo && capacity > 0 && magazine <= capacity * this.data.ammoLowFraction;
     this.ammoValue.style.color = low ? Palette.hex(this.data.colors.ammoLow) : "";
     this.showRecharge(this.rechargeState(weapon));
   }

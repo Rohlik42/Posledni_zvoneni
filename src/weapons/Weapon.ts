@@ -116,6 +116,7 @@ export abstract class Weapon {
   protected readonly ammoReserve: AmmoReserve;
   protected reloadRemaining = 0;
   protected shotCount = 0;
+  private endlessAmmo = false;
 
   private cooldown = 0;
   private sinceShot = Number.POSITIVE_INFINITY;
@@ -174,7 +175,18 @@ export abstract class Weapon {
 
   /** Ammo left to reload from; `Infinity` for an endless reserve. Shared with other weapons of the same `ammoType`. */
   get reserve(): number {
-    return this.ammoReserve.amount;
+    return this.infiniteAmmo ? Number.POSITIVE_INFINITY : this.ammoReserve.amount;
+  }
+
+  /** IDKFA keeps magazines, tanks and shared ammunition available without consumption. */
+  get infiniteAmmo(): boolean {
+    return this.endlessAmmo;
+  }
+
+  enableInfiniteAmmo(): void {
+    this.endlessAmmo = true;
+    this.refill();
+    this.reloadRemaining = 0;
   }
 
   /** The reserve itself (shared by weapons of one `ammoType`). */
@@ -192,6 +204,7 @@ export abstract class Weapon {
 
   /** How much ammo still fits: into the tank for `usesTank`, else into the reserve. */
   get ammoRoom(): number {
+    if (this.infiniteAmmo) return 0;
     return this.usesTank ? Math.max(0, this.data.ammo.capacity - this.magazineAmmo) : this.ammoReserve.room;
   }
 
@@ -224,6 +237,7 @@ export abstract class Weapon {
 
   /** Adds reserve ammo up to its limit (a tank weapon fills its tank); returns how much was taken. */
   addAmmo(amount: number): number {
+    if (this.infiniteAmmo) return 0;
     if (!this.usesTank) return this.ammoReserve.add(amount);
     const taken = Math.max(0, Math.min(amount, this.ammoRoom));
     this.magazineAmmo += taken;
@@ -267,7 +281,7 @@ export abstract class Weapon {
    */
   setAmmo(magazine: number, reserve: number): void {
     const { ammo } = this.data;
-    this.magazineAmmo = Math.min(ammo.capacity, Math.max(0, magazine));
+    this.magazineAmmo = this.infiniteAmmo ? ammo.capacity : Math.min(ammo.capacity, Math.max(0, magazine));
     this.ammoReserve.set(reserve);
     this.reloadRemaining = 0;
   }
@@ -502,6 +516,7 @@ export abstract class Weapon {
   }
 
   protected startReload(): void {
+    if (this.infiniteAmmo) return;
     const { ammo } = this.data;
     if (ammo.capacity === 0 || ammo.reloadTime <= 0 || this.magazineAmmo >= ammo.capacity || this.ammoReserve.amount <= 0) return;
     this.reloadRemaining = ammo.reloadTime;
@@ -522,12 +537,14 @@ export abstract class Weapon {
   protected reloaded(): void {}
 
   protected hasAmmo(): boolean {
+    if (this.infiniteAmmo) return true;
     const { ammo } = this.data;
     if (ammo.capacity > 0) return this.magazineAmmo >= ammo.perShot;
     return this.ammoReserve.amount >= ammo.perShot;
   }
 
   private consumeAmmo(): void {
+    if (this.infiniteAmmo) return;
     const { ammo } = this.data;
     if (ammo.capacity > 0) this.magazineAmmo -= ammo.perShot;
     else this.ammoReserve.take(ammo.perShot);
